@@ -60,6 +60,7 @@
 
 html, body {
   min-height: 100vh;
+  max-width: 100vw;
   background-color: var(--color-bg-dark);
   color: var(--color-text-white);
   font-family: var(--font-kanit);
@@ -118,6 +119,8 @@ a {
   display: grid;
   grid-template-columns: 280px 1fr;
   min-height: 100vh;
+  max-width: 100vw;
+  overflow-x: hidden;
 }
 
 /* --- Sidebar Navigation --- */
@@ -287,6 +290,8 @@ a {
   display: flex;
   flex-direction: column;
   gap: 20px;
+  min-width: 0;
+  max-width: 100%;
 }
 
 .top-header {
@@ -785,6 +790,7 @@ a {
 /* --- Tables (Comparison / Logs) --- */
 .table-responsive {
   overflow-x: auto;
+  max-width: 100%;
   border: var(--border-thick);
   border-radius: 8px;
   background-color: var(--color-bg-card);

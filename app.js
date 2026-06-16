@@ -4,18 +4,18 @@
 
 // --- INITIAL STATE / MOCK DATA ---
 const INITIAL_PORTFOLIOS = [
-  { id: '1', name: 'RedWing (กยศ.)', category: 'Cash Buffer & หุ้นย่อย', goalType: 'numeric', goal: 60000, current: 45000, cashBuffer: 15000, dryPowder: 5000, assets: [{ name: 'หุ้นย่อย A', value: 25000 }], startDate: '2025-01-01', notes: 'เน้นสำรองจ่ายและรักษาสภาพคล่อง' },
-  { id: '2', name: 'Zero 1 (เงินฉุกเฉิน)', category: 'Emergency', goalType: 'numeric', goal: 95000, current: 90000, cashBuffer: 90000, dryPowder: 0, assets: [], startDate: '2025-01-01', notes: 'เงินสำรองห้ามแตะต้องเว้นแต่จำเป็น' },
-  { id: '3', name: 'Zero 2 (รถ)', category: 'Asset', goalType: 'numeric', goal: 1200000, current: 350000, cashBuffer: 50000, dryPowder: 300000, assets: [], startDate: '2025-01-01', notes: 'สะสมดาวน์รถยนต์คันใหม่' },
-  { id: '4', name: 'Zero 3 (เกษียณ)', category: 'Retirement', goalType: 'numeric', goal: 4000000, current: 850000, cashBuffer: 100000, dryPowder: 750000, assets: [{ name: 'กองทุนดัชนี', value: 750000 }], startDate: '2025-01-01', notes: 'พอร์ตหลักระยะยาว พลิกฟื้นอิสรภาพ' },
-  { id: '5', name: 'Zero 4 (แต่งงาน)', category: 'Life Goal', goalType: 'numeric', goal: 600000, current: 150000, cashBuffer: 30000, dryPowder: 120000, assets: [], startDate: '2025-05-01', notes: 'ทุนแต่งงานในอนาคต' },
-  { id: '6', name: 'Zero 5 (บ้าน)', category: 'Asset', goalType: 'numeric', goal: 1500000, current: 200000, cashBuffer: 20000, dryPowder: 180000, assets: [], startDate: '2025-06-01', notes: 'เป้าหมายระยะกลางสำหรับที่อยู่อาศัย' },
-  { id: '7', name: 'Dividend Yield (หุ้นโลก)', category: 'Global Stock', goalType: 'numeric', goal: 300000, current: 120000, cashBuffer: 20000, dryPowder: 100000, assets: [{ name: 'ETF โลก', value: 100000 }], startDate: '2025-02-01', notes: 'ปันผลสม่ำเสมอ ลดความเสี่ยงค่าเงิน' },
-  { id: '8', name: 'THAI Dividend (หุ้นไทย)', category: 'Thai Stock', goalType: 'numeric', goal: 100000, current: 65000, cashBuffer: 10000, dryPowder: 55000, assets: [{ name: 'หุ้นปันผลไทย', value: 55000 }], startDate: '2025-01-15', notes: 'เน้นกระแสเงินสดจากปันผลในประเทศ' },
-  { id: '9', name: 'NEXT GEN (หุ้นเติบโต)', category: 'Growth Stock', goalType: 'schedule', goalSchedule: 'DCA ทุกวันที่ 25', current: 4500000, cashBuffer: 500000, dryPowder: 4000000, assets: [{ name: 'Tech Growth', value: 4000000 }], startDate: '2025-03-01', notes: 'พอร์ตซิ่ง ดุดัน ไม่เกรงใจใคร โตระยะยาว', dcaDoneThisMonth: true },
-  { id: '10', name: 'FOREX LIFE', category: 'Forex', goalType: 'numeric', goal: 50000, current: 12500, cashBuffer: 2500, dryPowder: 10000, assets: [], startDate: '2025-01-01', notes: 'เทรดกระแสเงินสดรายเดือน ดอลลาร์สหรัฐ' },
-  { id: '11', name: 'FOREX RISK', category: 'Forex', goalType: 'numeric', goal: 20000, current: 5200, cashBuffer: 1200, dryPowder: 4000, assets: [], startDate: '2025-01-01', notes: 'พอร์ตเสี่ยงสูง ปั้นพอร์ตคูณเท่า' },
-  { id: '12', name: 'OPTION (เก็งกำไรค่าเงิน)', category: 'Option', goalType: 'numeric', goal: 30000, current: 8900, cashBuffer: 1900, dryPowder: 7000, assets: [], startDate: '2025-02-01', notes: 'ใช้กลยุทธ์ออปชั่นในการ Hedging และทำกำไร' }
+  { id: '1', name: 'RedWing (กยศ.)', category: 'Cash Buffer & หุ้นย่อย', goalType: 'numeric', goal: 60000, current: 30000, cashBuffer: 15000, dryPowder: 5000, assets: [{ name: 'หุ้นย่อย A', value: 25000 }], startDate: '2025-01-01', notes: 'เน้นสำรองจ่ายและรักษาสภาพคล่อง' },
+  { id: '2', name: 'Zero 1 (เงินฉุกเฉิน)', category: 'Emergency', goalType: 'numeric', goal: 95000, current: 0, cashBuffer: 90000, dryPowder: 0, assets: [], startDate: '2025-01-01', notes: 'เงินสำรองห้ามแตะต้องเว้นแต่จำเป็น' },
+  { id: '3', name: 'Zero 2 (รถ)', category: 'Asset', goalType: 'numeric', goal: 1200000, current: 300000, cashBuffer: 50000, dryPowder: 300000, assets: [], startDate: '2025-01-01', notes: 'สะสมดาวน์รถยนต์คันใหม่' },
+  { id: '4', name: 'Zero 3 (เกษียณ)', category: 'Retirement', goalType: 'numeric', goal: 4000000, current: 750000, cashBuffer: 100000, dryPowder: 750000, assets: [{ name: 'กองทุนดัชนี', value: 750000 }], startDate: '2025-01-01', notes: 'พอร์ตหลักระยะยาว พลิกฟื้นอิสรภาพ' },
+  { id: '5', name: 'Zero 4 (แต่งงาน)', category: 'Life Goal', goalType: 'numeric', goal: 600000, current: 120000, cashBuffer: 30000, dryPowder: 120000, assets: [], startDate: '2025-05-01', notes: 'ทุนแต่งงานในอนาคต' },
+  { id: '6', name: 'Zero 5 (บ้าน)', category: 'Asset', goalType: 'numeric', goal: 1500000, current: 180000, cashBuffer: 20000, dryPowder: 180000, assets: [], startDate: '2025-06-01', notes: 'เป้าหมายระยะกลางสำหรับที่อยู่อาศัย' },
+  { id: '7', name: 'Dividend Yield (หุ้นโลก)', category: 'Global Stock', goalType: 'numeric', goal: 300000, current: 100000, cashBuffer: 20000, dryPowder: 100000, assets: [{ name: 'ETF โลก', value: 100000 }], startDate: '2025-02-01', notes: 'ปันผลสม่ำเสมอ ลดความเสี่ยงค่าเงิน' },
+  { id: '8', name: 'THAI Dividend (หุ้นไทย)', category: 'Thai Stock', goalType: 'numeric', goal: 100000, current: 55000, cashBuffer: 10000, dryPowder: 55000, assets: [{ name: 'หุ้นปันผลไทย', value: 55000 }], startDate: '2025-01-15', notes: 'เน้นกระแสเงินสดจากปันผลในประเทศ' },
+  { id: '9', name: 'NEXT GEN (หุ้นเติบโต)', category: 'Growth Stock', goalType: 'schedule', goalSchedule: 'DCA ทุกวันที่ 25', current: 4000000, cashBuffer: 500000, dryPowder: 4000000, assets: [{ name: 'Tech Growth', value: 4000000 }], startDate: '2025-03-01', notes: 'พอร์ตซิ่ง ดุดัน ไม่เกรงใจใคร โตระยะยาว', dcaDoneThisMonth: true },
+  { id: '10', name: 'FOREX LIFE', category: 'Forex', goalType: 'numeric', goal: 50000, current: 10000, cashBuffer: 2500, dryPowder: 10000, assets: [], startDate: '2025-01-01', notes: 'เทรดกระแสเงินสดรายเดือน ดอลลาร์สหรัฐ' },
+  { id: '11', name: 'FOREX RISK', category: 'Forex', goalType: 'numeric', goal: 20000, current: 4000, cashBuffer: 1200, dryPowder: 4000, assets: [], startDate: '2025-01-01', notes: 'พอร์ตเสี่ยงสูง ปั้นพอร์ตคูณเท่า' },
+  { id: '12', name: 'Option', category: 'Option', goalType: 'numeric', goal: 30000, current: 7000, cashBuffer: 1900, dryPowder: 7000, assets: [], startDate: '2025-02-01', notes: 'ใช้กลยุทธ์ออปชั่นในการ Hedging และทำกำไร' }
 ];
 
 const INITIAL_QUARTERLY_RECORDS = [
@@ -252,7 +252,7 @@ class PixelStewardApp {
       }
     });
 
-    const netWorthTHB = totalTHB + (totalUSD * this.exchangeRate);
+    const netWorthTHB = totalTHB + (totalUSD * this.exchangeRate) + totalCashBufferTHB;
     const netWorthUSD = netWorthTHB / this.exchangeRate;
     const totalLiquidityTHB = totalCashBufferTHB + totalDryPowderTHB;
 
@@ -278,40 +278,103 @@ class PixelStewardApp {
       };
     }
     
-    const pct = p.goal > 0 ? (p.current / p.goal) * 100 : 0;
+    const pct = p.goal > 0 ? ((p.current + p.cashBuffer) / p.goal) * 100 : 0;
     
     // Categorize by name keywords or categories
     const nameLower = p.name.toLowerCase();
     
     if (nameLower.includes('บ้าน') || nameLower.includes('house') || nameLower.includes('zero 5')) {
       if (pct >= 80) return { icon: '🏰', label: 'วิหารทองคำ', desc: 'ปลดล็อกสกินขอบทองขั้นสุดยอด!', pct };
-      if (pct >= 40) return { icon: '🏡', label: 'บ้านเดี่ยวโมเดิร์น', desc: 'ฐานรากมั่นคง คอนกรีตเสริมเหล็ก', pct };
-      return { icon: '⛺', label: 'กระต๊อบแคมป์ปิ้ง', desc: 'เพิ่งปักหลักเข็มเสร็จเลเวล 1', pct };
+      if (pct >= 40) return { icon: '🏡', label: 'บ้านโมเดิร์น', desc: 'ฐานรากมั่นคง คอนกรีตเสริมเหล็ก', pct };
+      return { icon: '⛺', label: 'กระต๊อบ', desc: 'เพิ่งปักหลักเข็มเสร็จเลเวล 1', pct };
     }
     
     if (nameLower.includes('รถ') || nameLower.includes('car') || nameLower.includes('zero 2')) {
-      if (pct >= 80) return { icon: '🏎️', label: 'Hypercar เทอร์โบไนตรัส', desc: 'ซิ่งแซงหน้าความจน!', pct };
-      if (pct >= 40) return { icon: '🚗', label: 'Sedan ไฟฟ้ารักษ์โลก', desc: 'เดินทางอุ่นใจสไตล์ครอบครัว', pct };
-      return { icon: '🚲', label: 'จักรยานสามล้อเก๋าๆ', desc: 'เริ่มปั่นชิวสะสมไมล์', pct };
+      if (pct >= 80) return { icon: '🏎️', label: 'ซูเปอร์คาร์', desc: 'ซิ่งแซงหน้าความจน!', pct };
+      if (pct >= 40) return { icon: '🚗', label: 'รถเก๋ง', desc: 'เดินทางอุ่นใจสไตล์ครอบครัว', pct };
+      return { icon: '🚲', label: 'จักรยาน', desc: 'เริ่มปั่นชิวสะสมไมล์', pct };
     }
     
     if (nameLower.includes('แต่งงาน') || nameLower.includes('wedding') || nameLower.includes('zero 4')) {
-      if (pct >= 80) return { icon: '👑', label: 'ราชาภิเษกหวานชื่น', desc: 'งานแต่งในฝันดั่งนิยายกรีก', pct };
-      if (pct >= 40) return { icon: '💍', label: 'แหวนเพชรเม็ดงามสลักลาย', desc: 'เควสหัวใจเริ่มสว่างสดใส', pct };
-      return { icon: '🌸', label: 'ช่อดอกไม้วาเลนไทน์', desc: 'จุดเริ่มต้นความสัมพันธ์ที่งดงาม', pct };
+      if (pct >= 80) return { icon: '👑', label: 'มงกุฎราชา', desc: 'งานแต่งในฝันดั่งนิยายกรีก', pct };
+      if (pct >= 40) return { icon: '💍', label: 'แหวนแต่งงาน', desc: 'เควสหัวใจเริ่มสว่างสดใส', pct };
+      return { icon: '🌸', label: 'ดอกไม้', desc: 'จุดเริ่มต้นความสัมพันธ์ที่งดงาม', pct };
     }
     
     if (nameLower.includes('เกษียณ') || nameLower.includes('retirement') || nameLower.includes('zero 3')) {
-      if (pct >= 80) return { icon: '🏛️', label: 'วิหารทวยเทพโอลิมปัส', desc: 'เสถียรสถาพร นั่งชิวสวรรค์ชั้นฟ้า', pct };
-      if (pct >= 40) return { icon: '🔱', label: 'ป้อมปราการคุ้มกันตัวเลข', desc: 'สร้างกองทุนรับเงินปันผลรายสัปดาห์', pct };
-      return { icon: '🪵', label: 'เก้าอี้โยกหน้าเตาผิง', desc: 'สะสมฟืนรอความอบอุ่นยามชรา', pct };
+      if (pct >= 80) return { icon: '🏛️', label: 'วิหารทวยเทพ', desc: 'เสถียรสถาพร นั่งชิวสวรรค์ชั้นฟ้า', pct };
+      if (pct >= 40) return { icon: '🔱', label: 'ป้อมปราการ', desc: 'สร้างกองทุนรับเงินปันผลรายสัปดาห์', pct };
+      return { icon: '🪵', label: 'กองฟืนเก้าอี้โยก', desc: 'สะสมฟืนรอความอบอุ่นยามชรา', pct };
     }
 
     // Default portfolio levels
     if (pct >= 80) return { icon: '⚔️', label: 'มหาอัศวินขุมทรัพย์', desc: 'กองทัพการเงินมีกำลังมหาศาล!', pct };
-    if (pct >= 40) return { icon: '🛡️', label: 'นักรบพิทักษ์เหรียญ', desc: 'มีโล่ป้องกัน ความเสี่ยงล้นลดลง', pct };
+    if (pct >= 40) return { icon: '🛡️', label: 'นักรบพิทักษ์เหรียญ / อัศวินฝึกหัด', desc: 'มีโล่ป้องกัน ความเสี่ยงลดลง', pct };
     return { icon: '🐣', label: 'มอนสเตอร์เลเวล 1', desc: 'กำลังฝึกฝนวิทยายุทธ์ฟาร์มเงินสด', pct };
   }
+
+  // Helper: Get next rank preview details
+  getNextRankPreview(p) {
+    if (p.goalType === 'schedule') {
+      return `🔮 ขั้นต่อไป: รักษาวินัยการลงทุนในเดือนถัดไป!`;
+    }
+
+    const pct = p.goal > 0 ? ((p.current + p.cashBuffer) / p.goal) * 100 : 0;
+    const nameLower = p.name.toLowerCase();
+
+    let nextIcon = '';
+    let nextLabel = '';
+    let targetPct = 0;
+
+    if (pct < 40) {
+      targetPct = 40;
+      if (nameLower.includes('บ้าน') || nameLower.includes('house') || nameLower.includes('zero 5')) {
+        nextIcon = '🏡';
+        nextLabel = 'บ้านโมเดิร์น';
+      } else if (nameLower.includes('รถ') || nameLower.includes('car') || nameLower.includes('zero 2')) {
+        nextIcon = '🚗';
+        nextLabel = 'รถเก๋ง';
+      } else if (nameLower.includes('แต่งงาน') || nameLower.includes('wedding') || nameLower.includes('zero 4')) {
+        nextIcon = '💍';
+        nextLabel = 'แหวนแต่งงาน';
+      } else if (nameLower.includes('เกษียณ') || nameLower.includes('retirement') || nameLower.includes('zero 3')) {
+        nextIcon = '🔱';
+        nextLabel = 'ป้อมปราการ';
+      } else {
+        nextIcon = '🛡️';
+        nextLabel = 'นักรบพิทักษ์เหรียญ / อัศวินฝึกหัด';
+      }
+    } else if (pct < 80) {
+      targetPct = 80;
+      if (nameLower.includes('บ้าน') || nameLower.includes('house') || nameLower.includes('zero 5')) {
+        nextIcon = '🏰';
+        nextLabel = 'วิหารทองคำ';
+      } else if (nameLower.includes('รถ') || nameLower.includes('car') || nameLower.includes('zero 2')) {
+        nextIcon = '🏎️';
+        nextLabel = 'ซูเปอร์คาร์';
+      } else if (nameLower.includes('แต่งงาน') || nameLower.includes('wedding') || nameLower.includes('zero 4')) {
+        nextIcon = '👑';
+        nextLabel = 'มงกุฎราชา';
+      } else if (nameLower.includes('เกษียณ') || nameLower.includes('retirement') || nameLower.includes('zero 3')) {
+        nextIcon = '🏛️';
+        nextLabel = 'วิหารทวยเทพ';
+      } else {
+        nextIcon = '⚔️';
+        nextLabel = 'มหาอัศวินขุมทรัพย์';
+      }
+    } else {
+      const currentLvl = this.getPortfolioLevel(p);
+      return `🏆 เลเวลสูงสุดแล้ว: ${currentLvl.icon} ${currentLvl.label}`;
+    }
+
+    const currentTotal = p.current + p.cashBuffer;
+    const targetVal = (targetPct / 100) * p.goal;
+    const neededVal = targetVal - currentTotal;
+    const neededText = this.formatMoney(neededVal, p.category);
+
+    return `🔮 ขั้นต่อไป: ${nextIcon} ${nextLabel}<br><span style="font-size:0.75rem; color:var(--color-text-muted);">สะสมอีก ${neededText} (หรือ ${(targetPct - pct).toFixed(1)}%) เพื่อเลเวลอัป!</span>`;
+  }
+
 
   // Helper: Format Numbers
   formatMoney(val, category) {
@@ -329,7 +392,7 @@ class PixelStewardApp {
     const portsWithSchedules = this.portfolios.filter(p => p.goalType === 'schedule');
     
     // Sort closest to goal
-    const sortedByGoal = [...portsWithNumericGoals].sort((a, b) => (b.current / b.goal) - (a.current / a.goal));
+    const sortedByGoal = [...portsWithNumericGoals].sort((a, b) => ((b.current + b.cashBuffer) / b.goal) - ((a.current + a.cashBuffer) / a.goal));
     const closestToGoal = sortedByGoal[0];
     
     // Top Liquid Cash Flow port (highest cashBuffer + dryPowder)
@@ -357,13 +420,22 @@ class PixelStewardApp {
           <div class="stat-desc">ประมาณ $${calc.netWorthUSD.toLocaleString(undefined, { maximumFractionDigits: 0 })} USD (อัตรา ฿${this.exchangeRate})</div>
         </div>
 
-        <div class="stat-card border-pixel" style="--card-accent-color: var(--color-success)">
+        <div class="stat-card border-pixel" style="--card-accent-color: var(--color-secondary)">
           <div class="stat-header">
-            <span class="stat-title">สภาพคล่องรอช้อน (Dry/Buffer)</span>
-            <span class="stat-icon">💧</span>
+            <span class="stat-title">Buffer (เงินสดสำรอง)</span>
+            <span class="stat-icon">🛡️</span>
           </div>
-          <div class="stat-value text-success">฿${calc.totalLiquidityTHB.toLocaleString(undefined, { maximumFractionDigits: 0 })}</div>
-          <div class="stat-desc">Buffer: ฿${calc.totalCashBufferTHB.toLocaleString(undefined, { maximumFractionDigits: 0 })} | Dry: ฿${calc.totalDryPowderTHB.toLocaleString(undefined, { maximumFractionDigits: 0 })}</div>
+          <div class="stat-value text-success" style="color: var(--color-secondary) !important;">฿${calc.totalCashBufferTHB.toLocaleString(undefined, { maximumFractionDigits: 0 })}</div>
+          <div class="stat-desc">เงินสดสำรองสภาพคล่องรวมทุกพอร์ต</div>
+        </div>
+
+        <div class="stat-card border-pixel" style="--card-accent-color: var(--color-warning)">
+          <div class="stat-header">
+            <span class="stat-title">Dry Powder (กระสุนรอช้อน)</span>
+            <span class="stat-icon">🎯</span>
+          </div>
+          <div class="stat-value text-success" style="color: var(--color-warning) !important;">฿${calc.totalDryPowderTHB.toLocaleString(undefined, { maximumFractionDigits: 0 })}</div>
+          <div class="stat-desc">เงินสดรอจังหวะเข้าซื้อสินทรัพย์ย่อตัว</div>
         </div>
 
         <div class="stat-card border-pixel" style="--card-accent-color: var(--color-info)">
@@ -390,7 +462,7 @@ class PixelStewardApp {
                 <div>
                   <div style="font-size:0.75rem; font-family:var(--font-press-start); color:var(--color-primary-light);">ใกล้เป้าหมายมากที่สุด</div>
                   <div style="font-weight:bold">${closestToGoal.name}</div>
-                  <div style="font-size:0.85rem">${(closestToGoal.current/closestToGoal.goal*100).toFixed(1)}% ถึงเป้าหมาย (${this.formatMoney(closestToGoal.current, closestToGoal.category)} / ${this.formatMoney(closestToGoal.goal, closestToGoal.category)})</div>
+                  <div style="font-size:0.85rem">${(((closestToGoal.current + closestToGoal.cashBuffer)/closestToGoal.goal)*100).toFixed(1)}% ถึงเป้าหมาย (${this.formatMoney(closestToGoal.current + closestToGoal.cashBuffer, closestToGoal.category)} / ${this.formatMoney(closestToGoal.goal, closestToGoal.category)})</div>
                 </div>
               </div>
             ` : ''}
@@ -445,7 +517,7 @@ class PixelStewardApp {
               <div class="port-card-body">
                 <div class="port-row">
                   <span class="label">เงินสะสม:</span>
-                  <span class="value">${this.formatMoney(p.current, p.category)}</span>
+                  <span class="value">${this.formatMoney(p.current + p.cashBuffer, p.category)}</span>
                 </div>
                 <div class="port-row">
                   <span class="label">เป้าหมาย:</span>
@@ -607,6 +679,10 @@ class PixelStewardApp {
               <div class="level-icon">${lvl.icon}</div>
               <div class="level-title">${lvl.label}</div>
               <div class="level-desc">${lvl.desc}</div>
+              <div class="level-divider" style="border-top: 2px dashed #000; width: 100%; margin: 12px 0;"></div>
+              <div class="next-level-preview" style="font-size: 0.8rem; font-weight: bold; color: var(--color-accent);">
+                ${this.getNextRankPreview(activePort)}
+              </div>
             </div>
           </div>
 
@@ -626,7 +702,7 @@ class PixelStewardApp {
             <form id="update-balance-form">
               <div class="input-retro-group">
                 <label>เงินในพอร์ตรวมจริง (${isUSD ? 'USD' : 'THB'}):</label>
-                <input type="number" id="update-current" class="input-retro" value="${activePort.current}" required>
+                <input type="number" id="update-current" class="input-retro" value="${activePort.current + activePort.cashBuffer}" required>
               </div>
               <div class="input-retro-group">
                 <label>ในนั้นเป็นสำรอง Buffer:</label>
@@ -685,7 +761,7 @@ class PixelStewardApp {
       
       const port = this.portfolios.find(p => p.id === activePort.id);
       if (port) {
-        port.current = curr;
+        port.current = curr - buff;
         port.cashBuffer = buff;
         port.dryPowder = dry;
         
@@ -773,8 +849,8 @@ class PixelStewardApp {
 
   // --- RENDER 3: QUARTERLY STOCK SUMMARY ---
   renderQuarterly(container) {
-    // Filter stock portfolios
-    const stockPorts = this.portfolios.filter(p => ['Global Stock', 'Thai Stock', 'Growth Stock', 'Cash Buffer & หุ้นย่อย', 'Retirement'].includes(p.category));
+    // Filter stock portfolios (any category except Forex and Option)
+    const stockPorts = this.portfolios.filter(p => !['Forex', 'Option'].includes(p.category));
     
     if (stockPorts.length === 0) {
       container.innerHTML = '<div class="border-pixel" style="padding:20px;">กรุณาสร้างพอร์ตหุ้นปันผลหรือเติบโตเพื่อติดตามข้อมูลรายไตรมาส 📈</div>';
@@ -884,7 +960,12 @@ class PixelStewardApp {
   // --- ACTIONS FOR QUARTERLY ---
   openQuarterlyModal(portfolioId = '', year = new Date().getFullYear()) {
     // Dynamic JS Prompt Modal
-    const targetPortId = portfolioId || prompt('ระบุ ID พอร์ตหุ้น (กรอกเลข 1-12 ตามรายการในหน้าพอร์ต):');
+    let targetPortId = portfolioId;
+    if (!targetPortId) {
+      const stockPorts = this.portfolios.filter(p => !['Forex', 'Option'].includes(p.category));
+      const listString = stockPorts.map(p => `ID: ${p.id} - ${p.name}`).join('\n');
+      targetPortId = prompt(`ระบุ ID พอร์ตลงทุนเพื่อบันทึกไตรมาส:\n${listString}\n\nกรอก ID พอร์ตที่ต้องการ:`);
+    }
     if (!targetPortId) return;
 
     const port = this.portfolios.find(p => p.id === targetPortId);
@@ -1218,13 +1299,14 @@ class PixelStewardApp {
       
       const lvl = this.getPortfolioLevel(p);
       const totalCash = p.cashBuffer + p.dryPowder;
+      const totalVal = p.current + p.cashBuffer;
       
       let diffVal = 0;
       let goalPct = 0;
       
       if (p.goalType === 'numeric') {
-        diffVal = p.goal - p.current;
-        goalPct = p.goal > 0 ? (p.current / p.goal) * 100 : 0;
+        diffVal = p.goal - totalVal;
+        goalPct = p.goal > 0 ? (totalVal / p.goal) * 100 : 0;
       } else {
         goalPct = p.dcaDoneThisMonth ? 100 : 0;
       }
@@ -1236,14 +1318,14 @@ class PixelStewardApp {
         goalText: p.goalType === 'numeric' ? this.formatMoney(p.goal, p.category) : p.goalSchedule,
         goalRaw: p.goalType === 'numeric' ? p.goal : 0,
         goalType: p.goalType,
-        current: p.current,
-        currentTHB: p.current * rate,
+        current: totalVal,
+        currentTHB: totalVal * rate,
         diffTHB: diffVal * rate,
         goalPct: goalPct,
         cashFlow: totalCash,
         cashFlowTHB: totalCash * rate,
         level: lvl.label,
-        trend: p.current >= (p.goalType === 'numeric' ? p.goal * 0.5 : 1) ? '📈 โตดี' : '⛺ ปานกลาง',
+        trend: totalVal >= (p.goalType === 'numeric' ? p.goal * 0.5 : 1) ? '📈 โตดี' : '⛺ ปานกลาง',
         isUSD
       };
     });
