@@ -59,7 +59,7 @@
 }
 
 html, body {
-  min-height: 100vh;
+  height: auto;
   max-width: 100vw;
   background-color: var(--color-bg-dark);
   color: var(--color-text-white);
@@ -67,6 +67,7 @@ html, body {
   font-size: 16px;
   line-height: 1.5;
   overflow-x: hidden;
+  overflow-y: auto;
 }
 
 h1, h2, h3, h4, h5, h6 {
@@ -118,7 +119,7 @@ a {
 .app-container {
   display: grid;
   grid-template-columns: 280px 1fr;
-  min-height: 100vh;
+  height: auto;
   max-width: 100vw;
   overflow-x: hidden;
 }
@@ -285,8 +286,7 @@ a {
 /* --- Main Content Layout --- */
 .main-content {
   padding: 24px;
-  height: 100vh;
-  overflow-y: auto;
+  height: auto;
   display: flex;
   flex-direction: column;
   gap: 20px;
@@ -1035,7 +1035,7 @@ a {
   .app-container {
     grid-template-columns: 1fr;
     grid-template-rows: auto 1fr;
-    height: 100vh;
+    height: auto;
   }
   
   .sidebar {
@@ -1079,6 +1079,18 @@ a {
 }
 
 @media (max-width: 600px) {
+  .dashboard-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .portfolio-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .cashflow-grid {
+    grid-template-columns: 1fr;
+  }
+
   .top-header {
     flex-direction: column;
     align-items: stretch;
