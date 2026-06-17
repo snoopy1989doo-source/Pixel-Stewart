@@ -1046,15 +1046,19 @@ a {
   to { transform: translateX(0); opacity: 1; }
 }
 
-/* --- Responsive Adaptations (Tablet 992px) --- */
+/* ============================================
+   RESPONSIVE — TABLET (max-width: 992px)
+   Sidebar collapses to top nav bar
+   Grids: max 2 columns
+   ============================================ */
 @media (max-width: 992px) {
   .app-container {
-    grid-template-columns: 1fr !important;
+    grid-template-columns: 1fr;
     grid-template-rows: auto 1fr;
     height: auto;
     width: 100%;
   }
-  
+
   .sidebar {
     height: auto;
     position: static;
@@ -1085,62 +1089,52 @@ a {
     overflow-y: visible;
     padding: 12px;
   }
-  
+
   .portfolio-detail-container {
     grid-template-columns: 1fr;
   }
-  
+
   .forex-main-layout {
     grid-template-columns: 1fr;
   }
 
-  /* Force all main grids to max 2 columns on tablet */
-  .dashboard-grid {
-    grid-template-columns: repeat(2, 1fr) !important;
-  }
-
-  .portfolio-grid {
-    grid-template-columns: repeat(2, 1fr) !important;
-  }
-
+  /* Tablet: 2 columns */
+  .dashboard-grid,
+  .portfolio-grid,
   .cashflow-grid {
-    grid-template-columns: repeat(2, 1fr) !important;
+    grid-template-columns: repeat(2, 1fr);
   }
 }
 
-/* --- Responsive Adaptations (Mobile 768px and below) --- */
+/* ============================================
+   RESPONSIVE — MOBILE (max-width: 768px)
+   ALL grids → 1 column (full width)
+   ============================================ */
 @media (max-width: 768px) {
-  /* === Force ALL grids to single column === */
-  .dashboard-grid {
-    grid-template-columns: 1fr !important;
-  }
-
-  .portfolio-grid {
-    grid-template-columns: 1fr !important;
-  }
-
-  .cashflow-grid {
-    grid-template-columns: 1fr !important;
-  }
-
-  .forex-header-summary {
-    grid-template-columns: 1fr !important;
-    gap: 10px;
-  }
-
-  .details-grid-stats {
-    grid-template-columns: 1fr !important;
-  }
-
-  .portfolio-detail-container {
-    grid-template-columns: 1fr !important;
-  }
-
+  /* Force every grid to single column */
+  .dashboard-grid,
+  .portfolio-grid,
+  .cashflow-grid,
+  .forex-header-summary,
+  .details-grid-stats,
+  .portfolio-detail-container,
   .forex-main-layout {
     grid-template-columns: 1fr !important;
   }
 
-  /* === Top header stacks vertically === */
+  /* Cards: full width, no overflow */
+  .stat-card,
+  .port-card,
+  .cashflow-card,
+  .widget-card {
+    width: 100% !important;
+    max-width: 100% !important;
+    box-sizing: border-box;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+  }
+
+  /* Top header stacks vertically */
   .top-header {
     flex-direction: column;
     align-items: stretch;
@@ -1153,30 +1147,18 @@ a {
     grid-template-columns: 1fr 1fr;
   }
 
-  /* === Cards take full width === */
-  .stat-card,
-  .port-card,
-  .cashflow-card,
-  .widget-card {
-    width: 100% !important;
-    max-width: 100% !important;
-    box-sizing: border-box;
-    word-wrap: break-word;
-    overflow-wrap: break-word;
-  }
-
-  /* === Table adjustments === */
+  /* Table adjustments */
   .retro-table th {
     font-size: 0.6rem;
     padding: 8px 6px;
   }
-  
+
   .retro-table td {
     padding: 8px 6px;
     font-size: 0.8rem;
   }
 
-  /* === Toast: prevent off-screen === */
+  /* Toast: prevent off-screen */
   #toast-container {
     right: 8px;
     left: 8px;
@@ -1188,8 +1170,9 @@ a {
     width: 100%;
   }
 
-  /* === Stat value smaller on mobile === */
+  /* Stat value: smaller font on mobile */
   .stat-value {
     font-size: 1.3rem;
   }
 }
+
