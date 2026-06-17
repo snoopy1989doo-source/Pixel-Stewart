@@ -1046,12 +1046,13 @@ a {
   to { transform: translateX(0); opacity: 1; }
 }
 
-/* --- Responsive Adaptations (Mobile / Tablet) --- */
+/* --- Responsive Adaptations (Tablet 992px) --- */
 @media (max-width: 992px) {
   .app-container {
-    grid-template-columns: 1fr;
+    grid-template-columns: 1fr !important;
     grid-template-rows: auto 1fr;
     height: auto;
+    width: 100%;
   }
   
   .sidebar {
@@ -1063,7 +1064,7 @@ a {
   }
 
   .sidebar-footer {
-    display: none; /* Hide exchange rate box from side menu on tablet */
+    display: none;
   }
 
   .nav-menu {
@@ -1092,21 +1093,54 @@ a {
   .forex-main-layout {
     grid-template-columns: 1fr;
   }
-}
 
-@media (max-width: 600px) {
+  /* Force all main grids to max 2 columns on tablet */
   .dashboard-grid {
-    grid-template-columns: 1fr;
+    grid-template-columns: repeat(2, 1fr) !important;
   }
 
   .portfolio-grid {
-    grid-template-columns: 1fr;
+    grid-template-columns: repeat(2, 1fr) !important;
   }
 
   .cashflow-grid {
-    grid-template-columns: 1fr;
+    grid-template-columns: repeat(2, 1fr) !important;
+  }
+}
+
+/* --- Responsive Adaptations (Mobile 768px and below) --- */
+@media (max-width: 768px) {
+  /* === Force ALL grids to single column === */
+  .dashboard-grid {
+    grid-template-columns: 1fr !important;
   }
 
+  .portfolio-grid {
+    grid-template-columns: 1fr !important;
+  }
+
+  .cashflow-grid {
+    grid-template-columns: 1fr !important;
+  }
+
+  .forex-header-summary {
+    grid-template-columns: 1fr !important;
+    gap: 10px;
+  }
+
+  .details-grid-stats {
+    grid-template-columns: 1fr !important;
+  }
+
+  .portfolio-detail-container {
+    grid-template-columns: 1fr !important;
+  }
+
+  .forex-main-layout {
+    grid-template-columns: 1fr !important;
+  }
+
+  /* === Top header stacks vertically === */
   .top-header {
     flex-direction: column;
     align-items: stretch;
@@ -1119,15 +1153,19 @@ a {
     grid-template-columns: 1fr 1fr;
   }
 
-  .forex-header-summary {
-    grid-template-columns: 1fr;
-    gap: 10px;
+  /* === Cards take full width === */
+  .stat-card,
+  .port-card,
+  .cashflow-card,
+  .widget-card {
+    width: 100% !important;
+    max-width: 100% !important;
+    box-sizing: border-box;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
   }
 
-  .details-grid-stats {
-    grid-template-columns: 1fr;
-  }
-  
+  /* === Table adjustments === */
   .retro-table th {
     font-size: 0.6rem;
     padding: 8px 6px;
@@ -1136,5 +1174,22 @@ a {
   .retro-table td {
     padding: 8px 6px;
     font-size: 0.8rem;
+  }
+
+  /* === Toast: prevent off-screen === */
+  #toast-container {
+    right: 8px;
+    left: 8px;
+    bottom: 12px;
+  }
+
+  .toast {
+    min-width: unset;
+    width: 100%;
+  }
+
+  /* === Stat value smaller on mobile === */
+  .stat-value {
+    font-size: 1.3rem;
   }
 }
