@@ -4,7 +4,7 @@
 
 // --- INITIAL STATE / MOCK DATA ---
 const INITIAL_PORTFOLIOS = [
-  { id: '1', name: 'RedWing (กยศ.)', category: 'Cash Buffer & หุ้นย่อย', goalType: 'numeric', goal: 60000, current: 30000, cashBuffer: 15000, dryPowder: 5000, assets: [{ name: 'หุ้นย่อย A', value: 25000 }], startDate: '2025-01-01', notes: 'เน้นสำรองจ่ายและรักษาสภาพคล่อง' },
+  { id: '1', name: 'RedWing (กยศ.)', category: 'Thai Stock', goalType: 'numeric', goal: 60000, current: 30000, cashBuffer: 15000, dryPowder: 5000, assets: [{ name: 'หุ้นย่อย A', value: 25000 }], startDate: '2025-01-01', notes: 'เน้นสำรองจ่ายและรักษาสภาพคล่อง' },
   { id: '2', name: 'Zero 1 (เงินฉุกเฉิน)', category: 'Emergency', goalType: 'numeric', goal: 95000, current: 0, cashBuffer: 90000, dryPowder: 0, assets: [], startDate: '2025-01-01', notes: 'เงินสำรองห้ามแตะต้องเว้นแต่จำเป็น' },
   { id: '3', name: 'Zero 2 (รถ)', category: 'Asset', goalType: 'numeric', goal: 1200000, current: 300000, cashBuffer: 50000, dryPowder: 300000, assets: [], startDate: '2025-01-01', notes: 'สะสมดาวน์รถยนต์คันใหม่' },
   { id: '4', name: 'Zero 3 (เกษียณ)', category: 'Retirement', goalType: 'numeric', goal: 4000000, current: 750000, cashBuffer: 100000, dryPowder: 750000, assets: [{ name: 'กองทุนดัชนี', value: 750000 }], startDate: '2025-01-01', notes: 'พอร์ตหลักระยะยาว พลิกฟื้นอิสรภาพ' },
@@ -66,7 +66,7 @@ class PixelStewardApp {
     const storedMonthlies = localStorage.getItem('ps_monthly_v2');
     const storedRate = localStorage.getItem('ps_ex_rate_v2');
 
-    this.portfolios = storedPorts ? JSON.parse(storedPorts) : INITIAL_PORTFOLIOS;
+    this.portfolios = this.normalizePortfolios(storedPorts ? JSON.parse(storedPorts) : INITIAL_PORTFOLIOS);
     this.quarterlyRecords = storedQuarters ? JSON.parse(storedQuarters) : INITIAL_QUARTERLY_RECORDS;
     this.monthlyRecords = storedMonthlies ? JSON.parse(storedMonthlies) : INITIAL_MONTHLY_RECORDS;
     this.exchangeRate = storedRate ? Number(storedRate) : 36.5;
@@ -149,6 +149,7 @@ class PixelStewardApp {
   }
 
   saveState() {
+    this.syncAllPortfolioCurrents({ clampDry: true });
     localStorage.setItem('ps_portfolios_v2', JSON.stringify(this.portfolios));
     localStorage.setItem('ps_quarterly_v2', JSON.stringify(this.quarterlyRecords));
     localStorage.setItem('ps_monthly_v2', JSON.stringify(this.monthlyRecords));
@@ -192,7 +193,7 @@ class PixelStewardApp {
         break;
       case 'cashflow':
         pageTitle.innerText = 'ตัวช่วยติดตามสภาพคล่อง';
-        pageSubtitle.innerText = 'เปรียบเทียบเสบียงสำรอง Cash Buffer และเงินสดรอจังหวะช้อน Dry Powder';
+        pageSubtitle.innerText = 'เปรียบเทียบเงินสดรอจังหวะช้อน Dry Powder ของแต่ละพอร์ต';
         this.renderCashFlow(tabContent);
         break;
       case 'comparison':
@@ -232,36 +233,99 @@ class PixelStewardApp {
     document.querySelectorAll('.modal-overlay').forEach(m => m.classList.add('hidden'));
   }
 
+  normalizePortfolios(portfolios) {
+    return portfolios.map(p => {
+      const port = { ...p };
+      port.assets = Array.isArray(port.assets) ? port.assets : [];
+      port.dryPowder = Number(port.dryPowder) || 0;
+      port.current = Number(port.current) || 0;
+
+      if (port.assets.length === 0 && port.current > 0) {
+        port.assets = [{ name: 'Legacy Portfolio Balance', value: port.current }];
+      }
+
+      this.syncPortfolioCurrent(port, { clampDry: true });
+      return port;
+    });
+  }
+
+  getPortfolioTotalValue(port) {
+    if (!port || !Array.isArray(port.assets)) return 0;
+    return port.assets.reduce((sum, asset) => sum + (Number(asset.value) || 0), 0);
+  }
+
+  syncPortfolioCurrent(port, options = {}) {
+    if (!port) return 0;
+
+    const totalValue = this.getPortfolioTotalValue(port);
+    port.dryPowder = Number(port.dryPowder) || 0;
+
+    if (options.clampDry && port.dryPowder > totalValue) {
+      port.dryPowder = totalValue;
+    }
+
+    port.current = Math.max(totalValue - port.dryPowder, 0);
+    return totalValue;
+  }
+
+  syncAllPortfolioCurrents(options = {}) {
+    this.portfolios.forEach(p => this.syncPortfolioCurrent(p, options));
+  }
+
+  adjustPortfolioTotalValue(port, delta, assetName = 'Dry Powder Movement') {
+    if (!port) return;
+    port.assets = Array.isArray(port.assets) ? port.assets : [];
+
+    if (delta > 0) {
+      port.assets.push({ name: assetName, value: delta });
+      return;
+    }
+
+    let remaining = Math.abs(delta);
+    for (let i = port.assets.length - 1; i >= 0 && remaining > 0; i--) {
+      const currentValue = Number(port.assets[i].value) || 0;
+      const deduction = Math.min(currentValue, remaining);
+      port.assets[i].value = currentValue - deduction;
+      remaining -= deduction;
+
+      if (port.assets[i].value <= 0) {
+        port.assets.splice(i, 1);
+      }
+    }
+  }
+
   // --- FINANCIAL CALCULATION ENGINE ---
   getCalculations() {
+    this.syncAllPortfolioCurrents();
     let totalTHB = 0;
     let totalUSD = 0;
-    let totalCashBufferTHB = 0;
+    let totalInvestedTHB = 0;
     let totalDryPowderTHB = 0;
     
     this.portfolios.forEach(p => {
       const isUSD = ['Forex', 'Option'].includes(p.category);
+      const totalValue = this.getPortfolioTotalValue(p);
       if (isUSD) {
-        totalUSD += p.current;
-        totalCashBufferTHB += p.cashBuffer * this.exchangeRate;
+        totalUSD += totalValue;
+        totalInvestedTHB += p.current * this.exchangeRate;
         totalDryPowderTHB += p.dryPowder * this.exchangeRate;
       } else {
-        totalTHB += p.current;
-        totalCashBufferTHB += p.cashBuffer;
+        totalTHB += totalValue;
+        totalInvestedTHB += p.current;
         totalDryPowderTHB += p.dryPowder;
       }
     });
 
-    const netWorthTHB = totalTHB + (totalUSD * this.exchangeRate) + totalCashBufferTHB;
+    const netWorthTHB = totalTHB + (totalUSD * this.exchangeRate);
     const netWorthUSD = netWorthTHB / this.exchangeRate;
-    const totalLiquidityTHB = totalCashBufferTHB + totalDryPowderTHB;
+    const totalLiquidityTHB = totalDryPowderTHB;
 
     return {
       netWorthTHB,
       netWorthUSD,
       totalTHB,
       totalUSD,
-      totalCashBufferTHB,
+      totalInvestedTHB,
       totalDryPowderTHB,
       totalLiquidityTHB
     };
@@ -278,7 +342,8 @@ class PixelStewardApp {
       };
     }
     
-    const pct = p.goal > 0 ? ((p.current + p.cashBuffer) / p.goal) * 100 : 0;
+    const totalValue = this.getPortfolioTotalValue(p);
+    const pct = p.goal > 0 ? (totalValue / p.goal) * 100 : 0;
     
     // Categorize by name keywords or categories
     const nameLower = p.name.toLowerCase();
@@ -319,7 +384,8 @@ class PixelStewardApp {
       return `🔮 ขั้นต่อไป: รักษาวินัยการลงทุนในเดือนถัดไป!`;
     }
 
-    const pct = p.goal > 0 ? ((p.current + p.cashBuffer) / p.goal) * 100 : 0;
+    const totalValue = this.getPortfolioTotalValue(p);
+    const pct = p.goal > 0 ? (totalValue / p.goal) * 100 : 0;
     const nameLower = p.name.toLowerCase();
 
     let nextIcon = '';
@@ -367,7 +433,7 @@ class PixelStewardApp {
       return `🏆 เลเวลสูงสุดแล้ว: ${currentLvl.icon} ${currentLvl.label}`;
     }
 
-    const currentTotal = p.current + p.cashBuffer;
+    const currentTotal = totalValue;
     const targetVal = (targetPct / 100) * p.goal;
     const neededVal = targetVal - currentTotal;
     const neededText = this.formatMoney(neededVal, p.category);
@@ -392,11 +458,11 @@ class PixelStewardApp {
     const portsWithSchedules = this.portfolios.filter(p => p.goalType === 'schedule');
     
     // Sort closest to goal
-    const sortedByGoal = [...portsWithNumericGoals].sort((a, b) => ((b.current + b.cashBuffer) / b.goal) - ((a.current + a.cashBuffer) / a.goal));
+    const sortedByGoal = [...portsWithNumericGoals].sort((a, b) => (this.getPortfolioTotalValue(b) / b.goal) - (this.getPortfolioTotalValue(a) / a.goal));
     const closestToGoal = sortedByGoal[0];
     
-    // Top Liquid Cash Flow port (highest cashBuffer + dryPowder)
-    const sortedByCash = [...this.portfolios].sort((a, b) => (b.cashBuffer + b.dryPowder) - (a.cashBuffer + a.dryPowder));
+    // Top Liquid Cash Flow port (highest dryPowder)
+    const sortedByCash = [...this.portfolios].sort((a, b) => b.dryPowder - a.dryPowder);
     const highestCashPort = sortedByCash[0];
 
     // Calc monthly Forex/Option profits for this month (current year & month based on real time)
@@ -422,11 +488,11 @@ class PixelStewardApp {
 
         <div class="stat-card border-pixel" style="--card-accent-color: var(--color-secondary)">
           <div class="stat-header">
-            <span class="stat-title">Buffer (เงินสดสำรอง)</span>
-            <span class="stat-icon">🛡️</span>
+            <span class="stat-title">Invested Amount</span>
+            <span class="stat-icon">💼</span>
           </div>
-          <div class="stat-value text-success" style="color: var(--color-secondary) !important;">฿${calc.totalCashBufferTHB.toLocaleString(undefined, { maximumFractionDigits: 0 })}</div>
-          <div class="stat-desc">เงินสดสำรองสภาพคล่องรวมทุกพอร์ต</div>
+          <div class="stat-value text-success" style="color: var(--color-secondary) !important;">฿${calc.totalInvestedTHB.toLocaleString(undefined, { maximumFractionDigits: 0 })}</div>
+          <div class="stat-desc">Total Portfolio Value - Dry Powder</div>
         </div>
 
         <div class="stat-card border-pixel" style="--card-accent-color: var(--color-warning)">
@@ -462,7 +528,7 @@ class PixelStewardApp {
                 <div>
                   <div style="font-size:0.75rem; font-family:var(--font-press-start); color:var(--color-primary-light);">ใกล้เป้าหมายมากที่สุด</div>
                   <div style="font-weight:bold">${closestToGoal.name}</div>
-                  <div style="font-size:0.85rem">${(((closestToGoal.current + closestToGoal.cashBuffer)/closestToGoal.goal)*100).toFixed(1)}% ถึงเป้าหมาย (${this.formatMoney(closestToGoal.current + closestToGoal.cashBuffer, closestToGoal.category)} / ${this.formatMoney(closestToGoal.goal, closestToGoal.category)})</div>
+                  <div style="font-size:0.85rem">${((this.getPortfolioTotalValue(closestToGoal)/closestToGoal.goal)*100).toFixed(1)}% ถึงเป้าหมาย (${this.formatMoney(this.getPortfolioTotalValue(closestToGoal), closestToGoal.category)} / ${this.formatMoney(closestToGoal.goal, closestToGoal.category)})</div>
                 </div>
               </div>
             ` : ''}
@@ -473,7 +539,7 @@ class PixelStewardApp {
                 <div>
                   <div style="font-size:0.75rem; font-family:var(--font-press-start); color:var(--color-success);">สภาพคล่องสูงสุด (Cash Flow)</div>
                   <div style="font-weight:bold">${highestCashPort.name}</div>
-                  <div style="font-size:0.85rem">สภาพคล่องสะสม: ${this.formatMoney(highestCashPort.cashBuffer + highestCashPort.dryPowder, highestCashPort.category)}</div>
+                  <div style="font-size:0.85rem">สภาพคล่องสะสม: ${this.formatMoney(highestCashPort.dryPowder, highestCashPort.category)}</div>
                 </div>
               </div>
             ` : ''}
@@ -517,7 +583,7 @@ class PixelStewardApp {
               <div class="port-card-body">
                 <div class="port-row">
                   <span class="label">เงินสะสม:</span>
-                  <span class="value">${this.formatMoney(p.current + p.cashBuffer, p.category)}</span>
+                  <span class="value">${this.formatMoney(this.getPortfolioTotalValue(p), p.category)}</span>
                 </div>
                 <div class="port-row">
                   <span class="label">เป้าหมาย:</span>
@@ -576,6 +642,7 @@ class PixelStewardApp {
 
     const lvl = this.getPortfolioLevel(activePort);
     const isUSD = ['Forex', 'Option'].includes(activePort.category);
+    const activeTotalValue = this.syncPortfolioCurrent(activePort, { clampDry: true });
 
     const portfoliosHTML = `
       <div class="portfolio-detail-container">
@@ -702,11 +769,7 @@ class PixelStewardApp {
             <form id="update-balance-form">
               <div class="input-retro-group">
                 <label>เงินในพอร์ตรวมจริง (${isUSD ? 'USD' : 'THB'}):</label>
-                <input type="number" id="update-current" class="input-retro" value="${activePort.current + activePort.cashBuffer}" required>
-              </div>
-              <div class="input-retro-group">
-                <label>ในนั้นเป็นสำรอง Buffer:</label>
-                <input type="number" id="update-buffer" class="input-retro" value="${activePort.cashBuffer}" required>
+                <input type="number" id="update-current" class="input-retro" value="${activeTotalValue}" readonly style="background:#202638; color:var(--color-text-muted); cursor:not-allowed; opacity:0.85;" required>
               </div>
               <div class="input-retro-group">
                 <label>ในนั้นเป็นเงินช้อน Dry:</label>
@@ -755,15 +818,18 @@ class PixelStewardApp {
     // Update Balance Submit
     document.getElementById('update-balance-form').addEventListener('submit', (e) => {
       e.preventDefault();
-      const curr = Number(document.getElementById('update-current').value);
-      const buff = Number(document.getElementById('update-buffer').value);
       const dry = Number(document.getElementById('update-dry').value);
       
       const port = this.portfolios.find(p => p.id === activePort.id);
       if (port) {
-        port.current = curr - buff;
-        port.cashBuffer = buff;
-        port.dryPowder = dry;
+        const totalValue = this.getPortfolioTotalValue(port);
+        if (dry > totalValue) {
+          alert('❌ Dry Powder ต้องไม่เกินเงินในพอร์ตรวมจริงที่ระบบคำนวณจากสินทรัพย์ย่อย');
+          port.dryPowder = totalValue;
+        } else {
+          port.dryPowder = Math.max(dry, 0);
+        }
+        this.syncPortfolioCurrent(port, { clampDry: true });
         
         // Auto-calculate sum of assets if sum exceeds or they just want to record it
         this.saveState();
@@ -802,6 +868,7 @@ class PixelStewardApp {
           const port = this.portfolios.find(p => p.id === activePort.id);
           if (port) {
             port.assets.push({ name: assetName, value: assetValue });
+            this.syncPortfolioCurrent(port, { clampDry: true });
             this.saveState();
             this.refreshUI();
             this.showToast(`➕ เพิ่มสินทรัพย์ ${assetName} สำเร็จ!`);
@@ -825,6 +892,7 @@ class PixelStewardApp {
         if (!isNaN(newVal) && newVal >= 0) {
           asset.name = newName;
           asset.value = newVal;
+          this.syncPortfolioCurrent(port, { clampDry: true });
           this.saveState();
           this.refreshUI();
           this.showToast('✏️ แก้ไขสินทรัพย์ย่อยเรียบร้อย!');
@@ -840,6 +908,7 @@ class PixelStewardApp {
     if (port && port.assets[index]) {
       if (confirm(`คุณต้องการลบสินทรัพย์ ${port.assets[index].name} หรือไม่?`)) {
         port.assets.splice(index, 1);
+        this.syncPortfolioCurrent(port, { clampDry: true });
         this.saveState();
         this.refreshUI();
         this.showToast('✖ ลบสินทรัพย์ย่อยออกแล้ว', 'error');
@@ -1233,7 +1302,7 @@ class PixelStewardApp {
   renderCashFlow(container) {
     // Portfolios Liquid Cash Flows Analysis
     const getLiquidityStatus = (p) => {
-      const totalCash = p.cashBuffer + p.dryPowder;
+      const totalCash = p.dryPowder;
       
       if (p.goalType === 'schedule') {
         // Schedule portfolios are categorized as self-sustaining if cash reserve exceeds goal buffer or standard levels
@@ -1265,16 +1334,12 @@ class PixelStewardApp {
 
               <div class="border-pixel-inset" style="padding:12px; margin-top:4px; display:flex; flex-direction:column; gap:6px;">
                 <div class="port-row">
-                  <span class="label">เงินสำรอง Buffer:</span>
-                  <span class="value" style="color:var(--color-secondary);">${this.formatMoney(p.cashBuffer, p.category)}</span>
-                </div>
-                <div class="port-row">
                   <span class="label">เงินรอเข้าซื้อ Dry:</span>
                   <span class="value" style="color:var(--color-accent);">${this.formatMoney(p.dryPowder, p.category)}</span>
                 </div>
                 <div class="port-row" style="border-top:1.5px solid #000; padding-top:4px; margin-top:4px;">
                   <span class="label">สภาพคล่องรวม:</span>
-                  <span class="value" style="color:#fff;">${this.formatMoney(p.cashBuffer + p.dryPowder, p.category)}</span>
+                  <span class="value" style="color:#fff;">${this.formatMoney(p.dryPowder, p.category)}</span>
                 </div>
               </div>
 
@@ -1298,8 +1363,8 @@ class PixelStewardApp {
       const rate = isUSD ? this.exchangeRate : 1;
       
       const lvl = this.getPortfolioLevel(p);
-      const totalCash = p.cashBuffer + p.dryPowder;
-      const totalVal = p.current + p.cashBuffer;
+      const totalCash = p.dryPowder;
+      const totalVal = this.getPortfolioTotalValue(p);
       
       let diffVal = 0;
       let goalPct = 0;
@@ -1474,7 +1539,7 @@ class PixelStewardApp {
         try {
           const parsed = JSON.parse(e.target.result);
           if (parsed.portfolios && parsed.quarterlyRecords && parsed.monthlyRecords) {
-            this.portfolios = parsed.portfolios;
+            this.portfolios = this.normalizePortfolios(parsed.portfolios);
             this.quarterlyRecords = parsed.quarterlyRecords;
             this.monthlyRecords = parsed.monthlyRecords;
             this.exchangeRate = parsed.exchangeRate || 36.5;
@@ -1540,8 +1605,6 @@ class PixelStewardApp {
         schInput.required = false;
       }
       
-      document.getElementById('port-current').value = portfolio.current;
-      document.getElementById('port-cash-buffer').value = portfolio.cashBuffer;
       document.getElementById('port-dry-powder').value = portfolio.dryPowder;
       document.getElementById('port-notes').value = portfolio.notes || '';
     } else {
@@ -1574,8 +1637,6 @@ class PixelStewardApp {
     const goalVal = Number(document.getElementById('port-goal-value').value) || 0;
     const goalScheduleVal = document.getElementById('port-goal-schedule').value;
 
-    const current = Number(document.getElementById('port-current').value) || 0;
-    const cashBuffer = Number(document.getElementById('port-cash-buffer').value) || 0;
     const dryPowder = Number(document.getElementById('port-dry-powder').value) || 0;
     const notes = document.getElementById('port-notes').value;
 
@@ -1592,9 +1653,14 @@ class PixelStewardApp {
         } else {
           port.goalSchedule = goalScheduleVal;
         }
-        port.current = current;
-        port.cashBuffer = cashBuffer;
-        port.dryPowder = dryPowder;
+        const totalValue = this.getPortfolioTotalValue(port);
+        if (dryPowder > totalValue) {
+          alert('❌ Dry Powder ต้องไม่เกินเงินในพอร์ตรวมจริงที่ระบบคำนวณจากสินทรัพย์ย่อย');
+          port.dryPowder = totalValue;
+        } else {
+          port.dryPowder = dryPowder;
+        }
+        this.syncPortfolioCurrent(port, { clampDry: true });
         port.notes = notes;
         this.showToast('✏️ แก้ไขข้อมูลพอร์ตลงทุนเรียบร้อย!');
       }
@@ -1608,13 +1674,12 @@ class PixelStewardApp {
         goalType,
         goal: goalType === 'numeric' ? goalVal : 0,
         goalSchedule: goalType === 'schedule' ? goalScheduleVal : '',
-        current,
-        cashBuffer,
         dryPowder,
-        assets: [],
+        assets: dryPowder > 0 ? [{ name: 'Initial Dry Powder', value: dryPowder }] : [],
         notes,
         dcaDoneThisMonth: false
       };
+      this.syncPortfolioCurrent(newPort, { clampDry: true });
       this.portfolios.push(newPort);
       this.selectedPortId = newPort.id;
       this.showToast('📦 เพิ่มพอร์ตลงทุนใหม่เรียบร้อย!');
@@ -1679,7 +1744,6 @@ class PixelStewardApp {
     const destId = document.getElementById('tf-target').value;
     const amount = Number(document.getElementById('tf-amount').value);
     const rate = Number(document.getElementById('tf-rate').value) || this.exchangeRate;
-    const targetAlloc = document.getElementById('tf-allocation').value;
 
     if (isNaN(amount) || amount <= 0) {
       alert('❌ กรุณาระบุจำนวนเงินที่ต้องการโอนที่มากกว่า 0');
@@ -1696,7 +1760,8 @@ class PixelStewardApp {
 
     // deduct from source
     srcPort.dryPowder -= amount;
-    srcPort.current -= amount;
+    this.adjustPortfolioTotalValue(srcPort, -amount);
+    this.syncPortfolioCurrent(srcPort, { clampDry: true });
     
     const timeStr = new Date().toLocaleDateString('th-TH');
     const unitSymbol = isSourceUSD ? '$' : '฿';
@@ -1721,13 +1786,10 @@ class PixelStewardApp {
           convertedAmount = amount / rate;
         }
 
-        // Add to target
-        if (targetAlloc === 'cashBuffer') {
-          destPort.cashBuffer += convertedAmount;
-        } else {
-          destPort.dryPowder += convertedAmount;
-        }
-        destPort.current += convertedAmount;
+        // Add to target Dry Powder and include it in total portfolio value.
+        destPort.dryPowder += convertedAmount;
+        this.adjustPortfolioTotalValue(destPort, convertedAmount, 'Transfer In - Dry Powder');
+        this.syncPortfolioCurrent(destPort, { clampDry: true });
 
         const destUnit = isTargetUSD ? '$' : '฿';
         destPort.notes = `[รับโอนเสบียง] ได้รับยอดฝากฝั่งขาเข้าจำนวน ${destUnit}${convertedAmount.toLocaleString()} จากพอร์ต ${srcPort.name} เมื่อ ${timeStr}\n` + (destPort.notes || '');
@@ -1744,3 +1806,4 @@ class PixelStewardApp {
 
 // Instantiate App
 window.app = new PixelStewardApp();
+
