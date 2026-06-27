@@ -1,3 +1,4 @@
+Content is user-generated and unverified.
 /* ==========================================
    PIXEL STEWARD CORE ENGINE - APP.JS
    ========================================== */
@@ -916,7 +917,48 @@ class PixelStewardApp {
     }
   }
 
-  // --- RENDER 3: QUARTERLY STOCK SUMMARY ---
+  // --- RENDER 3: QUARTERLY STOCK SUMMARY (TWR v1.2.5) ---
+
+  /**
+   * TWR True Performance Formula:
+   * truePerf(%) = ((Q_new - (Q_old + netCF)) / (Q_old + netCF)) * 100
+   * If denominator = 0, return null (shown as N/A)
+   */
+  calcTruePerformance(qOld, qNew, netCF) {
+    const base = qOld + netCF;
+    if (base === 0) return null;
+    return ((qNew - base) / base) * 100;
+  }
+
+  /**
+   * YTD Compounding via recorded quarters only
+   * YTD(%) = (∏(1 + %Qi/100) - 1) * 100
+   */
+  calcYTD(rec) {
+    const quarters = ['q1', 'q2', 'q3', 'q4'];
+    const netCF = Number(rec.capitalAdded || 0) - Number(rec.capitalWithdrawn || 0);
+
+    // Build growth factors for each recorded quarter
+    const qVals = [rec.q1, rec.q2, rec.q3, rec.q4].map(v => Number(v) || 0);
+    const prevVals = [0, rec.q1, rec.q2, rec.q3].map(v => Number(v) || 0);
+
+    let compound = 1;
+    let hasAnyQuarter = false;
+
+    for (let i = 0; i < 4; i++) {
+      if (qVals[i] === 0) continue; // skip unrecorded quarters
+      const perf = this.calcTruePerformance(prevVals[i], qVals[i], i === 0 ? netCF : 0);
+      // Cash flow only applied once (to Q1 base); subsequent quarters use natural base
+      if (perf !== null) {
+        compound *= (1 + perf / 100);
+        hasAnyQuarter = true;
+      }
+    }
+
+    if (!hasAnyQuarter) return null;
+    return (compound - 1) * 100;
+  }
+
   renderQuarterly(container) {
     // Filter stock portfolios (any category except Forex and Option)
     const stockPorts = this.portfolios.filter(p => !['Forex', 'Option'].includes(p.category));
@@ -926,14 +968,13 @@ class PixelStewardApp {
       return;
     }
 
-    // Build years available (unique list of years + default current)
+    // Build years available
     const years = [...new Set(this.quarterlyRecords.map(r => r.year))];
     if (!years.includes(new Date().getFullYear())) {
       years.push(new Date().getFullYear());
     }
     years.sort((a, b) => b - a);
 
-    // Selected year (default to newest)
     if (!this.selectedQuarterlyYear) {
       this.selectedQuarterlyYear = years[0];
     }
@@ -949,7 +990,6 @@ class PixelStewardApp {
               ${years.map(y => `<option value="${y}" ${y === this.selectedQuarterlyYear ? 'selected' : ''}>ปี ${y}</option>`).join('')}
             </select>
           </div>
-          
           <button class="btn btn-primary btn-retro btn-small" id="btn-add-q-record">➕ บันทึกข้อมูลไตรมาสใหม่</button>
         </div>
       </div>
@@ -957,54 +997,92 @@ class PixelStewardApp {
       <!-- Comparison Grid of Stock Portfolios for Selected Year -->
       <div class="portfolio-grid">
         ${stockPorts.map(p => {
-          const rec = yearRecords.find(r => r.portfolioId === p.id) || { q1: 0, q2: 0, q3: 0, q4: 0, notes: 'ไม่มีประวัติการบันทึกในปีนี้' };
-          
-          // Calculate growth rates
-          const calcGrowth = (from, to) => {
-            if (from <= 0) return 'N/A';
-            const rate = ((to - from) / from) * 100;
-            return (rate >= 0 ? '+' : '') + rate.toFixed(1) + '%';
+          // Backward-compatible record fetch with defaults for new fields
+          const rawRec = yearRecords.find(r => r.portfolioId === p.id);
+          const rec = rawRec ? {
+            ...rawRec,
+            q1: Number(rawRec.q1) || 0,
+            q2: Number(rawRec.q2) || 0,
+            q3: Number(rawRec.q3) || 0,
+            q4: Number(rawRec.q4) || 0,
+            capitalAdded: Number(rawRec.capitalAdded) || 0,
+            capitalWithdrawn: Number(rawRec.capitalWithdrawn) || 0,
+          } : { q1: 0, q2: 0, q3: 0, q4: 0, capitalAdded: 0, capitalWithdrawn: 0, notes: 'ไม่มีประวัติการบันทึกในปีนี้' };
+
+          const netCF = rec.capitalAdded - rec.capitalWithdrawn;
+
+          // True Performance per quarter (TWR)
+          // Q1: base is 0 + netCF (first quarter open), subsequent quarters use prior Q value as base
+          const perfQ1 = this.calcTruePerformance(0, rec.q1, netCF);
+          const perfQ2 = this.calcTruePerformance(rec.q1, rec.q2, 0);
+          const perfQ3 = this.calcTruePerformance(rec.q2, rec.q3, 0);
+          const perfQ4 = this.calcTruePerformance(rec.q3, rec.q4, 0);
+
+          const fmtPerf = (perf) => {
+            if (perf === null) return { text: 'N/A', cls: 'text-muted' };
+            const sign = perf >= 0 ? '+' : '';
+            return { text: `${sign}${perf.toFixed(1)}%`, cls: perf >= 0 ? 'text-success' : 'text-danger' };
           };
-          
-          const g1 = calcGrowth(rec.q1, rec.q2);
-          const g2 = calcGrowth(rec.q2, rec.q3);
-          const g3 = calcGrowth(rec.q3, rec.q4);
+
+          const p1 = fmtPerf(perfQ1);
+          const p2 = fmtPerf(perfQ2);
+          const p3 = fmtPerf(perfQ3);
+          const p4 = fmtPerf(perfQ4);
+
+          // CF display string
+          const cfSign = netCF >= 0 ? '+' : '';
+          const cfDisplay = `CF: ${cfSign}฿${Math.abs(netCF).toLocaleString()}`;
+          const cfColor = netCF > 0 ? 'var(--color-success)' : netCF < 0 ? 'var(--color-danger)' : 'var(--color-text-muted)';
+
+          // YTD Compounding
+          const ytd = this.calcYTD(rec);
+          const ytdText = ytd !== null ? `${ytd >= 0 ? '+' : ''}${ytd.toFixed(2)}%` : 'N/A';
+          const ytdCls = ytd === null ? 'text-muted' : ytd >= 0 ? 'text-success' : 'text-danger';
 
           return `
             <div class="border-pixel" style="padding:16px; display:flex; flex-direction:column; gap:12px;">
-              <div style="display:flex; justify-content:between; align-items:center; border-bottom:2px solid #000; padding-bottom:6px;">
+              <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:2px solid #000; padding-bottom:6px;">
                 <h4 style="font-weight:bold;">${p.name}</h4>
                 <div class="asset-actions">
                   <button class="btn btn-secondary btn-retro btn-small" onclick="app.openQuarterlyModal('${p.id}', ${this.selectedQuarterlyYear})">✏️ บันทึก</button>
                 </div>
               </div>
               
+              <!-- Q1-Q4 Grid with TWR -->
               <div style="display:grid; grid-template-columns: repeat(4, 1fr); gap:8px; text-align:center;">
                 <div class="border-pixel-inset" style="padding:6px 2px;">
                   <div style="font-size:0.65rem; font-family:var(--font-press-start); color:var(--color-text-muted);">Q1</div>
                   <div style="font-weight:bold; font-size:0.8rem;">฿${rec.q1 ? rec.q1.toLocaleString() : '-'}</div>
+                  <div style="font-size:0.65rem; font-weight:bold;" class="${p1.cls}">${rec.q1 ? p1.text : ''}</div>
+                  ${rec.q1 ? `<div style="font-size:0.6rem; color:${cfColor}; margin-top:2px;">${cfDisplay}</div>` : ''}
                 </div>
                 <div class="border-pixel-inset" style="padding:6px 2px;">
                   <div style="font-size:0.65rem; font-family:var(--font-press-start); color:var(--color-text-muted);">Q2</div>
                   <div style="font-weight:bold; font-size:0.8rem;">฿${rec.q2 ? rec.q2.toLocaleString() : '-'}</div>
-                  <div style="font-size:0.65rem; font-weight:bold;" class="${g1.startsWith('+') ? 'text-success' : g1 === 'N/A' ? 'text-muted' : 'text-danger'}">${g1}</div>
+                  <div style="font-size:0.65rem; font-weight:bold;" class="${p2.cls}">${rec.q2 ? p2.text : ''}</div>
                 </div>
                 <div class="border-pixel-inset" style="padding:6px 2px;">
                   <div style="font-size:0.65rem; font-family:var(--font-press-start); color:var(--color-text-muted);">Q3</div>
                   <div style="font-weight:bold; font-size:0.8rem;">฿${rec.q3 ? rec.q3.toLocaleString() : '-'}</div>
-                  <div style="font-size:0.65rem; font-weight:bold;" class="${g2.startsWith('+') ? 'text-success' : g2 === 'N/A' ? 'text-muted' : 'text-danger'}">${g2}</div>
+                  <div style="font-size:0.65rem; font-weight:bold;" class="${p3.cls}">${rec.q3 ? p3.text : ''}</div>
                 </div>
                 <div class="border-pixel-inset" style="padding:6px 2px;">
                   <div style="font-size:0.65rem; font-family:var(--font-press-start); color:var(--color-text-muted);">Q4</div>
                   <div style="font-weight:bold; font-size:0.8rem;">฿${rec.q4 ? rec.q4.toLocaleString() : '-'}</div>
-                  <div style="font-size:0.65rem; font-weight:bold;" class="${g3.startsWith('+') ? 'text-success' : g3 === 'N/A' ? 'text-muted' : 'text-danger'}">${g3}</div>
+                  <div style="font-size:0.65rem; font-weight:bold;" class="${p4.cls}">${rec.q4 ? p4.text : ''}</div>
                 </div>
               </div>
 
               <!-- Notes -->
-              <div style="font-size:0.8rem; background-color:#0c0f1a; padding:8px; border:2px solid #000; border-radius:4px; height:60px; overflow-y:auto;">
+              <div style="font-size:0.8rem; background-color:#0c0f1a; padding:8px; border:2px solid #000; border-radius:4px; height:50px; overflow-y:auto;">
                 <span class="text-muted" style="font-weight:bold;">บันทึกไตรมาส:</span>
                 <span>${rec.notes || 'ไม่มีโน้ตไตรมาส'}</span>
+              </div>
+
+              <!-- YTD Summary Bar -->
+              <div style="background:#111827; border:2px solid #1e3a5f; border-radius:4px; padding:8px 12px; display:flex; justify-content:space-between; align-items:center;">
+                <span style="font-size:0.75rem; color:var(--color-text-muted); font-weight:bold;">📊 กำไร/ขาดทุนสะสม YTD:</span>
+                <span style="font-family:var(--font-press-start); font-size:0.75rem; font-weight:bold;" class="${ytdCls}">${ytdText}</span>
               </div>
             </div>
           `;
@@ -1026,15 +1104,12 @@ class PixelStewardApp {
     });
   }
 
-  // --- ACTIONS FOR QUARTERLY ---
+  // --- ACTIONS FOR QUARTERLY (Modal-based v1.2.5) ---
   openQuarterlyModal(portfolioId = '', year = new Date().getFullYear()) {
-    // Dynamic JS Prompt Modal
-    let targetPortId = portfolioId;
-    if (!targetPortId) {
-      const stockPorts = this.portfolios.filter(p => !['Forex', 'Option'].includes(p.category));
-      const listString = stockPorts.map(p => `ID: ${p.id} - ${p.name}`).join('\n');
-      targetPortId = prompt(`ระบุ ID พอร์ตลงทุนเพื่อบันทึกไตรมาส:\n${listString}\n\nกรอก ID พอร์ตที่ต้องการ:`);
-    }
+    const stockPorts = this.portfolios.filter(p => !['Forex', 'Option'].includes(p.category));
+    
+    // If no portfolioId given, default to first stock port
+    let targetPortId = portfolioId || (stockPorts.length > 0 ? stockPorts[0].id : '');
     if (!targetPortId) return;
 
     const port = this.portfolios.find(p => p.id === targetPortId);
@@ -1043,30 +1118,75 @@ class PixelStewardApp {
       return;
     }
 
-    const recYear = Number(prompt('ปีที่ต้องการบันทึก (ค.ศ.):', year)) || year;
-    
-    // Find existing
+    const recYear = year;
+
+    // Find or prepare existing record (backward-compatible)
     let rec = this.quarterlyRecords.find(r => r.portfolioId === targetPortId && r.year === recYear);
     if (!rec) {
-      rec = { id: 'q-' + Date.now(), portfolioId: targetPortId, year: recYear, q1: 0, q2: 0, q3: 0, q4: 0, notes: '' };
+      rec = { id: 'q-' + Date.now(), portfolioId: targetPortId, year: recYear, q1: 0, q2: 0, q3: 0, q4: 0, capitalAdded: 0, capitalWithdrawn: 0, notes: '' };
       this.quarterlyRecords.push(rec);
     }
 
-    const q1Val = prompt('ยอดพอร์ตสิ้นสุดไตรมาส 1 (THB):', rec.q1.toString());
-    const q2Val = prompt('ยอดพอร์ตสิ้นสุดไตรมาส 2 (THB):', rec.q2.toString());
-    const q3Val = prompt('ยอดพอร์ตสิ้นสุดไตรมาส 3 (THB):', rec.q3.toString());
-    const q4Val = prompt('ยอดพอร์ตสิ้นสุดไตรมาส 4 (THB):', rec.q4.toString());
-    const notesVal = prompt('หมายเหตุประจำปีนี้:', rec.notes);
+    // Ensure backward-compat fields exist
+    rec.capitalAdded = Number(rec.capitalAdded) || 0;
+    rec.capitalWithdrawn = Number(rec.capitalWithdrawn) || 0;
 
-    if (q1Val !== null) rec.q1 = Number(q1Val) || 0;
-    if (q2Val !== null) rec.q2 = Number(q2Val) || 0;
-    if (q3Val !== null) rec.q3 = Number(q3Val) || 0;
-    if (q4Val !== null) rec.q4 = Number(q4Val) || 0;
-    if (notesVal !== null) rec.notes = notesVal;
+    // Fill modal
+    const modal = document.getElementById('quarterly-modal');
+    document.getElementById('q-port-id').value = targetPortId;
+    document.getElementById('q-year').value = recYear;
+    document.getElementById('q-port-label').textContent = `พอร์ต: ${port.name}`;
+    document.getElementById('q-year-label').textContent = `ปีที่บันทึก: ${recYear}`;
 
-    this.saveState();
-    this.refreshUI();
-    this.showToast('📈 บันทึกรายงานไตรมาสเรียบร้อย!');
+    document.getElementById('q-val-q1').value = rec.q1 || '';
+    document.getElementById('q-val-q2').value = rec.q2 || '';
+    document.getElementById('q-val-q3').value = rec.q3 || '';
+    document.getElementById('q-val-q4').value = rec.q4 || '';
+    document.getElementById('q-cap-added').value = rec.capitalAdded;
+    document.getElementById('q-cap-withdrawn').value = rec.capitalWithdrawn;
+    document.getElementById('q-notes').value = rec.notes || '';
+
+    // Update CF display
+    const updateCFDisplay = () => {
+      const added = Number(document.getElementById('q-cap-added').value) || 0;
+      const withdrawn = Number(document.getElementById('q-cap-withdrawn').value) || 0;
+      const net = added - withdrawn;
+      const el = document.getElementById('q-net-cf-display');
+      const sign = net >= 0 ? '+' : '';
+      el.textContent = `${sign}฿${net.toLocaleString()}`;
+      el.style.color = net > 0 ? 'var(--color-success)' : net < 0 ? 'var(--color-danger)' : 'var(--color-text-muted)';
+    };
+
+    updateCFDisplay();
+    document.getElementById('q-cap-added').addEventListener('input', updateCFDisplay);
+    document.getElementById('q-cap-withdrawn').addEventListener('input', updateCFDisplay);
+
+    // Save handler
+    document.getElementById('btn-save-quarterly').onclick = () => {
+      const portId = document.getElementById('q-port-id').value;
+      const yr = Number(document.getElementById('q-year').value);
+      
+      let target = this.quarterlyRecords.find(r => r.portfolioId === portId && r.year === yr);
+      if (!target) {
+        target = { id: 'q-' + Date.now(), portfolioId: portId, year: yr, q1: 0, q2: 0, q3: 0, q4: 0, capitalAdded: 0, capitalWithdrawn: 0, notes: '' };
+        this.quarterlyRecords.push(target);
+      }
+
+      target.q1 = Number(document.getElementById('q-val-q1').value) || 0;
+      target.q2 = Number(document.getElementById('q-val-q2').value) || 0;
+      target.q3 = Number(document.getElementById('q-val-q3').value) || 0;
+      target.q4 = Number(document.getElementById('q-val-q4').value) || 0;
+      target.capitalAdded = Number(document.getElementById('q-cap-added').value) || 0;
+      target.capitalWithdrawn = Number(document.getElementById('q-cap-withdrawn').value) || 0;
+      target.notes = document.getElementById('q-notes').value;
+
+      this.saveState();
+      this.closeModals();
+      this.refreshUI();
+      this.showToast('📈 บันทึกรายงานไตรมาส TWR เรียบร้อย!');
+    };
+
+    modal.classList.remove('hidden');
   }
 
   // --- RENDER 4 & 5: FOREX / OPTION MONTHLY SUMMARY ---

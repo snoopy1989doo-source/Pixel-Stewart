@@ -60,7 +60,7 @@
             <input type="number" step="0.1" id="global-usd-rate" class="rate-input" value="36.5">
           </div>
         </div>
-        <div class="version">V1.2.4 LOCAL-FIRST</div>
+        <div class="version">V1.2.5 LOCAL-FIRST</div>
       </div>
     </aside>
 
@@ -208,6 +208,82 @@
           <button type="submit" class="btn btn-accent btn-retro"><span>⚡ ดำเนินการโยกย้าย</span></button>
         </div>
       </form>
+    </div>
+  </div>
+
+  <!-- ========================================== -->
+  <!-- MODAL: QUARTERLY RECORD ENTRY (TWR)       -->
+  <!-- ========================================== -->
+  <div id="quarterly-modal" class="modal-overlay hidden">
+    <div class="modal-card border-pixel">
+      <div class="modal-header">
+        <h3 id="quarterly-modal-title">📈 บันทึกข้อมูลไตรมาส (TWR)</h3>
+        <button class="btn-close-modal">✖</button>
+      </div>
+      <div class="modal-body">
+        <input type="hidden" id="q-port-id">
+        <input type="hidden" id="q-year">
+
+        <div class="form-group">
+          <label id="q-port-label" style="font-weight:bold; color:var(--color-accent);">พอร์ต: -</label>
+          <label id="q-year-label" style="font-size:0.8rem; color:var(--color-text-muted);">ปี: -</label>
+        </div>
+
+        <div style="border-top: 2px dashed #444; margin: 8px 0 12px;"></div>
+
+        <!-- Quarter Value Inputs -->
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
+          <div class="form-group">
+            <label for="q-val-q1">ยอดสิ้น Q1 (THB):</label>
+            <input type="number" id="q-val-q1" class="input-retro" placeholder="0" min="0" step="any">
+          </div>
+          <div class="form-group">
+            <label for="q-val-q2">ยอดสิ้น Q2 (THB):</label>
+            <input type="number" id="q-val-q2" class="input-retro" placeholder="0" min="0" step="any">
+          </div>
+          <div class="form-group">
+            <label for="q-val-q3">ยอดสิ้น Q3 (THB):</label>
+            <input type="number" id="q-val-q3" class="input-retro" placeholder="0" min="0" step="any">
+          </div>
+          <div class="form-group">
+            <label for="q-val-q4">ยอดสิ้น Q4 (THB):</label>
+            <input type="number" id="q-val-q4" class="input-retro" placeholder="0" min="0" step="any">
+          </div>
+        </div>
+
+        <div style="border-top: 2px dashed #444; margin: 12px 0;"></div>
+
+        <!-- Cash Flow Section -->
+        <div style="background:#0c0f1a; border:2px solid #2a3a5a; border-radius:4px; padding:12px; margin-bottom:12px;">
+          <div style="font-family:var(--font-press-start); font-size:0.7rem; color:var(--color-info); margin-bottom:10px;">💰 กระแสเงินสด (Cash Flow) สำหรับ TWR</div>
+          <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
+            <div class="form-group">
+              <label for="q-cap-added">เงินทุนที่อัดเพิ่ม (฿):</label>
+              <input type="number" id="q-cap-added" class="input-retro" placeholder="0" min="0" step="any" value="0">
+            </div>
+            <div class="form-group">
+              <label for="q-cap-withdrawn">เงินที่ถอนออก (฿):</label>
+              <input type="number" id="q-cap-withdrawn" class="input-retro" placeholder="0" min="0" step="any" value="0">
+            </div>
+          </div>
+          <!-- Real-time Net Cash Flow Display -->
+          <div style="display:flex; align-items:center; justify-content:space-between; margin-top:8px; padding:8px; background:#111827; border:2px solid #1e3a5f; border-radius:4px;">
+            <span style="font-size:0.8rem; color:var(--color-text-muted);">Net Cash Flow (คำนวณอัตโนมัติ):</span>
+            <span id="q-net-cf-display" style="font-family:var(--font-press-start); font-size:0.75rem; color:var(--color-success);">฿0</span>
+          </div>
+        </div>
+
+        <!-- Notes -->
+        <div class="form-group">
+          <label for="q-notes">บันทึกประจำปี / หมายเหตุ:</label>
+          <textarea id="q-notes" class="input-retro" rows="3" placeholder="สรุปภาพรวมพอร์ต กลยุทธ์ที่ใช้ หรือเหตุการณ์สำคัญในปีนี้..."></textarea>
+        </div>
+
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary btn-retro btn-close-modal"><span>ยกเลิก</span></button>
+          <button type="button" class="btn btn-primary btn-retro" id="btn-save-quarterly"><span>📈 บันทึกไตรมาส</span></button>
+        </div>
+      </div>
     </div>
   </div>
 
