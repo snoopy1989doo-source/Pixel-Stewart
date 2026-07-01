@@ -4,336 +4,229 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>Pixel Steward - ผู้พิทักษ์พอร์ตมหาสมบัติ</title>
-  <!-- Google Fonts: Press Start 2P (Retro Game style) and Kanit (Clean Thai typography) -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Kanit:wght@300;400;500;700;900&display=swap" rel="stylesheet">
-  <!-- Stylesheet -->
-  <link rel="stylesheet" href="style.css?v=122">
-  
-  <!-- Firebase Compatibility SDK (v9+) -->
+  <link rel="stylesheet" href="style.css?v=123">
   <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-database-compat.js"></script>
+  <style>
+    /* --- 🎮 EXTRA PIXEL ART CARTRIDGE CSS STYLE --- */
+    .cartridge-list {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      max-height: 520px;
+      overflow-y: auto;
+      padding-right: 4px;
+    }
+    .pixel-cartridge-card {
+      background: #1b2234;
+      border: 4px solid #000;
+      box-shadow: 4px 4px 0px #000;
+      padding: 12px;
+      text-align: left;
+      cursor: pointer;
+      transition: all 0.1s ease;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      position: relative;
+    }
+    .pixel-cartridge-card::after {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0; height: 6px;
+      background: rgba(255,255,255,0.15);
+    }
+    .pixel-cartridge-card.active {
+      background: var(--color-primary, #3b82f6);
+      transform: translate(2px, 2px);
+      box-shadow: 2px 2px 0px #000;
+    }
+    .pixel-cartridge-card:hover:not(.active) {
+      background: #242f49;
+      transform: translateY(-2px);
+      box-shadow: 4px 6px 0px #000;
+    }
+    .cartridge-title {
+      font-weight: bold;
+      font-size: 0.9rem;
+      color: #fff;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .cartridge-meta {
+      font-size: 0.7rem;
+      color: var(--color-text-muted, #94a3b8);
+      display: flex;
+      justify-content: space-between;
+    }
+    .ammo-warning {
+      color: #ef4444 !important;
+      font-family: 'Press Start 2P';
+      font-size: 0.55rem;
+      animation: blink-effect 1s infinite;
+    }
+    @keyframes blink-effect {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0; }
+    }
+  </style>
 </head>
 <body>
   <div class="app-container">
-    <!-- SIDEBAR (NAVIGATION) -->
     <aside class="sidebar border-pixel">
       <div class="brand">
         <div class="logo">🥇</div>
         <div class="title-container">
-          <h1 class="brand-title">PIXEL</h1>
-          <h1 class="brand-title highlight">STEWARD</h1>
+          <h2>Pixel Steward</h2>
+          <span class="sub" id="app-version-badge">🏷️ V.1.6.3 CLOUD-FIRST</span>
         </div>
       </div>
       
-      <div class="nav-divider"></div>
-      
+      <div class="exchange-widget border-pixel-inset">
+        <label for="global-usd-rate">💱 อัตราแลกเปลี่ยน:</label>
+        <div style="display:flex; align-items:center; gap:4px; margin-top:4px;">
+          <input type="number" id="global-usd-rate" value="36.50" step="0.01" style="width:70px;">
+          <span style="font-size:0.8rem; font-weight:bold;">THB/USD</span>
+        </div>
+      </div>
+
       <nav class="nav-menu">
-        <button class="nav-item active" data-tab="dashboard">
-          <span class="icon">📊</span> <span class="nav-text">Dashboard</span>
-        </button>
-        <button class="nav-item" data-tab="portfolios">
-          <span class="icon">📁</span> <span class="nav-text">พอร์ตลงทุน</span>
-        </button>
-        <button class="nav-item" data-tab="quarterly">
-          <span class="icon">📈</span> <span class="nav-text">หุ้นรายไตรมาส</span>
-        </button>
-        <button class="nav-item" data-tab="forex">
-          <span class="icon">💱</span> <span class="nav-text">Forex รายเดือน</span>
-        </button>
-        <button class="nav-item" data-tab="option">
-          <span class="icon">💎</span> <span class="nav-text">Option รายเดือน</span>
-        </button>
-        <button class="nav-item" data-tab="dividends">
-          <span class="icon">💰</span> <span class="nav-text">แดชบอร์ดปันผล</span>
-        </button>
-        <button class="nav-item" data-tab="cashflow">
-          <span class="icon">💧</span> <span class="nav-text">Cash Flow</span>
-        </button>
-        <button class="nav-item" data-tab="comparison">
-          <span class="icon">⚔️</span> <span class="nav-text">ตารางเปรียบเทียบ</span>
-        </button>
-        <button class="nav-item" data-tab="settings">
-          <span class="icon">⚙️</span> <span class="nav-text">ตั้งค่าระบบ</span>
-        </button>
+        <button class="nav-item active" data-tab="dashboard"><span>📊 แดชบอร์ดภาพรวม</span></button>
+        <button class="nav-item" data-tab="portfolios"><span>📁 พอร์ตการลงทุน</span></button>
+        <button class="nav-item" data-tab="quarterly"><span>📈 หุ้นรายไตรมาส</span></button>
+        <button class="nav-item" data-tab="dividends"><span>💰 เงินปันผล & YOC</span></button>
+        <button class="nav-item" data-tab="forex"><span>💵 Forex รายเดือน</span></button>
+        <button class="nav-item" data-tab="option"><span>💎 Option รายเดือน</span></button>
+        <button class="nav-item" data-tab="cashflow"><span>🛡️ สภาพคล่อง Cashflow</span></button>
+        <button class="nav-item" data-tab="comparison"><span>⚖️ ตารางเปรียบเทียบ</span></button>
+        <button class="nav-item" data-tab="settings"><span>⚙️ ตั้งค่าคลาวด์เซฟ</span></button>
       </nav>
-      
-      <div class="sidebar-footer">
-        <div class="exchange-rate-widget border-pixel-inset">
-          <div class="rate-label">🇺🇸 USD/THB:</div>
-          <div class="rate-value-container">
-            <span class="rate-symbol">฿</span>
-            <input type="number" step="0.1" id="global-usd-rate" class="rate-input" value="36.5">
-          </div>
-        </div>
-        <div class="version">V1.3.0 CLOUD-FIRST</div>
-      </div>
     </aside>
 
-    <!-- MAIN CONTENT AREA -->
     <main class="main-content">
-      <header class="top-header border-pixel">
-        <div class="header-info">
-          <h2 id="page-title">แดชบอร์ดภาพรวม</h2>
-          <p id="page-subtitle" class="text-muted">สรุปสถานะพอร์ตการลงทุนทั้งหมดในพริบตา</p>
+      <header class="main-header border-pixel">
+        <div class="header-titles">
+          <h1 id="page-title">แดชบอร์ดภาพรวม</h1>
+          <p id="page-subtitle" class="text-muted">วิเคราะห์สถานะความมั่งคั่ง กระสุนรอช้อน และแนวโน้มการเติบโตรายไตรมาส</p>
         </div>
-        
-        <div class="quick-actions">
-          <button id="btn-add-portfolio" class="btn btn-primary btn-retro">
-            <span>➕ เพิ่มพอร์ตใหม่</span>
-          </button>
-          <button id="btn-quick-transfer" class="btn btn-accent btn-retro">
-            <span>⚡ โยกย้ายเสบียง</span>
-          </button>
+        <div class="header-buttons">
+          <button class="btn btn-primary btn-retro" id="btn-add-portfolio"><span>➕ เพิ่มพอร์ตใหม่</span></button>
+          <button class="btn btn-secondary btn-retro" id="btn-quick-transfer"><span>⚡ โยกย้ายเสบียง</span></button>
         </div>
       </header>
 
-      <!-- DYNAMIC TAB CONTENT -->
-      <section id="tab-content" class="content-body">
-        <!-- Content will be generated dynamically by app.js -->
-      </section>
+      <div id="tab-content" class="tab-pane-container">
+        </div>
     </main>
   </div>
 
-  <!-- ========================================== -->
-  <!-- MODAL: ADD / EDIT PORTFOLIO -->
-  <!-- ========================================== -->
-  <div id="portfolio-modal" class="modal-overlay hidden">
-    <div class="modal-card border-pixel">
-      <div class="modal-header">
-        <h3 id="portfolio-modal-title">📦 เพิ่มพอร์ตการลงทุน</h3>
-        <button class="btn-close-modal">✖</button>
-      </div>
-      <form id="portfolio-form" class="modal-body">
-        <input type="hidden" id="edit-port-id">
-        
-        <div class="form-group">
-          <label for="port-name">ชื่อพอร์ต:</label>
-          <input type="text" id="port-name" required placeholder="เช่น Zero 3 (เกษียณ)">
-        </div>
-        
-        <div class="form-row">
-          <div class="form-group">
-            <label for="port-category">หมวดหมู่พอร์ต:</label>
-            <select id="port-category" required>
-              <option value="Emergency">Emergency (เงินฉุกเฉิน)</option>
-              <option value="Asset">Asset (สินทรัพย์/เป้าหมายชีวิต)</option>
-              <option value="Retirement">Retirement (เกษียณสำราญ)</option>
-              <option value="Life Goal">Life Goal (แต่งงาน/ครอบครัว)</option>
-              <option value="Global Stock">Global Stock (หุ้นโลก)</option>
-              <option value="Thai Stock">Thai Stock (หุ้นไทย)</option>
-              <option value="Growth Stock">Growth Stock (หุ้นเติบโต)</option>
-              <option value="Forex">Forex (USD)</option>
-              <option value="Option">Option (USD)</option>
-            </select>
-          </div>
-          <div class="form-group">
-            <label for="port-start-date">วันที่เริ่มสะสม:</label>
-            <input type="date" id="port-start-date" required>
-          </div>
-        </div>
+  <div id="toast-container" class="toast-container"></div>
 
-        <div class="form-row">
-          <div class="form-group">
-            <label for="port-goal-type">ประเภทเป้าหมาย:</label>
-            <select id="port-goal-type" required>
-              <option value="numeric">กำหนดจำนวนเงินเป้าหมาย</option>
-              <option value="schedule">กำหนดวัน DCA ประจำเดือน</option>
-            </select>
-          </div>
-          <div class="form-group" id="port-goal-value-container">
-            <label for="port-goal-value" id="port-goal-label">เป้าหมาย (จำนวนเงิน):</label>
-            <input type="number" id="port-goal-value" placeholder="เช่น 1200000" min="0" value="100000">
-            <input type="text" id="port-goal-schedule" placeholder="เช่น DCA ทุกวันที่ 25" class="hidden">
-          </div>
-        </div>
-
-        <div class="form-row">
-          <div class="form-group">
-            <label for="port-dry-powder">เงินสำหรับช้อน (Dry Powder):</label>
-            <input type="number" id="port-dry-powder" required placeholder="ส่วนรอเข้าซื้อเมื่อย่อ" min="0" value="0">
-          </div>
-        </div>
-
-        <div class="form-group">
-          <label for="port-notes">บันทึกประจำพอร์ต / หมายเหตุเพิ่มเติม:</label>
-          <textarea id="port-notes" placeholder="เป้าหมายย่อย กลยุทธ์การเทรด หรือข้อควรระวัง..." rows="3"></textarea>
-        </div>
-
-        <div class="modal-footer">
-          <button type="button" class="btn btn-secondary btn-retro btn-close-modal"><span>ยกเลิก</span></button>
-          <button type="submit" class="btn btn-primary btn-retro"><span>🎯 บันทึกพอร์ต</span></button>
-        </div>
-      </form>
-    </div>
-  </div>
-
-  <!-- ========================================== -->
-  <!-- MODAL: QUICK TRANSFER / WITHDRAWAL -->
-  <!-- ========================================== -->
-  <div id="transfer-modal" class="modal-overlay hidden">
-    <div class="modal-card border-pixel">
-      <div class="modal-header">
-        <h3>⚡ โยกย้ายหรือถอนเงินจากพอร์ต</h3>
-        <button class="btn-close-modal">✖</button>
-      </div>
-      <form id="transfer-form" class="modal-body">
-        <div class="form-group">
-          <label for="tf-source">พอร์ตต้นทาง (หักเงินจากยอด Dry Powder):</label>
-          <select id="tf-source" required></select>
-        </div>
-
-        <div class="form-row">
-          <div class="form-group">
-            <label for="tf-amount">จำนวนเงิน:</label>
-            <input type="number" id="tf-amount" required placeholder="กรอกจำนวนเงิน" min="0.01" step="any">
-          </div>
-          <div class="form-group">
-            <label for="tf-rate">อัตราแลกเปลี่ยนขณะโยกย้าย (THB/USD):</label>
-            <input type="number" id="tf-rate" value="36.5" step="0.1" required>
-          </div>
-        </div>
-
-        <div class="form-group">
-          <label for="tf-target">ปลายทางรับเงิน:</label>
-          <select id="tf-target" required>
-            <option value="system">ถอนออกนอกระบบ (ใช้จ่าย/เก็บเงินสดแยก)</option>
-            <!-- Other portfolios will be injected here -->
-          </select>
-        </div>
-
-        <div class="form-group id-allocation-group">
-          <label for="tf-allocation">จัดสรรเงินไปยังส่วนไหนของพอร์ตปลายทาง:</label>
-          <select id="tf-allocation">
-            <option value="dryPowder">เงินรอช้อน (Dry Powder)</option>
-          </select>
-        </div>
-
-        <div class="modal-footer">
-          <button type="button" class="btn btn-secondary btn-retro btn-close-modal"><span>ยกเลิก</span></button>
-          <button type="submit" class="btn btn-accent btn-retro"><span>⚡ ดำเนินการโยกย้าย</span></button>
-        </div>
-      </form>
-    </div>
-  </div>
-
-  <!-- ========================================== -->
-  <!-- MODAL: QUARTERLY RECORD ENTRY (TWR)       -->
-  <!-- ========================================== -->
   <div id="quarterly-modal" class="modal-overlay hidden">
     <div class="modal-card border-pixel">
       <div class="modal-header">
-        <h3 id="quarterly-modal-title">📈 บันทึกข้อมูลไตรมาส (TWR)</h3>
+        <h3 id="q-port-label">✏️ บันทึกรายงานไตรมาส (สูตรคำนวณสากล)</h3>
         <button class="btn-close-modal">✖</button>
       </div>
       <div class="modal-body">
         <input type="hidden" id="q-port-id">
         <input type="hidden" id="q-year">
-
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:12px;">
+          <div class="form-group"><label>ยอดสิ้นไตรมาส 1 (THB):</label><input type="number" id="q-val-q1" class="input-retro"></div>
+          <div class="form-group"><label>ทุนเติม/ถอนสุทธิ Q1:</label><input type="number" id="q-flow-q1" class="input-retro" value="0"></div>
+        </div>
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:12px;">
+          <div class="form-group"><label>ยอดสิ้นไตรมาส 2 (THB):</label><input type="number" id="q-val-q2" class="input-retro"></div>
+          <div class="form-group"><label>ทุนเติม/ถอนสุทธิ Q2:</label><input type="number" id="q-flow-q2" class="input-retro" value="0"></div>
+        </div>
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:12px;">
+          <div class="form-group"><label>ยอดสิ้นไตรมาส 3 (THB):</label><input type="number" id="q-val-q3" class="input-retro"></div>
+          <div class="form-group"><label>ทุนเติม/ถอนสุทธิ Q3:</label><input type="number" id="q-flow-q3" class="input-retro" value="0"></div>
+        </div>
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:12px;">
+          <div class="form-group"><label>ยอดสิ้นไตรมาส 4 (THB):</label><input type="number" id="q-val-q4" class="input-retro"></div>
+          <div class="form-group"><label>ทุนเติม/ถอนสุทธิ Q4:</label><input type="number" id="q-flow-q4" class="input-retro" value="0"></div>
+        </div>
         <div class="form-group">
-          <label id="q-port-label" style="font-weight:bold; color:var(--color-accent);">พอร์ต: -</label>
-          <label id="q-year-label" style="font-size:0.8rem; color:var(--color-text-muted);">ปี: -</label>
+          <label>หมายเหตุความจำ:</label>
+          <input type="text" id="q-notes" class="input-retro" style="width:100%;">
         </div>
-
-        <div style="border-top: 2px dashed #444; margin: 8px 0 12px;"></div>
-
-        <!-- Quarter Value Inputs -->
-        <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
-          <div class="form-group">
-            <label for="q-val-q1">ยอดสิ้น Q1 (THB):</label>
-            <input type="number" id="q-val-q1" class="input-retro" placeholder="0" min="0" step="any">
-          </div>
-          <div class="form-group">
-            <label for="q-val-q2">ยอดสิ้น Q2 (THB):</label>
-            <input type="number" id="q-val-q2" class="input-retro" placeholder="0" min="0" step="any">
-          </div>
-          <div class="form-group">
-            <label for="q-val-q3">ยอดสิ้น Q3 (THB):</label>
-            <input type="number" id="q-val-q3" class="input-retro" placeholder="0" min="0" step="any">
-          </div>
-          <div class="form-group">
-            <label for="q-val-q4">ยอดสิ้น Q4 (THB):</label>
-            <input type="number" id="q-val-q4" class="input-retro" placeholder="0" min="0" step="any">
-          </div>
-        </div>
-
-        <div style="border-top: 2px dashed #444; margin: 12px 0;"></div>
-
-        <!-- Cash Flow Section -->
-        <div style="background:#0c0f1a; border:2px solid #2a3a5a; border-radius:4px; padding:12px; margin-bottom:12px;">
-          <div style="font-family:var(--font-press-start); font-size:0.7rem; color:var(--color-info); margin-bottom:10px;">💰 กระแสเงินสด (Cash Flow) สำหรับ TWR</div>
-          <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
-            <div class="form-group">
-              <label for="q-cap-added">เงินทุนที่อัดเพิ่ม (฿):</label>
-              <input type="number" id="q-cap-added" class="input-retro" placeholder="0" min="0" step="any" value="0">
-            </div>
-            <div class="form-group">
-              <label for="q-cap-withdrawn">เงินที่ถอนออก (฿):</label>
-              <input type="number" id="q-cap-withdrawn" class="input-retro" placeholder="0" min="0" step="any" value="0">
-            </div>
-          </div>
-          <!-- Real-time Net Cash Flow Display -->
-          <div style="display:flex; align-items:center; justify-content:space-between; margin-top:8px; padding:8px; background:#111827; border:2px solid #1e3a5f; border-radius:4px;">
-            <span style="font-size:0.8rem; color:var(--color-text-muted);">Net Cash Flow (คำนวณอัตโนมัติ):</span>
-            <span id="q-net-cf-display" style="font-family:var(--font-press-start); font-size:0.75rem; color:var(--color-success);">฿0</span>
-          </div>
-        </div>
-
-        <!-- Notes -->
-        <div class="form-group">
-          <label for="q-notes">บันทึกประจำปี / หมายเหตุ:</label>
-          <textarea id="q-notes" class="input-retro" rows="3" placeholder="สรุปภาพรวมพอร์ต กลยุทธ์ที่ใช้ หรือเหตุการณ์สำคัญในปีนี้..."></textarea>
-        </div>
-
-        <div class="modal-footer">
-          <button type="button" class="btn btn-secondary btn-retro btn-close-modal"><span>ยกเลิก</span></button>
-          <button type="button" class="btn btn-primary btn-retro" id="btn-save-quarterly"><span>📈 บันทึกไตรมาส</span></button>
-        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary btn-close-modal"><span>ยกเลิก</span></button>
+        <button class="btn btn-success" id="btn-save-quarterly"><span>💾 บันทึกข้อมูลไตรมาส</span></button>
       </div>
     </div>
   </div>
 
-  <!-- ========================================== -->
-  <!-- MODAL: DIVIDEND ENTRY                     -->
-  <!-- ========================================== -->
-  <div id="dividend-modal" class="modal-overlay hidden">
+  <div id="portfolio-modal" class="modal-overlay hidden">
     <div class="modal-card border-pixel">
       <div class="modal-header">
-        <h3>💰 บันทึกรับเงินปันผล</h3>
+        <h3 id="portfolio-modal-title">📦 จัดการพอร์ตลงทุน</h3>
         <button class="btn-close-modal">✖</button>
       </div>
-      <form id="dividend-form" class="modal-body">
+      <form id="portfolio-form" class="modal-body">
+        <input type="hidden" id="edit-port-id">
+        <div class="form-group"><label>ชื่อพอร์ตการลงทุน:</label><input type="text" id="port-name" required class="input-retro"></div>
         <div class="form-group">
-          <label for="div-port-id">เลือกพอร์ตลงทุน:</label>
-          <select id="div-port-id" required></select>
-        </div>
-        <div class="form-row">
-          <div class="form-group">
-            <label for="div-amount">จำนวนเงินปันผลที่ได้รับ:</label>
-            <input type="number" id="div-amount" step="any" placeholder="รับเป็นสกุลเงินประจำพอร์ต" required>
-          </div>
-          <div class="form-group">
-            <label for="div-date">วันที่ได้รับ:</label>
-            <input type="date" id="div-date" required>
-          </div>
+          <label>หมวดหมู่สินทรัพย์:</label>
+          <select id="port-category" class="input-retro">
+            <option value="Thai Stock">Thai Stock (หุ้นไทย)</option>
+            <option value="Global Stock">Global Stock (หุ้นโลก)</option>
+            <option value="Growth Stock">Growth Stock (หุ้นเติบโต)</option>
+            <option value="Emergency">Emergency (เงินฉุกเฉิน)</option>
+            <option value="Asset">Asset (สินทรัพย์)</option>
+            <option value="Retirement">Retirement (กองทุนเกษียณ)</option>
+            <option value="Life Goal">Life Goal (เป้าหมายชีวิต)</option>
+            <option value="Forex">Forex (ตลาดแลกเปลี่ยน)</option>
+            <option value="Option">Option (สัญญาออปชัน)</option>
+          </select>
         </div>
         <div class="form-group">
-          <label for="div-notes">หมายเหตุ (เช่น ชื่อหุ้น หรือ ไตรมาสที่จ่าย):</label>
-          <input type="text" id="div-notes" placeholder="เช่น หุ้น A ปันผลครึ่งปีแรก">
+          <label>ประเภทเป้าหมาย:</label>
+          <select id="port-goal-type" class="input-retro">
+            <option value="numeric"> numeric (เป้าหมายจำนวนเงินสะสม)</option>
+            <option value="schedule">schedule (เป้าหมายแผนวินัย DCA)</option>
+          </select>
         </div>
-        <div class="modal-footer">
-          <button type="button" class="btn btn-secondary btn-retro btn-close-modal"><span>ยกเลิก</span></button>
-          <button type="submit" class="btn btn-success btn-retro"><span>💰 บันทึกปันผล</span></button>
+        <div class="form-group">
+          <label id="port-goal-label">เป้าหมายเงินสะสม:</label>
+          <input type="number" id="port-goal-value" class="input-retro" value="0">
+          <input type="text" id="port-goal-schedule" class="input-retro hidden" placeholder="เช่น DCA ทุกวันที่ 25 ของเดือน">
+        </div>
+        <div class="form-group"><label>ระบุเงินช้อนเริ่มต้น (Dry Powder):</label><input type="number" id="port-dry-powder" class="input-retro" value="0"></div>
+        <div class="form-group"><label>วันเริ่มต้นเปิดพอร์ต:</label><input type="date" id="port-start-date" class="input-retro"></div>
+        <div class="form-group"><label>บันทึกโน้ตเพิ่มเติม:</label><input type="text" id="port-notes" class="input-retro"></div>
+        <div class="modal-footer" style="padding:10px 0 0 0;">
+          <button type="button" class="btn btn-secondary btn-close-modal"><span>ยกเลิก</span></button>
+          <button type="submit" class="btn btn-success"><span>💾 บันทึกตลับพอร์ต</span></button>
         </div>
       </form>
     </div>
   </div>
 
-  <!-- TOAST NOTIFICATION CONTAINER -->
-  <div id="toast-container"></div>
-
-  <!-- Core Javascript -->
-  <script src="app.js"></script>
+  <div id="transfer-modal" class="modal-overlay hidden">
+    <div class="modal-card border-pixel">
+      <div class="modal-header">
+        <h3>⚡ โยกย้ายและจัดสรรเสบียง</h3>
+        <button class="btn-close-modal">✖</button>
+      </div>
+      <form id="transfer-form" class="modal-body">
+        <div class="form-group"><label>พอร์ตต้นทาง (หักเงินจาก Dry Powder):</label><select id="tf-source" class="input-retro"></select></div>
+        <div class="form-group"><label>ปลายทางรับเงิน:</label><select id="tf-target" class="input-retro"></select></div>
+        <div class="form-group id-allocation-group"><label>จุดประสงค์การรับเงินปลายทาง:</label><select id="tf-allocation" class="input-retro"><option value="dryPowder">สมทบเข้ากองกระสุนรอช้อน (Dry Powder)</option></select></div>
+        <div class="form-group"><label>จำนวนเงินที่ต้องการโอน:</label><input type="number" id="tf-amount" required class="input-retro" placeholder="ระบุจำนวนเงิน"></div>
+        <div class="form-group"><label>อัตราแลกเปลี่ยนชั่วคราว (ถ้ามีการแปลงสกุลเงิน):</label><input type="number" id="tf-rate" step="0.01" class="input-retro"></div>
+        <div class="modal-footer" style="padding:10px 0 0 0;">
+          <button type="button" class="btn btn-secondary btn-close-modal"><span>ยกเลิก</span></button>
+          <button type="submit" class="btn btn-primary"><span>⚡ ยืนยันการโอนเสบียง</span></button>
+        </div>
+      </form>
+    </div>
+  </div>
 </body>
 </html>
