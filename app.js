@@ -4,13 +4,13 @@
 
 // --- FIREBASE CONFIGURATION HOOK ---
 const firebaseConfig = {
-  apiKey: "YOUR_API_KEY",
-  authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
-  databaseURL: "https://YOUR_PROJECT_ID-default-rtdb.asia-southeast1.firebasedatabase.app",
-  projectId: "YOUR_PROJECT_ID",
-  storageBucket: "YOUR_PROJECT_ID.appspot.com",
-  messagingSenderId: "YOUR_SENDER_ID",
-  appId: "YOUR_APP_ID"
+  apiKey: "AIzaSyD-FLJd2vKaFX-2F8kzE87inrmGEH5pyzY",
+  authDomain: "pixel-steward-db.firebaseapp.com",
+  databaseURL: "https://pixel-steward-db-default-rtdb.asia-southeast1.firebasedatabase.app",
+  projectId: "pixel-steward-db",
+  storageBucket: "pixel-steward-db.firebasestorage.app",
+  messagingSenderId: "36576321084",
+  appId: "1:36576321084:web:315c61237093e616e06d39"
 };
 
 let isFirebaseActive = false;
