@@ -1,4 +1,3 @@
-Content is user-generated and unverified.
 /* ==========================================
    PIXEL STEWARD CORE ENGINE - APP.JS
    ========================================== */
