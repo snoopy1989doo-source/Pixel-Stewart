@@ -10,6 +10,10 @@
   <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Kanit:wght@300;400;500;700;900&display=swap" rel="stylesheet">
   <!-- Stylesheet -->
   <link rel="stylesheet" href="style.css?v=122">
+  
+  <!-- Firebase Compatibility SDK (v9+) -->
+  <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-database-compat.js"></script>
 </head>
 <body>
   <div class="app-container">
@@ -41,6 +45,9 @@
         <button class="nav-item" data-tab="option">
           <span class="icon">💎</span> <span class="nav-text">Option รายเดือน</span>
         </button>
+        <button class="nav-item" data-tab="dividends">
+          <span class="icon">💰</span> <span class="nav-text">แดชบอร์ดปันผล</span>
+        </button>
         <button class="nav-item" data-tab="cashflow">
           <span class="icon">💧</span> <span class="nav-text">Cash Flow</span>
         </button>
@@ -60,7 +67,7 @@
             <input type="number" step="0.1" id="global-usd-rate" class="rate-input" value="36.5">
           </div>
         </div>
-        <div class="version">V1.2.5 LOCAL-FIRST</div>
+        <div class="version">V1.3.0 CLOUD-FIRST</div>
       </div>
     </aside>
 
@@ -284,6 +291,42 @@
           <button type="button" class="btn btn-primary btn-retro" id="btn-save-quarterly"><span>📈 บันทึกไตรมาส</span></button>
         </div>
       </div>
+    </div>
+  </div>
+
+  <!-- ========================================== -->
+  <!-- MODAL: DIVIDEND ENTRY                     -->
+  <!-- ========================================== -->
+  <div id="dividend-modal" class="modal-overlay hidden">
+    <div class="modal-card border-pixel">
+      <div class="modal-header">
+        <h3>💰 บันทึกรับเงินปันผล</h3>
+        <button class="btn-close-modal">✖</button>
+      </div>
+      <form id="dividend-form" class="modal-body">
+        <div class="form-group">
+          <label for="div-port-id">เลือกพอร์ตลงทุน:</label>
+          <select id="div-port-id" required></select>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label for="div-amount">จำนวนเงินปันผลที่ได้รับ:</label>
+            <input type="number" id="div-amount" step="any" placeholder="รับเป็นสกุลเงินประจำพอร์ต" required>
+          </div>
+          <div class="form-group">
+            <label for="div-date">วันที่ได้รับ:</label>
+            <input type="date" id="div-date" required>
+          </div>
+        </div>
+        <div class="form-group">
+          <label for="div-notes">หมายเหตุ (เช่น ชื่อหุ้น หรือ ไตรมาสที่จ่าย):</label>
+          <input type="text" id="div-notes" placeholder="เช่น หุ้น A ปันผลครึ่งปีแรก">
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary btn-retro btn-close-modal"><span>ยกเลิก</span></button>
+          <button type="submit" class="btn btn-success btn-retro"><span>💰 บันทึกปันผล</span></button>
+        </div>
+      </form>
     </div>
   </div>
 
