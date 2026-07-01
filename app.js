@@ -1,5 +1,5 @@
 /* ==========================================
-   PIXEL STEWARD CORE ENGINE - APP.JS (V.1.6.0)
+   PIXEL STEWARD CORE ENGINE - APP.JS (V.1.6.2 CLOUD-FIRST)
    ========================================== */
 
 // --- FIREBASE CONFIGURATION HOOK ---
@@ -23,20 +23,20 @@ if (typeof firebase !== 'undefined' && firebaseConfig.apiKey && firebaseConfig.a
   }
 }
 
-// --- 🥇 ⚙️ ฐานข้อมูลสถิติมวลรวมฉบับสมบูรณ์ (ห้ามสูญหาย) ---
+// --- ฐานข้อมูลสถิติมวลรวมฉบับสมบูรณ์ ---
 const INITIAL_PORTFOLIOS = [
-  { id: '1', name: 'RedWing (กยศ.)', category: 'Thai Stock', goalType: 'numeric', goal: 60000, current: 30000, cashBuffer: 15000, dryPowder: 5000, assets: [{ name: 'หุ้นย่อย A', value: 25000 }], startDate: '2025-01-01', notes: 'เน้นสำรองจ่ายและรักษาสภาพคล่อง' },
-  { id: '2', name: 'Zero 1 (เงินฉุกเฉิน)', category: 'Emergency', goalType: 'numeric', goal: 95000, current: 0, cashBuffer: 90000, dryPowder: 0, assets: [], startDate: '2025-01-01', notes: 'เงินสำรองห้ามแตะต้องเว้นแต่จำเป็น' },
-  { id: '3', name: 'Zero 2 (รถ)', category: 'Asset', goalType: 'numeric', goal: 1200000, current: 300000, cashBuffer: 50000, dryPowder: 300000, assets: [], startDate: '2025-01-01', notes: 'สะสมดาวน์รถยนต์คันใหม่' },
-  { id: '4', name: 'Zero 3 (เกษียณ)', category: 'Retirement', goalType: 'numeric', goal: 4000000, current: 750000, cashBuffer: 100000, dryPowder: 750000, assets: [{ name: 'กองทุนดัชนี', value: 750000 }], startDate: '2025-01-01', notes: 'พอร์ตหลักระยะยาว พลิกฟื้นอิสรภาพ' },
-  { id: '5', name: 'Zero 4 (แต่งงาน)', category: 'Life Goal', goalType: 'numeric', goal: 600000, current: 120000, cashBuffer: 30000, dryPowder: 120000, assets: [], startDate: '2025-05-01', notes: 'ทุนแต่งงานในอนาคต' },
-  { id: '6', name: 'Zero 5 (บ้าน)', category: 'Asset', goalType: 'numeric', goal: 1500000, current: 180000, cashBuffer: 20000, dryPowder: 180000, assets: [], startDate: '2025-06-01', notes: 'เป้าหมายระยะกลางสำหรับที่อยู่อาศัย' },
-  { id: '7', name: 'Dividend Yield (หุ้นโลก)', category: 'Global Stock', goalType: 'numeric', goal: 300000, current: 100000, cashBuffer: 20000, dryPowder: 100000, assets: [{ name: 'ETF โลก', value: 100000 }], startDate: '2025-02-01', notes: 'ปันผลสม่ำเสมอ ลดความเสี่ยงค่าเงิน' },
-  { id: '8', name: 'THAI Dividend (หุ้นไทย)', category: 'Thai Stock', goalType: 'numeric', goal: 100000, current: 55000, cashBuffer: 10000, dryPowder: 55000, assets: [{ name: 'หุ้นปันผลไทย', value: 55000 }], startDate: '2025-01-15', notes: 'เน้นกระแสเงินสดจากปันผลในประเทศ' },
-  { id: '9', name: 'NEXT GEN (หุ้นเติบโต)', category: 'Growth Stock', goalType: 'schedule', goalSchedule: 'DCA ทุกวันที่ 25', current: 4000000, cashBuffer: 500000, dryPowder: 4000000, assets: [{ name: 'Tech Growth', value: 4000000 }], startDate: '2025-03-01', notes: 'พอร์ตซิ่ง ดุดัน ไม่เกรงใจใคร โตระยะยาว', dcaDoneThisMonth: true },
-  { id: '10', name: 'FOREX LIFE', category: 'Forex', goalType: 'numeric', goal: 50000, current: 10000, cashBuffer: 2500, dryPowder: 10000, assets: [], startDate: '2025-01-01', notes: 'เทรดกระแสเงินสดรายเดือน ดอลลาร์สหรัฐ' },
-  { id: '11', name: 'FOREX RISK', category: 'Forex', goalType: 'numeric', goal: 20000, current: 4000, cashBuffer: 1200, dryPowder: 4000, assets: [], startDate: '2025-01-01', notes: 'พอร์ตเสี่ยงสูง ปั้นพอร์ตคูณเท่า' },
-  { id: '12', name: 'Option', category: 'Option', goalType: 'numeric', goal: 30000, current: 7000, cashBuffer: 1900, dryPowder: 7000, assets: [], startDate: '2025-02-01', notes: 'ใช้กลยุทธ์ออปชั่นในการ Hedging และทำกำไร' }
+  { id: '1', name: 'RedWing (กยศ.)', category: 'Thai Stock', goalType: 'numeric', goal: 60000, current: 15000, cashBuffer: 15000, dryPowder: 5000, assets: [{ name: 'หุ้นย่อย A', value: 25000 }, { name: 'Buffer', value: 15000 }], startDate: '2025-01-01', notes: 'เน้นสำรองจ่ายและรักษาสภาพคล่อง' },
+  { id: '2', name: 'Zero 1 (เงินฉุกเฉิน)', category: 'Emergency', goalType: 'numeric', goal: 95000, current: 0, cashBuffer: 90000, dryPowder: 0, assets: [{ name: 'Buffer', value: 90000 }], startDate: '2025-01-01', notes: 'เงินสำรองห้ามแตะต้องเว้นแต่จำเป็น' },
+  { id: '3', name: 'Zero 2 (รถ)', category: 'Asset', goalType: 'numeric', goal: 1200000, current: 250000, cashBuffer: 50000, dryPowder: 300000, assets: [{ name: 'Buffer', value: 50000 }], startDate: '2025-01-01', notes: 'สะสมดาวน์รถยนต์คันใหม่' },
+  { id: '4', name: 'Zero 3 (เกษียณ)', category: 'Retirement', goalType: 'numeric', goal: 4000000, current: 650000, cashBuffer: 100000, dryPowder: 750000, assets: [{ name: 'กองทุนดัชนี', value: 750000 }, { name: 'Buffer', value: 100000 }], startDate: '2025-01-01', notes: 'พอร์ตหลักระยะยาว พลิกฟื้นอิสรภาพ' },
+  { id: '5', name: 'Zero 4 (แต่งงาน)', category: 'Life Goal', goalType: 'numeric', goal: 600000, current: 90000, cashBuffer: 30000, dryPowder: 120000, assets: [{ name: 'Buffer', value: 30000 }], startDate: '2025-05-01', notes: 'ทุนแต่งงานในอนาคต' },
+  { id: '6', name: 'Zero 5 (บ้าน)', category: 'Asset', goalType: 'numeric', goal: 1500000, current: 160000, cashBuffer: 20000, dryPowder: 180000, assets: [{ name: 'Buffer', value: 20000 }], startDate: '2025-06-01', notes: 'เป้าหมายระยะกลางสำหรับที่อยู่อาศัย' },
+  { id: '7', name: 'Dividend Yield (หุ้นโลก)', category: 'Global Stock', goalType: 'numeric', goal: 300000, current: 80000, cashBuffer: 20000, dryPowder: 100000, assets: [{ name: 'ETF โลก', value: 100000 }, { name: 'Buffer', value: 20000 }], startDate: '2025-02-01', notes: 'ปันผลสม่ำเสมอ ลดความเสี่ยงค่าเงิน' },
+  { id: '8', name: 'THAI Dividend (หุ้นไทย)', category: 'Thai Stock', goalType: 'numeric', goal: 100000, current: 45000, cashBuffer: 10000, dryPowder: 55000, assets: [{ name: 'หุ้นปันผลไทย', value: 55000 }, { name: 'Buffer', value: 10000 }], startDate: '2025-01-15', notes: 'เน้นกระแสเงินสดจากปันผลในประเทศ' },
+  { id: '9', name: 'NEXT GEN (หุ้นเติบโต)', category: 'Growth Stock', goalType: 'schedule', goalSchedule: 'DCA ทุกวันที่ 25', current: 3500000, cashBuffer: 500000, dryPowder: 4000000, assets: [{ name: 'Tech Growth', value: 4000000 }, { name: 'Buffer', value: 500000 }], startDate: '2025-03-01', notes: 'พอร์ตซิ่ง ดุดัน ไม่เกรงใจใคร โตระยะยาว', dcaDoneThisMonth: true },
+  { id: '10', name: 'FOREX LIFE', category: 'Forex', goalType: 'numeric', goal: 50000, current: 7500, cashBuffer: 2500, dryPowder: 10000, assets: [{ name: 'Buffer', value: 2500 }], startDate: '2025-01-01', notes: 'เทรดกระแสเงินสดรายเดือน ดอลลาร์สหรัฐ' },
+  { id: '11', name: 'FOREX RISK', category: 'Forex', goalType: 'numeric', goal: 20000, current: 2800, cashBuffer: 1200, dryPowder: 4000, assets: [{ name: 'Buffer', value: 1200 }], startDate: '2025-01-01', notes: 'พอร์ตเสี่ยงสูง ปั้นพอร์ตคูณเท่า' },
+  { id: '12', name: 'Option', category: 'Option', goalType: 'numeric', goal: 30000, current: 5100, cashBuffer: 1900, dryPowder: 7000, assets: [{ name: 'Buffer', value: 1900 }], startDate: '2025-02-01', notes: 'ใช้กลยุทธ์ออปชั่นในการ Hedging และทำกำไร' }
 ];
 
 const INITIAL_QUARTERLY_RECORDS = [
@@ -146,7 +146,29 @@ class PixelStewardApp {
     });
   }
 
+  // --- ⚙️ ฟังก์ชันคำนวณเงินในพอร์ตรวมอัตโนมัติจาก Asset ย่อย (V.1.6.2 คำสั่งหลัก) ---
+  autoCalculatePortfolios() {
+    this.portfolios.forEach(p => {
+      const totalAssets = Array.isArray(p.assets) 
+        ? p.assets.reduce((sum, asset) => sum + (Number(asset.value) || 0), 0)
+        : 0;
+
+      // ตรวจจับ Asset ย่อยที่ชื่อขึ้นต้นด้วย Buffer หรือ สำรอง เพื่อแยกแยะยอดเงินสำรอง
+      const bufferAsset = p.assets.find(a => a.name.toLowerCase().includes('buffer') || a.name.includes('สำรอง'));
+      
+      if (bufferAsset) {
+        p.cashBuffer = Number(bufferAsset.value) || 0;
+      } else {
+        p.cashBuffer = 0; 
+      }
+
+      // ยอดลงทุนทำงานจริง = ยอดสินทรัพย์ย่อยรวม หักลบด้วยเงินสำรอง Buffer เพื่อป้องกันเงินสมทบซ้ำซ้อน
+      p.current = Math.max(totalAssets - p.cashBuffer, 0);
+    });
+  }
+
   saveState() {
+    this.autoCalculatePortfolios();
     localStorage.setItem('ps_portfolios_v2', JSON.stringify(this.portfolios));
     localStorage.setItem('ps_quarterly_v2', JSON.stringify(this.quarterlyRecords));
     localStorage.setItem('ps_monthly_v2', JSON.stringify(this.monthlyRecords));
@@ -156,6 +178,7 @@ class PixelStewardApp {
   }
 
   getCalculations() {
+    this.autoCalculatePortfolios();
     let totalTHB = 0, totalUSD = 0, totalCashBufferTHB = 0, totalDryPowderTHB = 0;
     this.portfolios.forEach(p => {
       const isUSD = ['Forex', 'Option'].includes(p.category);
@@ -173,7 +196,6 @@ class PixelStewardApp {
     return { netWorthTHB, netWorthUSD: netWorthTHB / this.exchangeRate, totalTHB, totalUSD, totalCashBufferTHB, totalDryPowderTHB };
   }
 
-  // --- 🏅 ระบบเกณฑ์คำนวณยศและ Rank ดั้งเดิม ---
   getPortfolioLevel(p) {
     if (p.goalType === 'schedule') {
       return { icon: p.dcaDoneThisMonth ? '🔥' : '⏳', label: p.dcaDoneThisMonth ? 'DCA เดือนนี้เรียบร้อย' : 'รอบรรลุการ DCA', desc: 'สะสมแต้มพลังบวกรายเดือน', pct: p.dcaDoneThisMonth ? 100 : 0 };
@@ -232,9 +254,16 @@ class PixelStewardApp {
   }
 
   refreshUI() {
+    this.autoCalculatePortfolios();
     const tabContent = document.getElementById('tab-content');
     if (!tabContent) return;
     tabContent.innerHTML = '';
+
+    // บรรจุสัญลักษณ์รุ่นสถาปัตยกรรมคลาวด์ V.1.6.2 ลงบนหัวข้อหน้าต่างเพจย่อย
+    const subtitle = document.getElementById('page-subtitle');
+    if (subtitle && !subtitle.innerText.includes('V.1.6.2')) {
+      subtitle.innerText += " | 🏷️ V.1.6.2 CLOUD-FIRST";
+    }
 
     switch (this.activeTab) {
       case 'dashboard': this.renderDashboard(tabContent); break;
@@ -245,6 +274,7 @@ class PixelStewardApp {
         tabContent.innerHTML = '<div class="border-pixel" style="padding:20px;">📊 โมดูลเชื่อมต่อประวัติการเทรด Forex จาก Retro Trading Journal กำลังแสตนด์บายคู่ขนาน</div>';
         break;
       case 'option': this.renderOptionManual(tabContent); break;
+      case 'cashflow': this.renderCashFlow(tabContent); break; // แก้ปัญหาวงจรรูตเตอร์หน้าว่างเปล่าเรียบร้อย
       case 'settings': this.renderSettings(tabContent); break;
     }
   }
@@ -339,7 +369,7 @@ class PixelStewardApp {
     `;
   }
 
-  // --- 📁 RENDER 2: PORTFOLIOS COMPLETE (กู้คืนวิดเจ็ตอัปเดตกระปุกเซฟ 3 ช่องแยก + เลเวลเควสขอบทอง) ---
+  // --- 📁 RENDER 2: PORTFOLIOS COMPLETE ---
   renderPortfolios(container) {
     if (this.portfolios.length === 0) {
       container.innerHTML = '<div class="border-pixel" style="padding:20px;">ไม่พบรายการพอร์ตการลงทุนในระบบ</div>';
@@ -375,7 +405,7 @@ class PixelStewardApp {
 
             <div class="details-grid-stats" style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
               <div class="detail-stat-box" style="background:#111625; padding:12px; border:2px solid #000;">🎯 เป้าหมาย: ${activePort.goalType === 'numeric' ? this.formatMoney(activePort.goal, activePort.category) : activePort.goalSchedule}</div>
-              <div class="detail-stat-box" style="background:#111625; padding:12px; border:2px solid #000; color:var(--color-success)">💼 ยอดเงินลงทุนสะสม: ${this.formatMoney(activePort.current, activePort.category)}</div>
+              <div class="detail-stat-box" style="background:#111625; padding:12px; border:2px solid #000; color:var(--color-success)">💼 ยอดเงินลงทุนสะสม: ${this.formatMoney(activePort.current + activePort.cashBuffer, activePort.category)}</div>
             </div>
 
             <div>
@@ -392,7 +422,7 @@ class PixelStewardApp {
             <div class="assets-section" style="margin-top:10px;">
               <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:2px solid #000; padding-bottom:6px;">
                 <h4 style="font-family:var(--font-press-start); font-size:0.65rem; color:var(--color-text-muted);">💎 สินทรัพย์ย่อยในตลับเซฟ</h4>
-                <button class="btn btn-primary btn-retro btn-small" id="btn-add-asset" style="padding:2px 8px;">➕ เพิ่มสินทรัพย์</button>
+                <button class="btn btn-primary btn-retro btn-small" id="btn-add-asset" style="padding:2px 8px;">➕ เพิ่มสินทรัพย์ย่อย</button>
               </div>
               <div class="assets-list" style="margin-top:12px; display:flex; flex-direction:column; gap:6px; max-height:200px; overflow-y:auto;">
                 ${activePort.assets.length === 0 ? '<p class="text-muted" style="text-align:center; padding:10px;">ไม่มีรายการสินทรัพย์ย่อย</p>' : activePort.assets.map((a, i) => `
@@ -424,17 +454,19 @@ class PixelStewardApp {
               <form id="update-balance-form" style="display:flex; flex-direction:column; gap:8px; font-size:0.85rem;">
                 <div>
                   <label style="font-weight:bold; display:block; margin-bottom:2px;">เงินในพอร์ตรวมจริง (${isUSD ? 'USD' : 'THB'}):</label>
-                  <input type="number" id="update-current" class="input-retro" value="${activePort.current + activePort.cashBuffer}" style="width:100%; padding:4px;" required>
+                  <input type="number" id="update-current" class="input-retro" value="${activePort.current + activePort.cashBuffer}" style="width:100%; padding:4px; background:#111625; color:#888;" readonly>
+                  <small style="color:var(--color-primary-light);">* รวมอัตโนมัติจากตลับสินทรัพย์ย่อย</small>
                 </div>
                 <div>
                   <label style="font-weight:bold; display:block; margin-bottom:2px;">ในนั้นเป็นสำรอง Buffer:</label>
-                  <input type="number" id="update-buffer" class="input-retro" value="${activePort.cashBuffer}" style="width:100%; padding:4px;" required>
+                  <input type="number" id="update-buffer" class="input-retro" value="${activePort.cashBuffer}" style="width:100%; padding:4px; background:#111625; color:#888;" readonly>
+                  <small style="color:var(--color-secondary);">* ตรวจจับจาก Asset ชื่อ 'Buffer' หรือ 'สำรอง'</small>
                 </div>
                 <div>
-                  <label style="font-weight:bold; display:block; margin-bottom:2px;">ในนั้นเป็นเงินช้อน Dry:</label>
+                  <label style="font-weight:bold; display:block; margin-bottom:2px;">ในนั้นเป็นเงินช้อน Dry Powder:</label>
                   <input type="number" id="update-dry" class="input-retro" value="${activePort.dryPowder}" style="width:100%; padding:4px;" required>
                 </div>
-                <button type="submit" class="btn btn-success btn-retro" style="width:100%; padding:6px; margin-top:4px; font-weight:bold;">💾 บันทึกยอดกระปุกเซฟ</button>
+                <button type="submit" class="btn btn-success btn-retro" style="width:100%; padding:6px; margin-top:4px; font-weight:bold;">💾 บันทึกเงินช้อน Dry Powder</button>
               </form>
             </div>
           </div>
@@ -443,17 +475,11 @@ class PixelStewardApp {
       </div>
     `;
 
-    // ผูกกลไกคำนวณและกระจายคลังเสบียงยามกดยืนยันเซฟฟอร์ม 3 กล่อง
     document.getElementById('update-balance-form').addEventListener('submit', (e) => {
       e.preventDefault();
-      const curr = Number(document.getElementById('update-current').value);
-      const buff = Number(document.getElementById('update-buffer').value);
       const dry = Number(document.getElementById('update-dry').value);
-      
       const port = this.portfolios.find(p => p.id === activePort.id);
       if (port) {
-        port.current = curr - buff; // ยอดทำงานสุทธิหักลบเสบียงบัฟเฟอร์หลัก
-        port.cashBuffer = buff;
         port.dryPowder = dry;
         this.saveState();
         this.refreshUI();
@@ -463,7 +489,7 @@ class PixelStewardApp {
     const addAssetBtn = document.getElementById('btn-add-asset');
     if (addAssetBtn) {
       addAssetBtn.addEventListener('click', () => {
-        const name = prompt('กรอกชื่อสินทรัพย์ย่อย/ตัวย่อหุ้น (เช่น AGG, JNJ):');
+        const name = prompt('กรอกชื่อสินทรัพย์ย่อย/ตัวย่อหุ้น (ตั้งชื่อว่า Buffer สำหรับเงินสำรอง):');
         const val = Number(prompt(`ระบุมูลค่าเงินลงทุนสุทธิ (${isUSD ? 'USD' : 'THB'}):`));
         if (name && !isNaN(val) && val >= 0) {
           activePort.assets.push({ name, value: val });
@@ -606,7 +632,47 @@ class PixelStewardApp {
     `;
   }
 
-  // --- ⚙️ RENDER 6: SETTINGS COMPACT ---
+  // --- 🛡️ RENDER 6: CASH FLOW TRACKER (กู้คืนหน้าสภาพคล่องเต็มรูปแบบดั้งเดิม) ---
+  renderCashFlow(container) {
+    const getLiquidityStatus = (p) => {
+      const totalCash = p.cashBuffer + p.dryPowder;
+      if (p.goalType === 'schedule') {
+        if (totalCash > 100000) return { text: '🍀 หล่อเลี้ยงตัวเองได้', cls: 'badge-success', desc: 'มีสภาพคล่องพร้อม DCA ต่อเนื่อง' };
+        if (totalCash > 30000) return { text: '⚡ สภาพคล่องนิ่ง', cls: 'badge-warning', desc: 'พอหมุนเวียน แต่อย่าช้อนหนักเกินตัว' };
+        return { text: '⚠️ ควรเติมเสบียงด่วน', cls: 'badge-danger', desc: 'เสบียงใกล้หมดกระปุกแล้ว!' };
+      }
+      const ratio = p.goal > 0 ? totalCash / p.goal : 0;
+      if (ratio >= 0.15) return { text: '🍀 หล่อเลี้ยงตัวเองได้', cls: 'badge-success', desc: 'กระแสเงินสดหมุนเวียนเกรดพรีเมียม' };
+      if (ratio >= 0.05) return { text: '⚡ สภาพคล่องนิ่ง', cls: 'badge-warning', desc: 'พอเอาตัวรอดได้ชั่วขณะ นิ่งสงบดี' };
+      return { text: '⚠️ ควรเติมเสบียงด่วน', cls: 'badge-danger', desc: 'ยอดเงินฉุกเฉินและรอช้อนแห้งแล้ง' };
+    };
+
+    const cashflowHTML = `
+      <div class="cashflow-grid" style="display:grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap:20px;">
+        ${this.portfolios.map(p => {
+          const status = getLiquidityStatus(p);
+          return `
+            <div class="cashflow-card border-pixel" style="background:#1f273e; padding:16px; position:relative;">
+              <span class="badge ${status.cls}" style="position:absolute; top:12px; right:12px; font-size:0.75rem; padding:2px 6px;">${status.text}</span>
+              <div>
+                <h4 style="font-weight:bold; font-size:1.05rem; margin-bottom:4px;">${p.name}</h4>
+                <span class="port-card-cat" style="background-color: var(--color-primary); font-size:0.75rem; padding:2px 6px;">${p.category}</span>
+              </div>
+              <div class="border-pixel-inset" style="padding:12px; margin-top:12px; background:#111625; border:2px solid #000; display:flex; flex-direction:column; gap:6px; font-size:0.85rem;">
+                <div style="display:flex; justify-content:space-between;"><span class="label">เงินสำรอง Buffer:</span><span class="value" style="color:var(--color-secondary);">${this.formatMoney(p.cashBuffer, p.category)}</span></div>
+                <div style="display:flex; justify-content:space-between;"><span class="label">เงินรอเข้าซื้อ Dry:</span><span class="value" style="color:var(--color-warning);">${this.formatMoney(p.dryPowder, p.category)}</span></div>
+                <div style="display:flex; justify-content:space-between; border-top:1px solid #444; padding-top:4px; margin-top:4px;"><span class="label">สภาพคล่องรวม:</span><span class="value" style="color:#fff; font-weight:bold;">${this.formatMoney(p.cashBuffer + p.dryPowder, p.category)}</span></div>
+              </div>
+              <div style="font-size:0.75rem; color:var(--color-text-muted); text-align:center; font-weight:bold; margin-top:8px;">📢 ${status.desc}</div>
+            </div>
+          `;
+        }).join('')}
+      </div>
+    `;
+    container.innerHTML = cashflowHTML;
+  }
+
+  // --- ⚙️ RENDER 7: SETTINGS ---
   renderSettings(container) {
     container.innerHTML = `
       <div class="border-pixel" style="padding:20px; display:flex; flex-direction:column; gap:16px; background:#1f273e;">
