@@ -7,12 +7,35 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Kanit:wght@300;400;500;700;900&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="style.css?v=124">
+  <link rel="stylesheet" href="style.css?v=126">
+  
   <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-database-compat.js"></script>
+
   <style>
-    /* --- 🎮 EXTRA PIXEL ART CARTRIDGE CSS STYLE --- */
-    .cartridge-list {
+    /* ==========================================================================
+       🎮 EXTRA PIXEL ART CARTRIDGE & SIDEBAR STYLING INTEGRATION (V.1.6.3)
+       ========================================================================== */
+    .brand-title {
+      font-family: 'Press Start 2P', monospace;
+      font-size: 0.85rem;
+      line-height: 1.4;
+      margin: 0;
+    }
+    .brand-title.highlight {
+      color: #3b82f6;
+    }
+    .app-version-tag {
+      font-family: 'Press Start 2P', monospace;
+      font-size: 0.55rem;
+      color: #10b981;
+      background: #0c1020;
+      padding: 4px 6px;
+      border: 2px solid #000;
+      display: inline-block;
+      margin-top: 6px;
+    }
+    .cartridge-list-rack {
       display: flex;
       flex-direction: column;
       gap: 12px;
@@ -37,7 +60,7 @@
       content: '';
       position: absolute;
       top: 0; left: 0; right: 0; height: 6px;
-      background: rgba(255,255,255,0.15);
+      background: rgba(255,255,255,0.1);
     }
     .pixel-cartridge-card.active {
       background: var(--color-primary, #3b82f6);
@@ -59,22 +82,22 @@
     }
     .cartridge-meta {
       font-size: 0.7rem;
-      color: var(--color-text-muted, #94a3b8);
+      color: #94a3b8;
       display: flex;
       justify-content: space-between;
     }
-    .ammo-warning {
+    .ammo-warning-tag {
       color: #ef4444 !important;
-      font-family: 'Press Start 2P';
+      font-family: 'Press Start 2P', monospace;
       font-size: 0.55rem;
-      animation: blink-effect 1s infinite;
+      animation: pixel-blink 1s infinite;
     }
-    @keyframes blink-effect {
+    @keyframes pixel-blink {
       0%, 100% { opacity: 1; }
       50% { opacity: 0; }
     }
     
-    /* ซ่อมแซมคลาส Dashboard ที่ขาดหายเพื่อเสถียรภาพระบบ */
+    /* ซ่อมแซมระบบคลาสแสดงผลหน้าแรกเพื่อเสถียรภาพการประมวลผล */
     .dashboard-grid { margin-top: 20px; }
     .stat-card { background: #1f273e; padding: 20px; border: 4px solid #000; box-shadow: 4px 4px 0px #000; }
     .stat-header { display: flex; justify-content: space-between; align-items: center; font-size: 0.85rem; font-weight: bold; color: #94a3b8; }
@@ -85,25 +108,27 @@
 </head>
 <body>
   <div class="app-container">
-    <!-- SIDEBAR NAVIGATION -->
     <aside class="sidebar border-pixel">
       <div class="brand">
         <div class="logo">🥇</div>
         <div class="title-container">
-          <h2 style="font-family:'Press Start 2P'; font-size:0.65rem; line-height:1.4;">PIXEL<br><span style="color:#3b82f6;">STEWARD</span></h2>
-          <span class="sub" id="app-version-badge" style="font-size:0.7rem; font-weight:bold; color:#10b981; display:block; margin-top:4px;">🏷️ V.1.6.3 CLOUD-FIRST</span>
+          <h1 class="brand-title">PIXEL</h1>
+          <h1 class="brand-title highlight">STEWARD</h1>
+          <span class="app-version-tag" id="app-version-badge">🏷️ V.1.6.3 CLOUD-FIRST</span>
         </div>
       </div>
       
-      <div class="exchange-widget border-pixel-inset" style="margin-top:15px; padding:10px; background:#111625;">
-        <label for="global-usd-rate" style="font-size:0.8rem; display:block;">💱 อัตราแลกเปลี่ยน:</label>
+      <div class="nav-divider" style="height:4px; background:#000; margin:15px 0;"></div>
+      
+      <div class="exchange-widget border-pixel-inset" style="padding:10px; background:#111625; margin-bottom:15px;">
+        <label for="global-usd-rate" style="font-size:0.8rem; color:#94a3b8;">💱 อัตราแลกเปลี่ยนคลัง:</label>
         <div style="display:flex; align-items:center; gap:6px; margin-top:4px;">
-          <input type="number" id="global-usd-rate" value="36.50" step="0.01" style="width:75px; background:#0c1020; color:#fff; border:2px solid #000; padding:2px 4px;">
+          <input type="number" id="global-usd-rate" value="36.50" step="0.01" style="width:75px; background:#0c1020; color:#fff; border:2px solid #000; padding:2px 4px; font-family:monospace;">
           <span style="font-size:0.75rem; font-weight:bold; color:#94a3b8;">THB/USD</span>
         </div>
       </div>
 
-      <nav class="nav-menu" style="margin-top:20px; display:flex; flex-direction:column; gap:6px;">
+      <nav class="nav-menu" style="display:flex; flex-direction:column; gap:6px;">
         <button class="nav-item active" data-tab="dashboard"><span>📊 แดชบอร์ดภาพรวม</span></button>
         <button class="nav-item" data-tab="portfolios"><span>📁 พอร์ตการลงทุน</span></button>
         <button class="nav-item" data-tab="quarterly"><span>📈 หุ้นรายไตรมาส</span></button>
@@ -116,7 +141,6 @@
       </nav>
     </aside>
 
-    <!-- MAIN WORKING SCREEN -->
     <main class="main-content">
       <header class="main-header border-pixel" style="background:#1f273e; padding:16px; margin-bottom:20px; display:flex; justify-content:space-between; align-items:center;">
         <div class="header-titles">
@@ -129,16 +153,13 @@
         </div>
       </header>
 
-      <!-- ซ่อมแซมตำแหน่ง ID ข้อมูลที่สคริปต์เรียกหาดึงข้อมูลไปวาด -->
-      <section id="tab-content" class="content-body">
-        <!-- RENDER DYNAMICALLY VIA APP.JS -->
-      </section>
+      <section id="tab-content" class="tab-pane-container">
+        </section>
     </main>
   </div>
 
   <div id="toast-container" class="toast-container"></div>
 
-  <!-- QUARTERLY ADJUSTMENT MODAL -->
   <div id="quarterly-modal" class="modal-overlay hidden">
     <div class="modal-card border-pixel">
       <div class="modal-header">
@@ -157,7 +178,7 @@
           <div class="form-group"><label>ทุนเติม/ถอนสุทธิ Q2:</label><input type="number" id="q-flow-q2" class="input-retro" value="0"></div>
         </div>
         <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:12px;">
-          <div class="form-group"><label>ยอดสิ้นไตรมาส 3 (THB):</label><input type="number" id="q-val-q3" class="input-retro"></div>
+          <div class="form-group"><label>ยอดสิ้นไตรмаส 3 (THB):</label><input type="number" id="q-val-q3" class="input-retro"></div>
           <div class="form-group"><label>ทุนเติม/ถอนสุทธิ Q3:</label><input type="number" id="q-flow-q3" class="input-retro" value="0"></div>
         </div>
         <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:12px;">
@@ -176,7 +197,39 @@
     </div>
   </div>
 
-  <!-- SYSTEM PORTFOLIO MODAL -->
+  <div id="dividend-modal" class="modal-overlay hidden">
+    <div class="modal-card border-pixel">
+      <div class="modal-header">
+        <h3>💰 บันทึกรับเงินปันผล</h3>
+        <button class="btn-close-modal">✖</button>
+      </div>
+      <form id="dividend-form" class="modal-body">
+        <div class="form-group">
+          <label for="div-port-id">เลือกพอร์ตลงทุน:</label>
+          <select id="div-port-id" required class="input-retro"></select>
+        </div>
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:12px;">
+          <div class="form-group">
+            <label for="div-amount">จำนวนเงินปันผลที่ได้รับ:</label>
+            <input type="number" id="div-amount" step="any" placeholder="รับเป็นสกุลเงินประจำพอร์ต" class="input-retro" required>
+          </div>
+          <div class="form-group">
+            <label for="div-date">วันที่ได้รับ:</label>
+            <input type="date" id="div-date" class="input-retro" required>
+          </div>
+        </div>
+        <div class="form-group">
+          <label for="div-notes">หมายเหตุ (เช่น ชื่อหุ้น หรือ ไตรมาสที่จ่าย):</label>
+          <input type="text" id="div-notes" placeholder="เช่น หุ้น A ปันผลครึ่งปีแรก" class="input-retro" style="width:100%;">
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary btn-close-modal"><span>ยกเลิก</span></button>
+          <button type="submit" class="btn btn-success"><span>💰 บันทึกปันผล</span></button>
+        </div>
+      </form>
+    </div>
+  </div>
+
   <div id="portfolio-modal" class="modal-overlay hidden">
     <div class="modal-card border-pixel">
       <div class="modal-header">
@@ -185,7 +238,7 @@
       </div>
       <form id="portfolio-form" class="modal-body">
         <input type="hidden" id="edit-port-id">
-        <div class="form-group"><label>ชื่อพอร์ตการลงทุน:</label><input type="text" id="port-name" required class="input-retro"></div>
+        <div class="form-group"><label>ชื่อพอร์ตการลงทุน:</label><input type="text" id="port-name" required class="input-retro" placeholder="เช่น Zero 3 (เกษียณ)"></div>
         <div class="form-group">
           <label>หมวดหมู่สินทรัพย์:</label>
           <select id="port-category" class="input-retro">
@@ -209,7 +262,7 @@
         </div>
         <div class="form-group">
           <label id="port-goal-label">เป้าหมายเงินสะสม:</label>
-          <input type="number" id="port-goal-value" class="input-retro" value="0">
+          <input type="number" id="port-goal-value" class="input-retro" value="100000">
           <input type="text" id="port-goal-schedule" class="input-retro hidden" placeholder="เช่น DCA ทุกวันที่ 25 ของเดือน">
         </div>
         <div class="form-group"><label>ระบุเงินช้อนเริ่มต้น (Dry Powder):</label><input type="number" id="port-dry-powder" class="input-retro" value="0"></div>
@@ -223,7 +276,6 @@
     </div>
   </div>
 
-  <!-- FUND TRANSFER MODAL -->
   <div id="transfer-modal" class="modal-overlay hidden">
     <div class="modal-card border-pixel">
       <div class="modal-header">
@@ -233,9 +285,9 @@
       <form id="transfer-form" class="modal-body">
         <div class="form-group"><label>พอร์ตต้นทาง (หักเงินจาก Dry Powder):</label><select id="tf-source" class="input-retro"></select></div>
         <div class="form-group"><label>ปลายทางรับเงิน:</label><select id="tf-target" class="input-retro"></select></div>
-        <div class="form-group id-allocation-group"><label>จุดประสงค์การรับเงินปลายทาง:</label><select id="tf-allocation" class="input-retro"><option value="dryPowder">สมทบเข้ากองกระสุนรอช้อน (Dry Powder)</option></select></div>
+        <div class="form-group id-allocation-group"><label>จัดสรรเงินไปยังส่วนไหนของพอร์ตปลายทาง:</label><select id="tf-allocation" class="input-retro"><option value="dryPowder">เงินรอช้อน (Dry Powder)</option></select></div>
         <div class="form-group"><label>จำนวนเงินที่ต้องการโอน:</label><input type="number" id="tf-amount" required class="input-retro" placeholder="ระบุจำนวนเงิน"></div>
-        <div class="form-group"><label>อัตราแลกเปลี่ยนชั่วคราว (ถ้ามีการแปลงสกุลเงิน):</label><input type="number" id="tf-rate" step="0.01" class="input-retro"></div>
+        <div class="form-group"><label>อัตราแลกเปลี่ยนชั่วคราว (ถ้ามีการแปลงสกุลเงิน):</label><input type="number" id="tf-rate" step="0.01" class="input-retro" value="36.50"></div>
         <div class="modal-footer" style="padding:10px 0 0 0;">
           <button type="button" class="btn btn-secondary btn-close-modal"><span>ยกเลิก</span></button>
           <button type="submit" class="btn btn-primary"><span>⚡ ยืนยันการโอนเสบียง</span></button>
@@ -244,7 +296,6 @@
     </div>
   </div>
 
-  <!-- Core Javascript -->
   <script src="app.js"></script>
 </body>
 </html>
