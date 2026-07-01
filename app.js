@@ -1,12 +1,12 @@
 /* ==========================================
-   PIXEL STEWARD CORE ENGINE - APP.JS (V.1.4.0)
+   PIXEL STEWARD CORE ENGINE - APP.JS (V.1.6.0)
    ========================================== */
 
 // --- FIREBASE CONFIGURATION HOOK ---
 const firebaseConfig = {
   apiKey: "YOUR_API_KEY",
   authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
-  databaseURL: "https://YOUR_PROJECT_ID-default-rtdb.firebaseio.com",
+  databaseURL: "https://YOUR_PROJECT_ID-default-rtdb.asia-southeast1.firebasedatabase.app",
   projectId: "YOUR_PROJECT_ID",
   storageBucket: "YOUR_PROJECT_ID.appspot.com",
   messagingSenderId: "YOUR_SENDER_ID",
@@ -15,14 +15,47 @@ const firebaseConfig = {
 
 let isFirebaseActive = false;
 if (typeof firebase !== 'undefined' && firebaseConfig.apiKey && firebaseConfig.apiKey !== "YOUR_API_KEY") {
-  firebase.initializeApp(firebaseConfig);
-  isFirebaseActive = true;
+  try {
+    firebase.initializeApp(firebaseConfig);
+    isFirebaseActive = true;
+  } catch (e) {
+    console.error("Firebase Sync Connection Failed:", e);
+  }
 }
 
-// --- INITIAL STATE / MOCK DATA ---
+// --- 🥇 ⚙️ ฐานข้อมูลสถิติมวลรวมฉบับสมบูรณ์ (ห้ามสูญหาย) ---
 const INITIAL_PORTFOLIOS = [
   { id: '1', name: 'RedWing (กยศ.)', category: 'Thai Stock', goalType: 'numeric', goal: 60000, current: 30000, cashBuffer: 15000, dryPowder: 5000, assets: [{ name: 'หุ้นย่อย A', value: 25000 }], startDate: '2025-01-01', notes: 'เน้นสำรองจ่ายและรักษาสภาพคล่อง' },
-  { id: '2', name: 'Zero 1 (เงินฉุกเฉิน)', category: 'Emergency', goalType: 'numeric', goal: 95000, current: 0, cashBuffer: 90000, dryPowder: 0, assets: [], startDate: '2025-01-01', notes: 'เงินสำรองห้ามแตะต้องเว้นแต่จำเป็น' }
+  { id: '2', name: 'Zero 1 (เงินฉุกเฉิน)', category: 'Emergency', goalType: 'numeric', goal: 95000, current: 0, cashBuffer: 90000, dryPowder: 0, assets: [], startDate: '2025-01-01', notes: 'เงินสำรองห้ามแตะต้องเว้นแต่จำเป็น' },
+  { id: '3', name: 'Zero 2 (รถ)', category: 'Asset', goalType: 'numeric', goal: 1200000, current: 300000, cashBuffer: 50000, dryPowder: 300000, assets: [], startDate: '2025-01-01', notes: 'สะสมดาวน์รถยนต์คันใหม่' },
+  { id: '4', name: 'Zero 3 (เกษียณ)', category: 'Retirement', goalType: 'numeric', goal: 4000000, current: 750000, cashBuffer: 100000, dryPowder: 750000, assets: [{ name: 'กองทุนดัชนี', value: 750000 }], startDate: '2025-01-01', notes: 'พอร์ตหลักระยะยาว พลิกฟื้นอิสรภาพ' },
+  { id: '5', name: 'Zero 4 (แต่งงาน)', category: 'Life Goal', goalType: 'numeric', goal: 600000, current: 120000, cashBuffer: 30000, dryPowder: 120000, assets: [], startDate: '2025-05-01', notes: 'ทุนแต่งงานในอนาคต' },
+  { id: '6', name: 'Zero 5 (บ้าน)', category: 'Asset', goalType: 'numeric', goal: 1500000, current: 180000, cashBuffer: 20000, dryPowder: 180000, assets: [], startDate: '2025-06-01', notes: 'เป้าหมายระยะกลางสำหรับที่อยู่อาศัย' },
+  { id: '7', name: 'Dividend Yield (หุ้นโลก)', category: 'Global Stock', goalType: 'numeric', goal: 300000, current: 100000, cashBuffer: 20000, dryPowder: 100000, assets: [{ name: 'ETF โลก', value: 100000 }], startDate: '2025-02-01', notes: 'ปันผลสม่ำเสมอ ลดความเสี่ยงค่าเงิน' },
+  { id: '8', name: 'THAI Dividend (หุ้นไทย)', category: 'Thai Stock', goalType: 'numeric', goal: 100000, current: 55000, cashBuffer: 10000, dryPowder: 55000, assets: [{ name: 'หุ้นปันผลไทย', value: 55000 }], startDate: '2025-01-15', notes: 'เน้นกระแสเงินสดจากปันผลในประเทศ' },
+  { id: '9', name: 'NEXT GEN (หุ้นเติบโต)', category: 'Growth Stock', goalType: 'schedule', goalSchedule: 'DCA ทุกวันที่ 25', current: 4000000, cashBuffer: 500000, dryPowder: 4000000, assets: [{ name: 'Tech Growth', value: 4000000 }], startDate: '2025-03-01', notes: 'พอร์ตซิ่ง ดุดัน ไม่เกรงใจใคร โตระยะยาว', dcaDoneThisMonth: true },
+  { id: '10', name: 'FOREX LIFE', category: 'Forex', goalType: 'numeric', goal: 50000, current: 10000, cashBuffer: 2500, dryPowder: 10000, assets: [], startDate: '2025-01-01', notes: 'เทรดกระแสเงินสดรายเดือน ดอลลาร์สหรัฐ' },
+  { id: '11', name: 'FOREX RISK', category: 'Forex', goalType: 'numeric', goal: 20000, current: 4000, cashBuffer: 1200, dryPowder: 4000, assets: [], startDate: '2025-01-01', notes: 'พอร์ตเสี่ยงสูง ปั้นพอร์ตคูณเท่า' },
+  { id: '12', name: 'Option', category: 'Option', goalType: 'numeric', goal: 30000, current: 7000, cashBuffer: 1900, dryPowder: 7000, assets: [], startDate: '2025-02-01', notes: 'ใช้กลยุทธ์ออปชั่นในการ Hedging และทำกำไร' }
+];
+
+const INITIAL_QUARTERLY_RECORDS = [
+  { id: 'q-1', portfolioId: '4', year: 2025, q1: 600000, q2: 680000, q3: 750000, q4: 820000, notes: 'ภาพรวมพอร์ตเกษียณเติบโตขึ้นตามเป้าหมาย' },
+  { id: 'q-2', portfolioId: '7', year: 2025, q1: 90000, q2: 100000, q3: 110000, q4: 118000, notes: 'ปันผลสะสมต่อเนื่อง ได้รับอานิสงส์จากหุ้นกลุ่มการเงินโลก' },
+  { id: 'q-3', portfolioId: '8', year: 2025, q1: 50000, q2: 55000, q3: 58000, q4: 62000, notes: 'สภาวะตลาดไทยค่อนข้างผันผวนแต่ปันผลยังคงสม่ำเสมอ' },
+  { id: 'q-4', portfolioId: '9', year: 2025, q1: 3000000, q2: 3500000, q3: 4000000, q4: 4300000, notes: 'DCA หุ้นเทคฯ อย่างเข้มงวดทุกวันที่ 25' }
+];
+
+const INITIAL_MONTHLY_RECORDS = [
+  { id: 'm-1', portfolioId: '10', year: 2025, month: 10, profitLossUSD: 450, notes: 'เทรดคู่ EURUSD รันเทรนดสวยงาม' },
+  { id: 'm-2', portfolioId: '10', year: 2025, month: 11, profitLossUSD: 520, notes: 'ตลาดเคลื่อนไหวตามกรอบ Sideway' },
+  { id: 'm-3', portfolioId: '10', year: 2025, month: 12, profitLossUSD: -120, notes: 'มีโดน Stop Loss ปลายปีเนื่องจากปริมาณการซื้อขายเบาบาง' },
+  { id: 'm-4', portfolioId: '11', year: 2025, month: 10, profitLossUSD: 180, notes: 'เทรดทองคำ (XAUUSD) เสี่ยงสูง' },
+  { id: 'm-5', portfolioId: '11', year: 2025, month: 11, profitLossUSD: -90, notes: 'ล้างพอร์ทย่อยบางส่วนแต่กู้คืนมาได้' },
+  { id: 'm-6', portfolioId: '11', year: 2025, month: 12, profitLossUSD: 310, notes: 'ได้ไม้สไนเปอร์ช่วง FOMC' },
+  { id: 'm-7', portfolioId: '12', year: 2025, month: 10, profitLossUSD: 280, notes: 'Hedging ค่าเงินด้วย Option' },
+  { id: 'm-8', portfolioId: '12', year: 2025, month: 11, profitLossUSD: 340, notes: 'กลยุทธ์ Iron Condor ได้พรีเมียมเต็ม' },
+  { id: 'm-9', portfolioId: '12', year: 2025, month: 12, profitLossUSD: -80, notes: 'โดนสควีซช่วงสิ้นปี' }
 ];
 
 class PixelStewardApp {
@@ -49,9 +82,9 @@ class PixelStewardApp {
     const storedDividends = localStorage.getItem('ps_dividends_v2');
     const storedRate = localStorage.getItem('ps_ex_rate_v2');
 
-    this.portfolios = this.normalizePortfolios(storedPorts ? JSON.parse(storedPorts) : INITIAL_PORTFOLIOS);
-    this.quarterlyRecords = storedQuarters ? JSON.parse(storedQuarters) : [];
-    this.monthlyRecords = storedMonthlies ? JSON.parse(storedMonthlies) : [];
+    this.portfolios = storedPorts ? JSON.parse(storedPorts) : INITIAL_PORTFOLIOS;
+    this.quarterlyRecords = storedQuarters ? JSON.parse(storedQuarters) : INITIAL_QUARTERLY_RECORDS;
+    this.monthlyRecords = storedMonthlies ? JSON.parse(storedMonthlies) : INITIAL_MONTHLY_RECORDS;
     this.dividendRecords = storedDividends ? JSON.parse(storedDividends) : [];
     this.exchangeRate = storedRate ? Number(storedRate) : 36.5;
 
@@ -66,7 +99,6 @@ class PixelStewardApp {
           this.exchangeRate = val;
           this.saveState();
           this.refreshUI();
-          this.showToast('💱 อัปเดตอัตราแลกเปลี่ยนสำเร็จ!');
         }
       });
     }
@@ -88,31 +120,6 @@ class PixelStewardApp {
       btn.addEventListener('click', () => this.closeModals());
     });
 
-    // เปิดสแตนด์บายฟังก์ชันบันทึกข้อมูลไตรมาส
-    const btnSaveQ = document.getElementById('btn-save-quarterly');
-    if (btnSaveQ) {
-      btnSaveQ.addEventListener('click', () => {
-        const portId = document.getElementById('q-port-id').value;
-        const yr = Number(document.getElementById('q-year').value);
-        let target = this.quarterlyRecords.find(r => r.portfolioId === portId && r.year === yr);
-        if (!target) {
-          target = { id: 'q-' + Date.now(), portfolioId: portId, year: yr, q1: 0, q2: 0, q3: 0, q4: 0, capitalAdded: 0, capitalWithdrawn: 0, notes: '' };
-          this.quarterlyRecords.push(target);
-        }
-        target.q1 = Number(document.getElementById('q-val-q1').value) || 0;
-        target.q2 = Number(document.getElementById('q-val-q2').value) || 0;
-        target.q3 = Number(document.getElementById('q-val-q3').value) || 0;
-        target.q4 = Number(document.getElementById('q-val-q4').value) || 0;
-        target.capitalAdded = Number(document.getElementById('q-cap-added').value) || 0;
-        target.capitalWithdrawn = Number(document.getElementById('q-cap-withdrawn').value) || 0;
-        target.notes = document.getElementById('q-notes').value;
-        this.saveState();
-        this.closeModals();
-        this.refreshUI();
-        this.showToast('📈 บันทึกข้อมูลรายงานไตรมาสสำเร็จ!');
-      });
-    }
-
     this.refreshUI();
   }
 
@@ -121,7 +128,7 @@ class PixelStewardApp {
     dbRef.on('value', (snapshot) => {
       const data = snapshot.val();
       if (data) {
-        if (data.portfolios) this.portfolios = this.normalizePortfolios(data.portfolios);
+        if (data.portfolios) this.portfolios = data.portfolios;
         if (data.quarterlyRecords) this.quarterlyRecords = data.quarterlyRecords;
         if (data.monthlyRecords) this.monthlyRecords = data.monthlyRecords;
         if (data.dividendRecords) this.dividendRecords = data.dividendRecords;
@@ -140,7 +147,6 @@ class PixelStewardApp {
   }
 
   saveState() {
-    this.syncAllPortfolioCurrents({ clampDry: true });
     localStorage.setItem('ps_portfolios_v2', JSON.stringify(this.portfolios));
     localStorage.setItem('ps_quarterly_v2', JSON.stringify(this.quarterlyRecords));
     localStorage.setItem('ps_monthly_v2', JSON.stringify(this.monthlyRecords));
@@ -149,112 +155,113 @@ class PixelStewardApp {
     this.syncStateToCloud();
   }
 
-  normalizePortfolios(portfolios) {
-    return portfolios.map(p => {
-      const port = { ...p };
-      port.assets = Array.isArray(port.assets) ? port.assets : [];
-      port.dryPowder = Number(port.dryPowder) || 0;
-      port.current = Number(port.current) || 0;
-      this.syncPortfolioCurrent(port, { clampDry: true });
-      return port;
-    });
-  }
-
-  getPortfolioTotalValue(port) {
-    if (!port || !Array.isArray(port.assets)) return 0;
-    return port.assets.reduce((sum, asset) => sum + (Number(asset.value) || 0), 0);
-  }
-
-  syncPortfolioCurrent(port, options = {}) {
-    if (!port) return 0;
-    const totalValue = this.getPortfolioTotalValue(port);
-    port.dryPowder = Number(port.dryPowder) || 0;
-    if (options.clampDry && port.dryPowder > totalValue) port.dryPowder = totalValue;
-    port.current = Math.max(totalValue - port.dryPowder, 0);
-    return totalValue;
-  }
-
-  syncAllPortfolioCurrents(options = {}) { this.portfolios.forEach(p => this.syncPortfolioCurrent(p, options)); }
-
   getCalculations() {
-    this.syncAllPortfolioCurrents();
-    let totalTHB = 0, totalUSD = 0, totalInvestedTHB = 0, totalDryPowderTHB = 0;
+    let totalTHB = 0, totalUSD = 0, totalCashBufferTHB = 0, totalDryPowderTHB = 0;
     this.portfolios.forEach(p => {
       const isUSD = ['Forex', 'Option'].includes(p.category);
-      const totalValue = this.getPortfolioTotalValue(p);
       if (isUSD) {
-        totalUSD += totalValue;
-        totalInvestedTHB += p.current * this.exchangeRate;
+        totalUSD += p.current;
+        totalCashBufferTHB += p.cashBuffer * this.exchangeRate;
         totalDryPowderTHB += p.dryPowder * this.exchangeRate;
       } else {
-        totalTHB += totalValue;
-        totalInvestedTHB += p.current;
+        totalTHB += p.current;
+        totalCashBufferTHB += p.cashBuffer;
         totalDryPowderTHB += p.dryPowder;
       }
     });
-    const netWorthTHB = totalTHB + (totalUSD * this.exchangeRate);
-    return { netWorthTHB, netWorthUSD: netWorthTHB / this.exchangeRate, totalTHB, totalUSD, totalInvestedTHB, totalDryPowderTHB };
+    const netWorthTHB = totalTHB + (totalUSD * this.exchangeRate) + totalCashBufferTHB;
+    return { netWorthTHB, netWorthUSD: netWorthTHB / this.exchangeRate, totalTHB, totalUSD, totalCashBufferTHB, totalDryPowderTHB };
+  }
+
+  // --- 🏅 ระบบเกณฑ์คำนวณยศและ Rank ดั้งเดิม ---
+  getPortfolioLevel(p) {
+    if (p.goalType === 'schedule') {
+      return { icon: p.dcaDoneThisMonth ? '🔥' : '⏳', label: p.dcaDoneThisMonth ? 'DCA เดือนนี้เรียบร้อย' : 'รอบรรลุการ DCA', desc: 'สะสมแต้มพลังบวกรายเดือน', pct: p.dcaDoneThisMonth ? 100 : 0 };
+    }
+    const pct = p.goal > 0 ? ((p.current + p.cashBuffer) / p.goal) * 100 : 0;
+    const nameLower = p.name.toLowerCase();
+
+    if (nameLower.includes('บ้าน') || nameLower.includes('house') || nameLower.includes('zero 5')) {
+      if (pct >= 80) return { icon: '🏰', label: 'วิหารทองคำ', desc: 'ปลดล็อกสกินขอบทองขั้นสุดยอด!', pct };
+      if (pct >= 40) return { icon: '🏡', label: 'บ้านโมเดิร์น', desc: 'ฐานรากมั่นคง คอนกรีตเสริมเหล็ก', pct };
+      return { icon: '⛺', label: 'กระต๊อบ', desc: 'เพิ่งปักหลักเข็มเสร็จเลเวล 1', pct };
+    }
+    if (nameLower.includes('รถ') || nameLower.includes('car') || nameLower.includes('zero 2')) {
+      if (pct >= 80) return { icon: '🏎️', label: 'ซูเปอร์คาร์', desc: 'ซิ่งแซงหน้าความจน!', pct };
+      if (pct >= 40) return { icon: '🚗', label: 'รถเก๋ง', desc: 'เดินทางอุ่นใจสไตล์ครอบครัว', pct };
+      return { icon: '🚲', label: 'จักรยาน', desc: 'เริ่มปั่นชิวสะสมไมล์', pct };
+    }
+    if (nameLower.includes('แต่งงาน') || nameLower.includes('wedding') || nameLower.includes('zero 4')) {
+      if (pct >= 80) return { icon: '👑', label: 'มงกุฎราชา', desc: 'งานแต่งในฝันดั่งนิยายกรีก', pct };
+      if (pct >= 40) return { icon: '💍', label: 'แหวนแต่งงาน', desc: 'เควสหัวใจเริ่มสว่างสดใส', pct };
+      return { icon: '🌸', label: 'ดอกไม้', desc: 'จุดเริ่มต้นความสัมพันธ์ที่งดงาม', pct };
+    }
+    if (nameLower.includes('เกษียณ') || nameLower.includes('retirement') || nameLower.includes('zero 3')) {
+      if (pct >= 80) return { icon: '🏛️', label: 'วิหารทวยเทพ', desc: 'เสถียรสถาพร นั่งชิวสวรรค์ชั้นฟ้า', pct };
+      if (pct >= 40) return { icon: '🔱', label: 'ป้อมปราการ', desc: 'สร้างกองทุนรับเงินปันผลรายสัปดาห์', pct };
+      return { icon: '🪵', label: 'กองฟืนเก้าอี้โยก', desc: 'สะสมฟืนรอความอบอุ่นยามชรา', pct };
+    }
+    if (pct >= 80) return { icon: '⚔️', label: 'มหาอัศวินขุมทรัพย์', desc: 'กองทัพการเงินมีกำลังมหาศาล!', pct };
+    if (pct >= 40) return { icon: '🛡️', label: 'นักรบพิทักษ์เหรียญ', desc: 'มีโล่ป้องกัน ความเสี่ยงลดลง', pct };
+    return { icon: '🐣', label: 'มอนสเตอร์เลเวล 1', desc: 'กำลังฝึกฝนวิทยายุทธ์ฟาร์มเงินสด', pct };
+  }
+
+  getNextRankPreview(p) {
+    if (p.goalType === 'schedule') return `🔮 ขั้นต่อไป: รักษาวินัยการลงทุนในเดือนถัดไป!`;
+    const pct = p.goal > 0 ? ((p.current + p.cashBuffer) / p.goal) * 100 : 0;
+    const nameLower = p.name.toLowerCase();
+    let nextIcon = '🛡️', nextLabel = 'นักรบพิทักษ์เหรียญ', targetPct = 40;
+
+    if (pct < 40) {
+      if (nameLower.includes('บ้าน')) { nextIcon = '🏡'; nextLabel = 'บ้านโมเดิร์น'; }
+      else if (nameLower.includes('รถ')) { nextIcon = '🚗'; nextLabel = 'รถเก๋ง'; }
+      else if (nameLower.includes('แต่งงาน')) { nextIcon = '💍'; nextLabel = 'แหวนแต่งงาน'; }
+      else if (nameLower.includes('เกษียณ')) { nextIcon = '🔱'; nextLabel = 'ป้อมปราการ'; }
+    } else if (pct < 80) {
+      targetPct = 80;
+      if (nameLower.includes('บ้าน')) { nextIcon = '🏰'; nextLabel = 'วิหารทองคำ'; }
+      else if (nameLower.includes('รถ')) { nextIcon = '🏎️'; nextLabel = 'ซูเปอร์คาร์'; }
+      else if (nameLower.includes('แต่งงาน')) { nextIcon = '👑'; nextLabel = 'มงกุฎราชา'; }
+      else if (nameLower.includes('เกษียณ')) { nextIcon = '🏛️'; nextLabel = 'วิหารทวยเทพ'; }
+      else { nextIcon = '⚔️'; nextLabel = 'มหาอัศวินขุมทรัพย์'; }
+    } else {
+      return `🏆 เลเวลสูงสุดขอบทองทองแล้ว!`;
+    }
+    const neededVal = ((targetPct / 100) * p.goal) - (p.current + p.cashBuffer);
+    return `🔮 ขั้นต่อไป: ${nextIcon} ${nextLabel}<br><span style="font-size:0.75rem; color:var(--color-text-muted);">สะสมอีกประมาณ ${this.formatMoney(neededVal, p.category)} เพื่อเลเวลอัป!</span>`;
   }
 
   refreshUI() {
     const tabContent = document.getElementById('tab-content');
-    const pageTitle = document.getElementById('page-title');
-    const pageSubtitle = document.getElementById('page-subtitle');
     if (!tabContent) return;
     tabContent.innerHTML = '';
 
     switch (this.activeTab) {
-      case 'dashboard':
-        pageTitle.innerText = 'แดชบอร์ดภาพรวม';
-        pageSubtitle.innerText = 'วิเคราะห์สถานะความมั่งคั่ง กระสุนรอช้อน และแนวโน้มการเติบโตรายไตรมาส';
-        this.renderDashboard(tabContent); break;
-      case 'portfolios':
-        pageTitle.innerText = 'พอร์ตการลงทุนทั้งหมดในระบบ';
-        pageSubtitle.innerText = 'สลับดูและจัดสรรรายการสินทรัพย์ย่อยแยกตามรายพอร์ตได้อย่างอิสระ';
-        this.renderPortfolios(tabContent); break;
-      case 'quarterly':
-        pageTitle.innerText = 'สรุปหุ้นรายไตรมาส';
-        pageSubtitle.innerText = 'ติดตามผลการดำเนินงานกองทุนและหุ้นรายไตรมาส แยกตามปีปฏิทิน';
-        this.renderQuarterly(tabContent); break;
-      case 'dividends':
-        pageTitle.innerText = 'แดชบอร์ดเงินปันผล & YOC';
-        pageSubtitle.innerText = 'วิเคราะห์กระแสเงินสดจากไข่ทองคำและการคำนวณ Yield on Cost จริง';
-        this.renderDividends(tabContent); break;
+      case 'dashboard': this.renderDashboard(tabContent); break;
+      case 'portfolios': this.renderPortfolios(tabContent); break;
+      case 'quarterly': this.renderQuarterly(tabContent); break;
+      case 'dividends': this.renderDividends(tabContent); break;
       case 'forex':
-        pageTitle.innerText = 'บันทึก Forex รายเดือน';
-        pageSubtitle.innerText = 'ดึงข้อมูลประวัติซื้อขายและการทำกำไรอัตโนมัติมาจากแอป Retro Trading Journal';
         tabContent.innerHTML = '<div class="border-pixel" style="padding:20px;">📊 โมดูลเชื่อมต่อประวัติการเทรด Forex จาก Retro Trading Journal กำลังแสตนด์บายคู่ขนาน</div>';
         break;
-      case 'option':
-        pageTitle.innerText = 'บันทึก Option รายเดือน';
-        pageSubtitle.innerText = 'ระบบจดบันทึกด้วยมือแมนนวลสำหรับพอร์ตสัญญาออปชันประจำเดือนของคุณ';
-        this.renderOptionManual(tabContent); break;
-      case 'cashflow':
-      case 'comparison':
-        tabContent.innerHTML = '<div class="border-pixel" style="padding:20px;">📊 ระบบจัดการโครงสร้างข้อมูลเสริมทำงานปกติ</div>';
-        break;
-      case 'settings':
-        pageTitle.innerText = 'ตั้งค่า & สำรองข้อมูล';
-        pageSubtitle.innerText = 'จัดการสำรองข้อมูลพอร์ตด้วยระบบ Import/Export หรือล้างตลับเซฟเริ่มใหม่';
-        this.renderSettings(tabContent); break;
+      case 'option': this.renderOptionManual(tabContent); break;
+      case 'settings': this.renderSettings(tabContent); break;
     }
   }
 
-  // --- 📊 RENDER 1: DASHBOARD UPGRADE (ความมั่งคั่งสุทธิ + สรุปกราฟเติบโต + 3 อันดับเป้าหมาย) ---
+  // --- 📊 RENDER 1: CLEAN DASHBOARD ---
   renderDashboard(container) {
     const calc = this.getCalculations();
 
-    // 1. หา 3 อันดับพอร์ตที่ใกล้ถึงเป้าหมายสูงสุด (เฉพาะประเภทเป้าหมายเงินตัวเลข)
     const topGoals = this.portfolios
       .filter(p => p.goalType === 'numeric' && p.goal > 0)
       .map(p => {
-        const val = this.getPortfolioTotalValue(p);
-        return { name: p.name, pct: (val / p.goal) * 100, current: val, goal: p.goal, category: p.category };
+        const totalVal = p.current + p.cashBuffer;
+        return { name: p.name, pct: (totalVal / p.goal) * 100 };
       })
       .sort((a, b) => b.pct - a.pct)
       .slice(0, 3);
 
-    // 2. สรุปการเติบโตแบบกราฟโดยคำนวณเงินจากทุกพอร์ตรวมกันรายไตรมาสในปีปัจจุบัน
     const currentYear = new Date().getFullYear();
     let q1Total = 0, q2Total = 0, q3Total = 0, q4Total = 0;
     this.quarterlyRecords.filter(r => r.year === currentYear).forEach(r => {
@@ -270,25 +277,25 @@ class PixelStewardApp {
     const getBarHeight = (val) => (val / maxQVal) * 100;
 
     container.innerHTML = `
-      <div class="dashboard-grid" style="grid-template-columns: 1fr 1fr; gap:20px;">
+      <div class="dashboard-grid" style="display:grid; grid-template-columns: 1fr 1fr; gap:20px;">
         <div class="stat-card border-pixel" style="--card-accent-color: var(--color-accent)">
           <div class="stat-header"><span class="stat-title">ความมั่งคั่งสุทธิ (พอร์ตรวมทุกการลงทุน)</span><span class="stat-icon">👑</span></div>
           <div class="stat-value text-accent">฿${calc.netWorthTHB.toLocaleString(undefined, { maximumFractionDigits: 2 })}</div>
-          <div class="stat-desc">สัดส่วนรวมสินทรัพย์ทำงาน: ฿${calc.totalInvestedTHB.toLocaleString(undefined, { maximumFractionDigits: 0 })}</div>
+          <div class="stat-desc">เงินลงทุนรวม: ฿${(calc.totalTHB + (calc.totalUSD * this.exchangeRate)).toLocaleString(undefined, { maximumFractionDigits: 0 })} | สำรอง Buffer: ฿${calc.totalCashBufferTHB.toLocaleString(undefined, { maximumFractionDigits: 0 })}</div>
         </div>
         <div class="stat-card border-pixel" style="--card-accent-color: var(--color-warning)">
           <div class="stat-header"><span class="stat-title">Dry Powder (กระสุนรอช้อน)</span><span class="stat-icon">🥄</span></div>
           <div class="stat-value" style="color:var(--color-warning)!important">฿${calc.totalDryPowderTHB.toLocaleString(undefined, { maximumFractionDigits: 2 })}</div>
-          <div class="stat-desc">เงินสดสำรองสภาพคล่องสูงพร้อมลุย</div>
+          <div class="stat-desc">สภาพคล่องสะสมรอสอยของถูกประจำพอร์ต</div>
         </div>
       </div>
 
-      <div class="dashboard-grid" style="grid-template-columns: 1.2fr 0.8fr; gap:20px; margin-top:20px;">
+      <div class="dashboard-grid" style="display:grid; grid-template-columns: 1.2fr 0.8fr; gap:20px; margin-top:20px;">
         <div class="border-pixel" style="padding:20px; background:#1f273e;">
           <h4 style="font-family:var(--font-press-start); font-size:0.75rem; color:var(--color-primary-light); margin-bottom:20px;">📈 สรุปความเติบโตของเงินทุนรายไตรมาส (${currentYear})</h4>
           <div style="display:flex; justify-content:space-around; align-items:flex-end; height:180px; background:#111625; padding:20px 10px; border:2px solid #000; border-radius:4px;">
             <div style="display:flex; flex-direction:column; align-items:center; width:20%; height:100%; justify-content:flex-end;">
-              <div style="font-size:0.65rem; margin-bottom:4px; color:#fff;">฿${q1Total.toLocaleString(undefined,{maximumFractionDigits:0})}</div>
+              <div style="font-size:0.65rem; margin-bottom:4px;">฿${q1Total.toLocaleString(undefined,{maximumFractionDigits:0})}</div>
               <div style="width:100%; height:${getBarHeight(q1Total)}%; background:var(--color-primary); border:2px solid #000;"></div>
               <div style="font-size:0.7rem; font-family:var(--font-press-start); margin-top:8px;">Q1</div>
             </div>
@@ -298,28 +305,32 @@ class PixelStewardApp {
               <div style="font-size:0.7rem; font-family:var(--font-press-start); margin-top:8px;">Q2</div>
             </div>
             <div style="display:flex; flex-direction:column; align-items:center; width:20%; height:100%; justify-content:flex-end;">
-              <div style="font-size:0.65rem; margin-bottom:4px; color:#fff;">฿${q3Total.toLocaleString(undefined,{maximumFractionDigits:0})}</div>
+              <div style="font-size:0.65rem; margin-bottom:4px;">฿${q3Total.toLocaleString(undefined,{maximumFractionDigits:0})}</div>
               <div style="width:100%; height:${getBarHeight(q3Total)}%; background:var(--color-secondary); border:2px solid #000;"></div>
               <div style="font-size:0.7rem; font-family:var(--font-press-start); margin-top:8px;">Q3</div>
             </div>
             <div style="display:flex; flex-direction:column; align-items:center; width:20%; height:100%; justify-content:flex-end;">
-              <div style="font-size:0.65rem; margin-bottom:4px; color:#fff;">฿${q4Total.toLocaleString(undefined,{maximumFractionDigits:0})}</div>
+              <div style="font-size:0.65rem; margin-bottom:4px;">฿${q4Total.toLocaleString(undefined,{maximumFractionDigits:0})}</div>
               <div style="width:100%; height:${getBarHeight(q4Total)}%; background:var(--color-accent); border:2px solid #000;"></div>
               <div style="font-size:0.7rem; font-family:var(--font-press-start); margin-top:8px;">Q4</div>
             </div>
           </div>
         </div>
 
-        <div class="border-pixel" style="padding:20px; background:#1f273e; display:flex; flex-direction:column; justify-content:between;">
+        <div class="border-pixel" style="padding:20px; background:#1f273e;">
           <h4 style="font-family:var(--font-press-start); font-size:0.7rem; color:var(--color-accent); margin-bottom:12px;">🚩 3 อันดับพอร์ตใกล้ถึงเป้าหมาย</h4>
           <div style="display:flex; flex-direction:column; gap:12px;">
-            ${topGoals.length === 0 ? '<p class="text-muted" style="font-size:0.8rem;">ยังไม่ได้ตั้งค่าเงินเป้าหมาย</p>' : topGoals.map((g, idx) => `
+            ${topGoals.length === 0 ? '<p class="text-muted">ไม่มีรายการ</p>' : topGoals.map((g, idx) => `
               <div style="background:#111625; padding:10px; border:2px solid #000;">
                 <div style="display:flex; justify-content:space-between; font-size:0.85rem; font-weight:bold;">
                   <span>${idx+1}. ${g.name}</span>
                   <span style="color:var(--color-success);">${g.pct.toFixed(1)}%</span>
                 </div>
-                <div class="progress-container" style="margin-top:6px; height:8px;"><div class="progress-bar-bg" style="height:100%;"><div class="progress-bar-fill" style="width:${Math.min(100, g.pct)}%; height:100%; background:var(--color-accent);"></div></div></div>
+                <div class="progress-container" style="margin-top:6px; height:8px;">
+                  <div class="progress-bar-bg" style="height:100%;">
+                    <div class="progress-bar-fill" style="width:${Math.min(100, g.pct)}%; height:100%; background:var(--color-accent);"></div>
+                  </div>
+                </div>
               </div>
             `).join('')}
           </div>
@@ -328,75 +339,132 @@ class PixelStewardApp {
     `;
   }
 
-  // --- 📁 RENDER 2: PORTFOLIOS UPGRADE (แสดงผลทุกพอร์ต + สามารถเลือกสลับพอร์ตได้สมบูรณ์) ---
+  // --- 📁 RENDER 2: PORTFOLIOS COMPLETE (กู้คืนวิดเจ็ตอัปเดตกระปุกเซฟ 3 ช่องแยก + เลเวลเควสขอบทอง) ---
   renderPortfolios(container) {
     if (this.portfolios.length === 0) {
-      container.innerHTML = '<div class="border-pixel" style="padding:20px;">ไม่พบรายการพอร์ตการลงทุนในตลับเซฟครับ</div>';
+      container.innerHTML = '<div class="border-pixel" style="padding:20px;">ไม่พบรายการพอร์ตการลงทุนในระบบ</div>';
       return;
     }
+    let activePort = this.portfolios.find(p => p.id === this.selectedPortId) || this.portfolios[0];
+    this.selectedPortId = activePort.id;
     
-    // บังคับหาพอร์ตที่เลือกอยู่ หากไม่มีให้ดึงตัวแรกสุดขึ้นมาแสดงผลเสมอ เพื่อป้องกันการล็อกตาย
-    let activePort = this.portfolios.find(p => p.id === this.selectedPortId);
-    if (!activePort) {
-      activePort = this.portfolios[0];
-      this.selectedPortId = activePort.id;
-    }
-    
-    this.syncPortfolioCurrent(activePort, { clampDry: true });
+    const lvl = this.getPortfolioLevel(activePort);
+    const isUSD = ['Forex', 'Option'].includes(activePort.category);
 
     container.innerHTML = `
-      <div class="portfolio-detail-container" style="display:grid; grid-template-columns: 0.7fr 1.3fr; gap:20px;">
+      <div class="portfolio-detail-container" style="display:grid; grid-template-columns: 0.6fr 1.4fr; gap:20px;">
         
         <div class="border-pixel" style="padding:16px; background:#111625; display:flex; flex-direction:column; gap:10px;">
-          <h4 style="font-family:var(--font-press-start); font-size:0.65rem; color:var(--color-primary-light); margin-bottom:8px; border-bottom:2px solid #000; padding-bottom:8px;">📁 พอร์ตลงทุนทั้งหมด</h4>
-          <div style="display:flex; flex-direction:column; gap:8px; max-height:450px; overflow-y:auto;">
+          <h4 style="font-family:var(--font-press-start); font-size:0.65rem; color:var(--color-primary-light); margin-bottom:8px; border-bottom:2px solid #000; padding-bottom:8px;">📁 รายชื่อพอร์ตทั้งหมด</h4>
+          <div style="display:flex; flex-direction:column; gap:8px; max-height:550px; overflow-y:auto;">
             ${this.portfolios.map(p => `
-              <button class="btn style-port-select-btn ${p.id === this.selectedPortId ? 'btn-primary' : 'btn-secondary'}" 
-                      onclick="app.switchPortfolio('${p.id}')" 
-                      style="width:100%; text-align:left; justify-content:flex-start; padding:10px; font-size:0.85rem; display:flex; gap:8px;">
-                <span>📁</span> <span>${p.name}</span>
+              <button class="btn ${p.id === this.selectedPortId ? 'btn-primary' : 'btn-secondary'}" onclick="app.switchPortfolio('${p.id}')" style="width:100%; text-align:left; padding:10px; font-size:0.85rem;">
+                📁 ${p.name}
               </button>
             `).join('')}
           </div>
         </div>
 
-        <div class="detail-main-card border-pixel" style="background:#1f273e; padding:20px;">
-          <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:2px solid #000; padding-bottom:10px;">
-            <h3>📦 ${activePort.name}</h3>
-            <span class="port-card-cat" style="background:var(--color-primary); font-size:0.8rem; padding:4px 10px;">${activePort.category}</span>
-          </div>
-
-          <div class="details-grid-stats" style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:12px; margin:20px 0;">
-            <div class="detail-stat-box" style="background:#111625; padding:12px; border:2px solid #000;">🎯 เป้าหมาย: ${activePort.goalType === 'numeric' ? this.formatMoney(activePort.goal, activePort.category) : activePort.goalSchedule}</div>
-            <div class="detail-stat-box" style="background:#111625; padding:12px; border:2px solid #000; color:var(--color-success)">💼 ยอดลงทุนทำงาน: ${this.formatMoney(activePort.current, activePort.category)}</div>
-            <div class="detail-stat-box" style="background:#111625; padding:12px; border:2px solid #000; color:var(--color-warning)">🥄 เงินช้อน (Dry): ${this.formatMoney(activePort.dryPowder, activePort.category)}</div>
-          </div>
-
-          <div class="assets-section" style="margin-top:20px;">
-            <h4 style="border-bottom:2px solid #000; padding-bottom:6px; font-family:var(--font-press-start); font-size:0.65rem; color:var(--color-text-muted);">💎 สินทรัพย์ย่อยภายในพอร์ตนี้</h4>
-            <div class="assets-list" style="margin-top:12px; display:flex; flex-direction:column; gap:8px;">
-              ${activePort.assets.length === 0 ? '<p class="text-muted" style="padding:10px; text-align:center;">ไม่มีรายการสินทรัพย์ย่อยในพอร์ตนี้</p>' : activePort.assets.map((a, i) => `
-                <div class="asset-item" style="display:flex; justify-content:space-between; background:#111625; padding:12px; border:2px solid #000; border-radius:4px;">
-                  <span>🔸 ${a.name}</span>
-                  <div>
-                    <b style="margin-right:16px; color:#fff;">${this.formatMoney(a.value, activePort.category)}</b>
-                    <button class="btn btn-danger btn-retro btn-small" onclick="app.deleteAsset('${activePort.id}', ${i})" style="padding:2px 8px;">✖</button>
-                  </div>
-                </div>
-              `).join('')}
+        <div style="display:grid; grid-template-columns: 1.2fr 0.8fr; gap:20px;">
+          
+          <div class="detail-main-card border-pixel" style="background:#1f273e; padding:20px; display:flex; flex-direction:column; gap:16px;">
+            <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:2px solid #000; padding-bottom:10px;">
+              <h3>📦 ${activePort.name}</h3>
+              <span class="port-card-cat" style="background:var(--color-primary); font-size:0.8rem; padding:4px 10px;">${activePort.category}</span>
             </div>
-            <button class="btn btn-primary btn-retro btn-small" id="btn-add-asset" style="margin-top:16px;">➕ เพิ่มสินทรัพย์ย่อยเข้าตลับเซฟ</button>
-          </div>
-        </div>
 
+            <div class="details-grid-stats" style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
+              <div class="detail-stat-box" style="background:#111625; padding:12px; border:2px solid #000;">🎯 เป้าหมาย: ${activePort.goalType === 'numeric' ? this.formatMoney(activePort.goal, activePort.category) : activePort.goalSchedule}</div>
+              <div class="detail-stat-box" style="background:#111625; padding:12px; border:2px solid #000; color:var(--color-success)">💼 ยอดเงินลงทุนสะสม: ${this.formatMoney(activePort.current, activePort.category)}</div>
+            </div>
+
+            <div>
+              <div style="display:flex; justify-content:space-between; font-weight:bold; font-size:0.85rem; margin-bottom:4px;">
+                <span>สเกลความก้าวหน้าเควส:</span>
+                <span style="font-family:var(--font-press-start); font-size:0.75rem;">${lvl.pct.toFixed(1)}%</span>
+              </div>
+              <div class="progress-container" style="height:22px; background:#111625; border:2px solid #000; position:relative;">
+                <div style="width: ${Math.min(100, lvl.pct)}%; height:100%; background:var(--color-success);"></div>
+                <div style="position:absolute; width:100%; text-align:center; top:0; font-size:0.75rem; line-height:18px; font-weight:bold; color:#fff;">${lvl.pct.toFixed(0)}% ถึงเป้าหมาย</div>
+              </div>
+            </div>
+
+            <div class="assets-section" style="margin-top:10px;">
+              <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:2px solid #000; padding-bottom:6px;">
+                <h4 style="font-family:var(--font-press-start); font-size:0.65rem; color:var(--color-text-muted);">💎 สินทรัพย์ย่อยในตลับเซฟ</h4>
+                <button class="btn btn-primary btn-retro btn-small" id="btn-add-asset" style="padding:2px 8px;">➕ เพิ่มสินทรัพย์</button>
+              </div>
+              <div class="assets-list" style="margin-top:12px; display:flex; flex-direction:column; gap:6px; max-height:200px; overflow-y:auto;">
+                ${activePort.assets.length === 0 ? '<p class="text-muted" style="text-align:center; padding:10px;">ไม่มีรายการสินทรัพย์ย่อย</p>' : activePort.assets.map((a, i) => `
+                  <div style="display:flex; justify-content:space-between; background:#111625; padding:10px; border:2px solid #000;">
+                    <span>🔸 ${a.name}</span>
+                    <div>
+                      <b style="margin-right:12px;">${this.formatMoney(a.value, activePort.category)}</b>
+                      <button class="btn btn-danger btn-small" onclick="app.deleteAsset('${activePort.id}', ${i})" style="padding:2px 6px;">✖</button>
+                    </div>
+                  </div>
+                `).join('')}
+              </div>
+            </div>
+          </div>
+
+          <div style="display:flex; flex-direction:column; gap:16px;">
+            
+            <div class="border-pixel" style="padding:12px; background:#1f273e; text-align:center;">
+              <h5 style="font-family:var(--font-press-start); font-size:0.6rem; color:var(--color-accent); margin-bottom:8px;">🏅 ระดับของพอร์ต</h5>
+              <div style="font-size:2rem; filter:drop-shadow(1px 1px 0px #000);">${lvl.icon}</div>
+              <div style="font-weight:bold; margin-top:4px;">${lvl.label}</div>
+              <div style="font-size:0.75rem; color:var(--color-text-muted);">${lvl.desc}</div>
+              <div style="border-top:2px dashed #000; margin:8px 0;"></div>
+              <div style="font-size:0.75rem; font-weight:bold; color:var(--color-accent); text-align:left;">${this.getNextRankPreview(activePort)}</div>
+            </div>
+
+            <div class="border-pixel" style="padding:14px; background:#1f273e;">
+              <h5 style="font-family:var(--font-press-start); font-size:0.6rem; color:var(--color-success); margin-bottom:10px;">💰 อัปเดตยอดคงคลัง</h5>
+              <form id="update-balance-form" style="display:flex; flex-direction:column; gap:8px; font-size:0.85rem;">
+                <div>
+                  <label style="font-weight:bold; display:block; margin-bottom:2px;">เงินในพอร์ตรวมจริง (${isUSD ? 'USD' : 'THB'}):</label>
+                  <input type="number" id="update-current" class="input-retro" value="${activePort.current + activePort.cashBuffer}" style="width:100%; padding:4px;" required>
+                </div>
+                <div>
+                  <label style="font-weight:bold; display:block; margin-bottom:2px;">ในนั้นเป็นสำรอง Buffer:</label>
+                  <input type="number" id="update-buffer" class="input-retro" value="${activePort.cashBuffer}" style="width:100%; padding:4px;" required>
+                </div>
+                <div>
+                  <label style="font-weight:bold; display:block; margin-bottom:2px;">ในนั้นเป็นเงินช้อน Dry:</label>
+                  <input type="number" id="update-dry" class="input-retro" value="${activePort.dryPowder}" style="width:100%; padding:4px;" required>
+                </div>
+                <button type="submit" class="btn btn-success btn-retro" style="width:100%; padding:6px; margin-top:4px; font-weight:bold;">💾 บันทึกยอดกระปุกเซฟ</button>
+              </form>
+            </div>
+          </div>
+
+        </div>
       </div>
     `;
+
+    // ผูกกลไกคำนวณและกระจายคลังเสบียงยามกดยืนยันเซฟฟอร์ม 3 กล่อง
+    document.getElementById('update-balance-form').addEventListener('submit', (e) => {
+      e.preventDefault();
+      const curr = Number(document.getElementById('update-current').value);
+      const buff = Number(document.getElementById('update-buffer').value);
+      const dry = Number(document.getElementById('update-dry').value);
+      
+      const port = this.portfolios.find(p => p.id === activePort.id);
+      if (port) {
+        port.current = curr - buff; // ยอดทำงานสุทธิหักลบเสบียงบัฟเฟอร์หลัก
+        port.cashBuffer = buff;
+        port.dryPowder = dry;
+        this.saveState();
+        this.refreshUI();
+      }
+    });
 
     const addAssetBtn = document.getElementById('btn-add-asset');
     if (addAssetBtn) {
       addAssetBtn.addEventListener('click', () => {
-        const name = prompt('กรอกชื่อสินทรัพย์ย่อยหรือตัวย่อหุ้น (เช่น MSFT):');
-        const val = Number(prompt(`ระบุมูลค่าเม็ดเงินสะสม (${activePort.category === 'Forex' || activePort.category === 'Option' ? 'USD' : 'THB'}):`));
+        const name = prompt('กรอกชื่อสินทรัพย์ย่อย/ตัวย่อหุ้น (เช่น AGG, JNJ):');
+        const val = Number(prompt(`ระบุมูลค่าเงินลงทุนสุทธิ (${isUSD ? 'USD' : 'THB'}):`));
         if (name && !isNaN(val) && val >= 0) {
           activePort.assets.push({ name, value: val });
           this.saveState();
@@ -406,78 +474,75 @@ class PixelStewardApp {
     }
   }
 
-  switchPortfolio(id) {
-    this.selectedPortId = id;
-    this.refreshUI();
-  }
+  switchPortfolio(id) { this.selectedPortId = id; this.refreshUI(); }
 
   deleteAsset(portId, index) {
     const port = this.portfolios.find(p => p.id === portId);
     if (port && port.assets[index]) {
-      if (confirm(`ต้องการลบสินทรัพย์ย่อย ${port.assets[index].name} ออกจากระบบพอร์ตหรือไม่?`)) {
+      if (confirm(`ลบสินทรัพย์ย่อย ${port.assets[index].name}?`)) {
         port.assets.splice(index, 1);
-        this.saveState();
-        this.refreshUI();
+        this.saveState(); this.refreshUI();
       }
     }
   }
 
-  // --- 💎 RENDER 3: OPTION MANUAL ENGINE ---
+  // --- 💎 RENDER 3: OPTION MANUAL ---
   renderOptionManual(container) {
     const optionPorts = this.portfolios.filter(p => p.category === 'Option');
+    const records = this.monthlyRecords.filter(r => optionPorts.map(p => p.id).includes(r.portfolioId));
+
     container.innerHTML = `
       <div class="border-pixel" style="padding:20px; background:#1f273e;">
-        <h4 style="font-family:var(--font-press-start); font-size:0.75rem; color:var(--color-accent); margin-bottom:12px;">💎 ระบบบันทึกรายเดือนพอร์ต Option (จดมือแมนนวล)</h4>
-        <p style="font-size:0.85rem; color:var(--color-text-muted); margin-bottom:16px;">หน้าต่างออปชันนี้จะไม่ดึงผลลัพธ์จากภายนอก คุณสามารถกรอกสถิติกำไรขาดทุนรายเดือนลงตลับเซฟได้ด้วยตนเอง</p>
+        <h4 style="font-family:var(--font-press-start); font-size:0.75rem; color:var(--color-accent); margin-bottom:12px;">💎 ระบบบันทึกรายเดือนพอร์ต Option (โหมดจดมือแมนนวล)</h4>
         
         <div style="display:grid; grid-template-columns:1fr 2fr; gap:20px;">
           <div class="border-pixel-inset" style="padding:16px; background:#111625;">
-            <div class="form-group" style="margin-bottom:12px;">
-              <label>เลือกพอร์ตสัญญารองรับ:</label>
+            <div class="form-group" style="margin-bottom:12px;"><label>เลือกพอร์ตออปชัน:</label>
               <select id="opt-port-select" class="input-retro" style="width:100%;">
                 ${optionPorts.map(p => `<option value="${p.id}">${p.name}</option>`).join('')}
               </select>
             </div>
-            <div class="form-group" style="margin-bottom:12px;">
-              <label>เดือนประจำงวด:</label>
+            <div class="form-group" style="margin-bottom:12px;"><label>เดือนประจำงวด:</label>
               <select id="opt-month-select" class="input-retro" style="width:100%;">
                 ${[...Array(12).keys()].map(i => `<option value="${i+1}">เดือน ${i+1}</option>`).join('')}
               </select>
             </div>
-            <div class="form-group" style="margin-bottom:16px;">
-              <label>ผลกำไร/ขาดทุนสุทธิ (USD):</label>
-              <input type="number" id="opt-pl-input" class="input-retro" placeholder="เช่น 250 หรือ -100" style="width:100%;">
+            <div class="form-group" style="margin-bottom:16px;"><label>ผลกำไร/ขาดทุนสุทธิ (USD):</label>
+              <input type="number" id="opt-pl-input" class="input-retro" placeholder="เช่น 250 หรือ -120" style="width:100%;">
             </div>
             <button class="btn btn-success btn-retro" id="btn-save-opt-manual" style="width:100%;">💾 บันทึกยอดออปชัน</button>
           </div>
           
           <div class="border-pixel-inset" style="padding:16px; background:#111625;">
-            <h5 style="margin-bottom:10px;">📜 ประวัติการบันทึกแมนนวลประจำปี</h5>
-            <div style="max-height:250px; overflow-y:auto; font-size:0.85rem;" id="opt-history-list">
-              <p class="text-muted" style="text-align:center; padding-top:20px;">โครงสร้างตรรกะจดมือบันทึกสัญญารายเดือนพร้อมทำงาน</p>
+            <h5 style="margin-bottom:10px;">📜 ประวัติการบันทึกงวดสัญญารายเดือน</h5>
+            <div style="max-height:300px; overflow-y:auto; font-size:0.85rem;">
+              ${records.length === 0 ? '<p class="text-muted">ไม่มีรายการจดบันทึก</p>' : records.map(r => {
+                const p = this.portfolios.find(port => port.id === r.portfolioId);
+                return `
+                  <div style="display:flex; justify-content:space-between; border-bottom:1px solid #444; padding:8px 0;">
+                    <span><b>${p?p.name:''}</b> (เดือน ${r.month})</span>
+                    <b class="${r.profitLossUSD >= 0 ? 'text-success' : 'text-danger'}">${r.profitLossUSD >= 0 ? '+' : ''}$${r.profitLossUSD}</b>
+                  </div>
+                `;
+              }).join('')}
             </div>
           </div>
         </div>
       </div>
     `;
 
-    const saveOptBtn = document.getElementById('btn-save-opt-manual');
-    if (saveOptBtn) {
-      saveOptBtn.addEventListener('click', () => {
-        const pId = document.getElementById('opt-port-select').value;
-        const month = Number(document.getElementById('opt-month-select').value);
-        const pl = Number(document.getElementById('opt-pl-input').value);
-        if (!pId || isNaN(pl)) { alert('❌ กรอกข้อมูลไม่ถูกต้อง'); return; }
-        
-        this.monthlyRecords.push({ id: 'm-' + Date.now(), portfolioId: pId, year: new Date().getFullYear(), month: month, profitLossUSD: pl, notes: 'บันทึกด้วยมือ (แมนนวล)' });
-        this.saveState();
-        this.showToast('💾 บันทึกผลงานออปชันด้วยมือเสร็จสิ้น!');
-        document.getElementById('opt-pl-input').value = '';
-      });
-    }
+    document.getElementById('btn-save-opt-manual').addEventListener('click', () => {
+      const pId = document.getElementById('opt-port-select').value;
+      const month = Number(document.getElementById('opt-month-select').value);
+      const pl = Number(document.getElementById('opt-pl-input').value);
+      if (!pId || isNaN(pl)) { alert('❌ กรอกตัวเลขไม่ถูกต้อง'); return; }
+      
+      this.monthlyRecords.push({ id: 'm-' + Date.now(), portfolioId: pId, year: new Date().getFullYear(), month: month, profitLossUSD: pl, notes: 'บันทึกแมนนวล' });
+      this.saveState(); this.refreshUI();
+    });
   }
 
-  // --- 📈 RENDER 4: QUARTERLY TWR RECORD ---
+  // --- 📈 RENDER 4: QUARTERLY TWR SUMMARY ---
   renderQuarterly(container) {
     const stockPorts = this.portfolios.filter(p => !['Forex', 'Option'].includes(p.category));
     const year = new Date().getFullYear();
@@ -489,10 +554,10 @@ class PixelStewardApp {
             <div class="border-pixel" style="padding:16px; background:#1f273e; border:2px solid #000;">
               <h4>📊 ${p.name}</h4>
               <div style="display:grid; grid-template-columns:repeat(4,1fr); gap:12px; margin:12px 0; text-align:center;">
-                <div style="background:#111625; padding:8px; border:2px solid #000;">Q1<br>฿${(raw.q1||0).toLocaleString()}</div>
+                <div style="background:#111625; padding:8px;">Q1<br>฿${(raw.q1||0).toLocaleString()}</div>
                 <div style="background:#111625; padding:8px; border:2px solid var(--color-success)">Q2<br>฿${(raw.q2||0).toLocaleString()}</div>
-                <div style="background:#111625; padding:8px; border:2px solid #000;">Q3<br>฿${(raw.q3||0).toLocaleString()}</div>
-                <div style="background:#111625; padding:8px; border:2px solid #000;">Q4<br>฿${(raw.q4||0).toLocaleString()}</div>
+                <div style="background:#111625; padding:8px;">Q3<br>฿${(raw.q3||0).toLocaleString()}</div>
+                <div style="background:#111625; padding:8px;">Q4<br>฿${(raw.q4||0).toLocaleString()}</div>
               </div>
               <button class="btn btn-secondary btn-retro btn-small" style="width:100%;" onclick="app.openQuarterlyModal('${p.id}', ${year})">✏️ บันทึกรายงานไตรมาส TWR</button>
             </div>
@@ -500,6 +565,19 @@ class PixelStewardApp {
         }).join('')}
       </div>
     `;
+  }
+
+  openQuarterlyModal(portfolioId, year) {
+    const port = this.portfolios.find(p => p.id === portfolioId); if (!port) return;
+    const q1Val = prompt('ยอดพอร์ตไตรมาส 1 (THB):');
+    const q2Val = prompt('ยอดพอร์ตไตรมาส 2 (THB):');
+    const q3Val = prompt('ยอดพอร์ตไตรมาส 3 (THB):');
+    const q4Val = prompt('ยอดพอร์ตไตรมาส 4 (THB):');
+    
+    let rec = this.quarterlyRecords.find(r => r.portfolioId === portfolioId && r.year === year);
+    if (!rec) { rec = { id:'q-'+Date.now(), portfolioId, year, q1:0, q2:0, q3:0, q4:0 }; this.quarterlyRecords.push(rec); }
+    if (q1Val) rec.q1 = Number(q1Val); if (q2Val) rec.q2 = Number(q2Val); if (q3Val) rec.q3 = Number(q3Val); if (q4Val) rec.q4 = Number(q4Val);
+    this.saveState(); this.refreshUI();
   }
 
   // --- 💰 RENDER 5: DIVIDENDS ---
@@ -528,17 +606,16 @@ class PixelStewardApp {
     `;
   }
 
-  // --- ⚙️ RENDER 6: SETTINGS UPGRADE (ทำความสะอาดหน้าจอคำสั่งตามรีเควส) ---
+  // --- ⚙️ RENDER 6: SETTINGS COMPACT ---
   renderSettings(container) {
     container.innerHTML = `
       <div class="border-pixel" style="padding:20px; display:flex; flex-direction:column; gap:16px; background:#1f273e;">
         <h3>⚙️ ตลับเซฟข้อมูลระบบนิเวศ (Data Sync Management)</h3>
         <p>สถานะเซิร์ฟเวอร์ Cloud: <b>${isFirebaseActive ? '🟢 ออนไลน์ (Realtime Connected)' : '🔴 ออฟไลน์ (Local-Only)'}</b></p>
-        
         <div style="border-top: 2px dashed #444; margin: 8px 0;"></div>
         
         <h4>📥 โหลดฐานข้อมูลเก่า</h4>
-        <p style="font-size:0.85rem; color:var(--color-text-muted);">เปิดไฟล์สำรองข้อมูลคัดลอกรหัสข้อความจากมือถือมาวางลงในกล่องด้านล่างนี้</p>
+        <p style="font-size:0.85rem; color:var(--color-text-muted);">เปิดไฟล์สำรองข้อมูล .json คัดลอกข้อความด้านในมาวางตรงนี้ได้เลย</p>
         <textarea id="import-json-area" class="input-retro" rows="10" style="width:100%; background:#0c1020; color:#10b981; font-family:monospace; padding:12px; border:2px solid #000;" placeholder="วางข้อความข้อมูลดิบ JSON ที่นี่..."></textarea>
         <button class="btn btn-success btn-retro" id="btn-execute-import" style="width:220px; margin-top:8px;">📥 โหลดข้อมูลเก่า</button>
       </div>
@@ -546,44 +623,20 @@ class PixelStewardApp {
 
     document.getElementById('btn-execute-import').addEventListener('click', () => {
       const jsonStr = document.getElementById('import-json-area').value.trim();
-      if (!jsonStr) { alert('❌ ตรวจพบช่องกรอกว่างเปล่า ไม่สามารถดำเนินงานได้ครับ'); return; }
+      if (!jsonStr) { alert('❌ ไม่พบข้อมูลในช่องกรอก'); return; }
       try {
         const parsed = JSON.parse(jsonStr);
         if (parsed.portfolios) {
-          this.portfolios = this.normalizePortfolios(parsed.portfolios);
+          this.portfolios = parsed.portfolios;
           this.quarterlyRecords = parsed.quarterlyRecords || [];
           this.monthlyRecords = parsed.monthlyRecords || [];
           this.dividendRecords = parsed.dividendRecords || [];
           this.exchangeRate = Number(parsed.exchangeRate) || 36.5;
-
-          this.saveState();
-          this.refreshUI();
-          alert('🎯 [SUCCESS] ทำการนำเข้าไฟล์ข้อมูลเรียบร้อยแล้ว ทุกพอร์ตลงทุนและประวัติไตรมาสแสดงผลครบถ้วน!');
-        } else {
-          alert('❌ โครงสร้างไฟล์ JSON ผิดรูปแบบพิมพ์เขียวระบบ');
-        }
-      } catch (e) {
-        alert('❌ รหัสข้อความเสียหายหรือก๊อปปี้มาไม่ครบถ้วน: ' + e.message);
-      }
+          this.saveState(); this.refreshUI();
+          alert('🎯 นำเข้าเสร็จสิ้นเรียบร้อยแล้ว ทุกพอร์ตและลูกเล่น Rank กลับคืนมาร้อยเปอร์เซ็นต์!');
+        } else { alert('❌ โครงสร้าง JSON ไม่ถูกต้อง'); }
+      } catch (e) { alert('❌ ข้อมูลดิบเสียหาย: ' + e.message); }
     });
-  }
-
-  openQuarterlyModal(portfolioId, year) {
-    const port = this.portfolios.find(p => p.id === portfolioId); if (!port) return;
-    document.getElementById('q-port-id').value = portfolioId;
-    document.getElementById('q-year').value = year;
-    document.getElementById('q-port-label').innerText = `พอร์ต: ${port.name}`;
-    
-    let rec = this.quarterlyRecords.find(r => r.portfolioId === portfolioId && r.year === year) || { q1:0, q2:0, q3:0, q4:0, capitalAdded:0, capitalWithdrawn:0, notes:'' };
-    document.getElementById('q-val-q1').value = rec.q1 || '';
-    document.getElementById('q-val-q2').value = rec.q2 || '';
-    document.getElementById('q-val-q3').value = rec.q3 || '';
-    document.getElementById('q-val-q4').value = rec.q4 || '';
-    document.getElementById('q-cap-added').value = rec.capitalAdded || 0;
-    document.getElementById('q-cap-withdrawn').value = rec.capitalWithdrawn || 0;
-    document.getElementById('q-notes').value = rec.notes || '';
-    
-    document.getElementById('quarterly-modal').classList.remove('hidden');
   }
 
   openPortfolioModal() { document.getElementById('portfolio-modal').classList.remove('hidden'); }
