@@ -1,5 +1,5 @@
 /* ==========================================
-   PIXEL STEWARD CORE ENGINE - APP.JS (V.1.7.0 FIXED NAVIGATION)
+   PIXEL STEWARD CORE ENGINE - APP.JS (V.1.7.1 ULTIMATE FIXED)
    ========================================== */
 
 const firebaseConfig = {
@@ -77,22 +77,19 @@ class PixelStewardApp {
       });
     }
 
-    this.fetchRateOnLoad();
-
-    // ==========================================================================
-    // 🎮 FIXED NAVIGATION & GLOBAL DELEGATION: ดักจับคลิกเมนูหลักและปุ่มย่อยแบบครอบจักรวาล
-    // ==========================================================================
-    document.addEventListener('click', (e) => {
-      // ตรวจจับปุ่มสลับหน้าเมนู (Sidebar Navigation)
-      const navItem = e.target.closest('.nav-item');
-      if (navItem) {
+    // 🕹️ FIX: ผูกคำสั่งปุ่มเมนูหลัก (Sidebar Navigation) แยกเด็ดขาด ไม่ให้โดนเคลียร์ HTML ทับ
+    document.querySelectorAll('.nav-menu .nav-item').forEach(btn => {
+      btn.addEventListener('click', (e) => {
         document.querySelectorAll('.nav-menu .nav-item').forEach(n => n.classList.remove('active'));
-        navItem.classList.add('active');
-        this.activeTab = navItem.dataset.tab;
+        const currentBtn = e.currentTarget;
+        currentBtn.classList.add('active');
+        this.activeTab = currentBtn.dataset.tab;
         this.refreshUI();
-        return;
-      }
+      });
+    });
 
+    // 🎮 GLOBAL DELEGATION: ตรวจจับเฉพาะปุ่มคำสั่งภายใน Dynamic Area และโมดอลป๊อปอัป
+    document.addEventListener('click', (e) => {
       // ปุ่มเพิ่มสินทรัพย์ย่อย
       const addAssetBtn = e.target.closest('#btn-add-asset');
       if (addAssetBtn) {
@@ -123,10 +120,10 @@ class PixelStewardApp {
         return;
       }
       
-      // ปุ่มเพิ่มพอร์ตใหม่และโยกย้ายเงินสด
-      if (e.target.closest('#btn-add-portfolio')) { this.openPortfolioModal(); }
-      if (e.target.closest('#btn-quick-transfer')) { this.openTransferModal(); }
-      if (e.target.closest('.btn-close-modal')) { this.closeModals(); }
+      // ปุ่มควบคุมโมดูลหลักระดับบนสุด
+      if (e.target.closest('#btn-add-portfolio')) { this.openPortfolioModal(); return; }
+      if (e.target.closest('#btn-quick-transfer')) { this.openTransferModal(); return; }
+      if (e.target.closest('.btn-close-modal')) { this.closeModals(); return; }
     });
 
     const goalTypeSelect = document.getElementById('port-goal-type');
@@ -145,7 +142,6 @@ class PixelStewardApp {
       });
     }
 
-    // เปิดซับมิทฟอร์มพอร์ต
     const portForm = document.getElementById('portfolio-form');
     if(portForm) {
       portForm.addEventListener('submit', (e) => { e.preventDefault(); this.handleSavePortfolio(); });
@@ -155,6 +151,7 @@ class PixelStewardApp {
       transForm.addEventListener('submit', (e) => { e.preventDefault(); this.handleExecuteTransfer(); });
     }
 
+    this.fetchRateOnLoad();
     this.refreshUI();
   }
 
@@ -170,11 +167,12 @@ class PixelStewardApp {
         this.exchangeRate = rate;
         const rateInput = document.getElementById('global-usd-rate');
         if (rateInput) rateInput.value = rate.toFixed(2);
-        this.saveState(); this.refreshUI();
-        console.log(`📡 V.1.7.0 Antigravity Sync Rate Complete: 1 USD = ${rate.toFixed(2)} THB`);
+        // FIX: สั่งเก็บบันทึกข้อมูลเงียบๆ ไม่เรียกคำสั่งล้างหน้าจอทับซ้อน เพื่อป้องกันเบราว์เซอร์ค้าง
+        localStorage.setItem('ps_ex_rate_v4', this.exchangeRate.toString());
+        console.log(`📡 V.1.7.1 Antigravity Sync Rate Complete: 1 USD = ${rate.toFixed(2)} THB`);
       }
     } catch (error) {
-      console.warn("⚠️ API ดึงค่าเงินจำกัดวงเงินชั่วคราว:", error);
+      console.warn("⚠️ API Mode ค้างชั่วคราว:", error);
     }
   }
 
@@ -264,9 +262,6 @@ class PixelStewardApp {
     const tabContent = document.getElementById('tab-content');
     if (!tabContent) return;
     tabContent.innerHTML = '';
-
-    const titleMap = { dashboard: 'แดชบอร์ดภาพรวม', portfolios: 'พอร์ตการลงทุน', quarterly: 'หุ้นรายไตรมาส', dividends: 'เงินปันผล & Yield on Cost', forex: 'Forex รายเดือน', option: 'Option รายเดือน', cashflow: 'สภาพคล่อง Cashflow', comparison: 'ตารางเปรียบเทียบสัดส่วน', settings: 'ตั้งค่าคลาวด์เซฟ' };
-    document.getElementById('page-title').innerText = titleMap[this.activeTab] || 'Pixel Steward';
 
     switch (this.activeTab) {
       case 'dashboard': this.renderDashboard(tabContent); break;
@@ -563,7 +558,7 @@ class PixelStewardApp {
   renderSettings(container) {
     container.innerHTML = `
       <div class="border-pixel" style="padding:20px; background:#1f273e; display:flex; flex-direction:column; gap:12px;">
-        <h3>⚙️ จัดการคลาวด์เซฟสถิติระบบนิเวศ (V.1.7.0)</h3>
+        <h3>⚙️ จัดการคลาวด์เซฟสถิติระบบนิเวศ (V.1.7.1)</h3>
         <p>การเชื่อมต่อ Realtime Firebase: <b>${isFirebaseActive?'🟢 CONNECTED':'🔴 LOCAL ONLY'}</b></p>
         <textarea id="import-json-area" class="input-retro" rows="8" style="width:100%; font-family:monospace; background:#0c1020; color:#10b981; padding:10px; border:2px solid #000;" placeholder="วางข้อความวัตถุดิบ JSON สำรองข้อมูลที่นี่..."></textarea>
         <button class="btn btn-success btn-retro" id="btn-execute-import" style="width:180px;"><span>📥 โหลดฐานข้อมูล</span></button>
@@ -580,7 +575,7 @@ class PixelStewardApp {
           this.dividendRecords=p.dividendRecords||[]; 
           this.exchangeRate=Number(p.exchangeRate)||36.5; 
           this.selectedPortId = this.portfolios.length > 0 ? this.portfolios[0].id : '';
-          this.saveState(); this.refreshUI(); alert('🎯 นำเข้าเสสิ้น ข้อมูลคาร์ทริจซิงก์เรียบร้อย!'); 
+          this.saveState(); this.refreshUI(); alert('🎯 นำเข้าเสร็จสิ้น ข้อมูลคาร์ทริจซิงก์เรียบร้อย!'); 
         }
       } catch(e) { alert('ข้อมูลเสียหาย: '+e.message); }
     });
