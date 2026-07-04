@@ -1,5 +1,5 @@
 /* ==========================================
-   PIXEL STEWARD CORE ENGINE - APP.JS (V.1.8.0 CORE STRIKER)
+   PIXEL STEWARD CORE ENGINE - APP.JS (V.1.8.1 STREAMLINED STRIKER)
    ========================================== */
 
 const firebaseConfig = {
@@ -199,7 +199,6 @@ class PixelStewardApp {
     });
   }
 
-  // 🧠 STRICT PORTFOLIO RECALCULATION ENGINE (ตรรกะคณิตศาสตร์ดุลยภาพสมบูรณ์)
   autoCalculatePortfolios() {
     if (!Array.isArray(this.portfolios)) return;
     this.portfolios.forEach(p => {
@@ -222,7 +221,6 @@ class PixelStewardApp {
           p.cashBuffer = 0;
         }
       } else {
-        // ⚔️ พอร์ตรวมสุทธิ = ผลรวมสินทรัพย์ย่อยทั้งหมด 100% ไร้การหักลบค่าคอมมิชชันแฝง
         p.current = Array.isArray(p.assets) ? p.assets.reduce((sum, asset) => sum + (Number(asset.value) || 0), 0) : 0;
         p.cashBuffer = 0;
       }
@@ -296,7 +294,6 @@ class PixelStewardApp {
       case 'dividends': this.renderDividends(tabContent); break;
       case 'forex': this.renderForexCloud(tabContent); break;
       case 'option': this.renderOptionManual(tabContent); break;
-      case 'cashflow': this.renderCashFlow(tabContent); break;
       case 'comparison': this.renderComparison(tabContent); break;
       case 'settings': this.renderSettings(tabContent); break;
     }
@@ -342,7 +339,6 @@ class PixelStewardApp {
     `;
   }
 
-  // 📁 EDITABLE PORTFOLIOS RENDERING CORE (V.1.8.0)
   renderPortfolios(container) {
     if (!Array.isArray(this.portfolios) || this.portfolios.length === 0) {
       container.innerHTML = '<div class="border-pixel" style="padding:40px; text-align:center; background:#1f273e;">🎮 ยินดีต้อนรับสู่ระบบ Pixel Steward รุ่นแกะกล่องใหม่เอี่ยม<br><br><small class="text-muted">โปรดกดปุ่ม "➕ เพิ่มพอร์ตใหม่" ด้านบนเพื่อเริ่มจัดตั้งพอร์ตลงทุนของคุณด้วยตนเองครับ</small></div>';
@@ -378,11 +374,9 @@ class PixelStewardApp {
           <div class="border-pixel" style="background:#1f273e; padding:15px; display:flex; flex-direction:column; gap:12px;">
             <div style="display:flex; justify-content:space-between; border-bottom:2px solid #000; padding-bottom:6px;">
               <h3>📦 ${active.name}</h3>
-              <!-- 🎯 LINK 1: คลิกแก้ไขหมวดหมู่โดยตรงทางกายภาพ (หมวดหมู่พอร์ตขวาบน) -->
               <span class="port-card-cat" style="cursor:pointer; border:1px dashed #3b82f6;" onclick="app.inlineEditCategory('${active.id}')" title="คลิกเพื่อเปลี่ยนหมวดหมู่">${active.category} ✏️</span>
             </div>
             
-            <!-- 🎯 LINK 2: คลิกแก้ไขเป้าหมายพอร์ตโดยตรงทางกายภาพ -->
             <div style="background:#111625; padding:10px; border:2px solid #000; font-size:0.85rem; cursor:pointer;" onclick="app.inlineEditGoal('${active.id}')" title="คลิกเพื่อแก้ไขเป้าหมายประจำตลับพอร์ต">
               🎯 เป้าหมาย: ${active.goalType==='numeric'?this.formatMoney(active.goal, active.category):active.goalSchedule} <span style="font-size:0.7rem; color:#64748b; float:right;">✏️ แก้ไข</span>
             </div>
@@ -401,11 +395,8 @@ class PixelStewardApp {
                     <span>🔸 ${a.name}</span>
                     <div style="display:flex; gap:4px; align-items:center;">
                       <b style="margin-right:4px;">${this.formatMoney(a.value, active.category)}</b>
-                      <!-- 📥 ปุ่มคำสั่งฝากเงิน/เพิ่มมูลค่า -->
                       <button class="btn btn-success btn-small" onclick="app.modularDepositAsset('${active.id}', ${i})" style="padding:1px 5px; font-size:0.7rem; font-weight:bold;">📥 ➕</button>
-                      <!-- 📤 ปุ่มคำสั่งถอนเงิน/ลดมูลค่า -->
                       <button class="btn btn-warning btn-small" onclick="app.modularWithdrawAsset('${active.id}', ${i})" style="padding:1px 5px; font-size:0.7rem; font-weight:bold; color:#000;">📤 ➖</button>
-                      <!-- ปุ่มทําลายเดิม -->
                       <button class="btn btn-danger btn-small" onclick="app.deleteAsset('${active.id}',${i})" style="padding:1px 5px; font-size:0.7rem;">✖</button>
                     </div>
                   </div>`).join('')}
@@ -421,7 +412,6 @@ class PixelStewardApp {
               <div style="font-size:0.75rem; text-align:left; color:var(--color-accent); font-weight:bold;">${this.getNextRankPreview(active)}</div>
             </div>
             
-            <!-- 👑 SECTION 4: REDESIGNED CONTROL WIDGET (เปลี่ยนชื่อเป็นความมั่งคั่งสุทธิ และตัดกล่องป้อนข้อมูลแมนนวลออกเด็ดขาด) -->
             <div class="border-pixel" style="padding:12px; background:#1f273e;">
               <h5 style="font-family:'Press Start 2P'; font-size:0.55rem; color:var(--color-success); margin-bottom:8px;">👑 ความมั่งคั่งสุทธิ</h5>
               <form id="update-balance-form" style="display:flex; flex-direction:column; gap:6px; font-size:0.8rem;">
@@ -448,7 +438,6 @@ class PixelStewardApp {
     });
   }
 
-  // 🛠️ DYNAMIC INLINE PROPERTY MUTATORS (ฟังก์ชันรับค่าทางกายภาพแก้เป้าหมาย/หมวดหมู่)
   inlineEditCategory(id) {
     const p = this.portfolios.find(x => x && x.id === id);
     if (!p) return;
@@ -464,7 +453,7 @@ class PixelStewardApp {
     const p = this.portfolios.find(x => x && x.id === id);
     if (!p) return;
     if (p.goalType === 'numeric') {
-      const newGoal = prompt(`✏️ แก้ไขเป้าหมายตัวเลขเงินสะสมของพอร์ต "${p.name}" เป็น (ระบุหน่วยเงินตรง):`, p.goal);
+      const newGoal = prompt(`✏️ แก้ไขเป้าหมายตัวเลขเงินสะสมของพอร์ต "${p.name}" เป็น:`, p.goal);
       if (newGoal !== null && !isNaN(Number(newGoal)) && Number(newGoal) >= 0) {
         p.goal = Number(newGoal);
         this.saveState(); this.refreshUI();
@@ -478,7 +467,6 @@ class PixelStewardApp {
     }
   }
 
-  // 📥 SUB-ASSET MODULAR TRANSACTIONS (ระบบฝาก/ถอนเงินย่อยอิสระ)
   modularDepositAsset(portId, assetIdx) {
     const p = this.portfolios.find(x => x && x.id === portId);
     if (p && p.assets && p.assets[assetIdx]) {
@@ -517,7 +505,6 @@ class PixelStewardApp {
     } 
   }
 
-  // 💵 FOREX DYNAMIC ANALYTICS CORE (V.1.8.0 CORE STRIKER)
   renderForexCloud(container) {
     if (!this.retroJournalRawData) {
       container.innerHTML = '<div class="border-pixel" style="padding:20px; background:#1f273e; text-align:center;">📡 กำลังเชื่อมต่อและสแกนหาสัญญาณเรียลไทม์จาก Retro Trading Journal...</div>';
@@ -760,29 +747,6 @@ class PixelStewardApp {
     const select = document.getElementById('div-port-id'); if(select && Array.isArray(this.portfolios)) select.innerHTML = this.portfolios.map(p=>p?`<option value="${p.id}">${p.name}</option>`:'').join('');
   }
 
-  renderCashFlow(container) {
-    if(!Array.isArray(this.portfolios) || this.portfolios.length===0){ container.innerHTML='<div class="border-pixel" style="padding:20px; background:#1f273e;">ไม่มีสภาพคล่องคงเหลือ (ตลับเซฟว่างเปล่า)</div>'; return; }
-    container.innerHTML = `
-      <div style="display:grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap:16px;">
-        ${this.portfolios.map(p => {
-          if(!p) return '';
-          const liquidity = (p.cashBuffer||0) + (p.dryPowder||0);
-          const statusText = liquidity > 50000 ? '🍀 สภาพคล่องพรีเมียม' : liquidity > 10000 ? '⚡ ระดับปกติ' : '⚠️ วิกฤตเสบียงต่ำ';
-          const badgeClass = liquidity > 50000 ? 'badge-success' : liquidity > 10000 ? 'badge-warning' : 'badge-danger';
-          return `
-            <div class="border-pixel" style="background:#1f273e; padding:15px; position:relative;">
-              <span class="badge ${badgeClass}" style="position:absolute; top:10px; right:10px; font-size:0.7rem;">${statusText}</span>
-              <h4>${p.name}</h4><span class="port-card-cat" style="font-size:0.7rem;">${p.category}</span>
-              <div class="border-pixel-inset" style="padding:10px; background:#111625; font-size:0.85rem; margin-top:10px; display:flex; flex-direction:column; gap:4px;">
-                <div style="display:flex; justify-content:space-between;"><span>สำรอง Buffer:</span><span style="color:var(--color-secondary); font-weight:bold;">${this.formatMoney(p.cashBuffer||0,p.category)}</span></div>
-                <div style="display:flex; justify-content:space-between;"><span>กองเงินช้อน Dry:</span><span style="color:var(--color-warning); font-weight:bold;">${this.formatMoney(p.dryPowder||0, p.category)}</span></div>
-                <div style="border-top:1px solid #444; margin-top:4px; padding-top:4px; display:flex; justify-content:space-between;"><span>สภาพคล่องรวม:</span><b>${this.formatMoney(liquidity, p.category)}</b></div>
-              </div>
-            </div>`;
-        }).join('')}
-      </div>`;
-  }
-
   renderComparison(container) {
     if(!Array.isArray(this.portfolios) || this.portfolios.length===0){ container.innerHTML='<div class="border-pixel" style="padding:20px; background:#1f273e;">ไม่มีตารางเปรียบเทียบ (ตลับเซฟว่างเปล่า)</div>'; return; }
     container.innerHTML = `
@@ -804,7 +768,7 @@ class PixelStewardApp {
   renderSettings(container) {
     container.innerHTML = `
       <div class="border-pixel" style="padding:20px; background:#1f273e; display:flex; flex-direction:column; gap:12px;">
-        <h3>⚙️ จัดการคลาวด์เซฟสถิติระบบนิเวศ (V.1.8.0)</h3>
+        <h3>⚙️ จัดการคลาวด์เซฟสถิติระบบนิเวศ (V.1.8.1)</h3>
         <p>การเชื่อมต่อ Realtime Firebase: <b>${isFirebaseActive?'🟢 CONNECTED':'🔴 LOCAL ONLY'}</b></p>
         <textarea id="import-json-area" class="input-retro" rows="8" style="width:100%; font-family:monospace; background:#0c1020; color:#10b981; padding:10px; border:2px solid #000;" placeholder="วางข้อความวัตถุดิบ JSON สำรองข้อมูลที่นี่..."></textarea>
         <button class="btn btn-success btn-retro" id="btn-execute-import" style="width:180px;"><span>📥 โหลดฐานข้อมูล</span></button>
