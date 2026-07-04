@@ -62,19 +62,37 @@ class PixelStewardApp {
       this.selectedPortId = this.portfolios[0].id;
     }
 
-    if (isFirebaseActive) this.connectCloudDatabase();
+    connectCloudDatabase() {
+    console.log("📡 Pixel Steward Cloud Listener: STARTING...");
 
-    const rateInput = document.getElementById('global-usd-rate');
-    if (rateInput) {
-      rateInput.value = this.exchangeRate;
-      rateInput.addEventListener('input', (e) => {
-        const val = Number(e.target.value);
-        if (val > 0) {
-          this.exchangeRate = val;
-          this.saveState();
-          this.refreshUI();
-        }
-      });
+    // 📡 Listener ท่อที่ 1: ดึงและซิงก์พอร์ตฝั่ง Steward
+    firebase.database().ref('pixel_steward_data_v4').on('value', (snapshot) => {
+      const data = snapshot.val();
+      if (data) {
+        if (data.portfolios) this.portfolios = data.portfolios;
+        if (data.quarterlyRecords) this.quarterlyRecords = data.quarterlyRecords;
+        if (data.monthlyRecords) this.monthlyRecords = data.monthlyRecords;
+        if (data.dividendRecords) this.dividendRecords = data.dividendRecords;
+        if (data.exchangeRate) this.exchangeRate = data.exchangeRate;
+        this.processJournalRouting();
+        this.refreshUI();
+      }
+    });
+
+    // 📡 Listener ท่อที่ 2: ดักจับข้อมูลจากเจอร์นัลแบบ Realtime และบังคับเรนเดอร์ทันที
+    firebase.database().ref('retro_trading_journal_data').on('value', (snapshot) => {
+      const data = snapshot.val();
+      if (data) {
+        console.log("📥 Forex Data Received from Cloud Journal! Processing 39 trades...");
+        this.retroJournalRawData = data;
+        this.processJournalRouting();
+        
+        // บังคับบันทึกสถานะลงหน่วยความจำชั่วคราวเพื่อป้องกันสัญญาล้างสถานะเป็นศูนย์
+        localStorage.setItem('ps_portfolios_v4', JSON.stringify(this.portfolios));
+        this.refreshUI();
+      }
+    });
+  }
     }
 
     // 🕹️ FIX: ผูกคำสั่งปุ่มเมนูหลัก (Sidebar Navigation) แยกเด็ดขาด ไม่ให้โดนเคลียร์ HTML ทับ
