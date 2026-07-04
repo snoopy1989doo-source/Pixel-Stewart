@@ -1,5 +1,5 @@
 /* ==========================================
-   PIXEL STEWARD CORE ENGINE - APP.JS (V.1.6.3 CLOUD-FIRST)
+   PIXEL STEWARD CORE ENGINE - APP.JS (V.1.7.0 CLOUD-FIRST)
    ========================================== */
 
 const firebaseConfig = {
@@ -22,36 +22,10 @@ if (typeof firebase !== 'undefined' && firebaseConfig.apiKey && firebaseConfig.a
   }
 }
 
-const INITIAL_PORTFOLIOS = [
-  { id: '1', name: 'RedWing (กยศ.)', category: 'Thai Stock', goalType: 'numeric', goal: 60000, current: 0, cashBuffer: 0, dryPowder: 5000, assets: [{ name: 'หุ้นย่อย A', value: 25000 }, { name: 'Buffer', value: 15000 }], startDate: '2025-01-01', notes: 'เน้นสำรองจ่ายและรักษาสภาพคล่อง' },
-  { id: '2', name: 'Zero 1 (เงินฉุกเฉิน)', category: 'Emergency', goalType: 'numeric', goal: 95000, current: 0, cashBuffer: 0, dryPowder: 0, assets: [{ name: 'Buffer', value: 90000 }], startDate: '2025-01-01', notes: 'เงินสำรองห้ามแตะต้องเว้นแต่จำเป็น' },
-  { id: '3', name: 'Zero 2 (รถ)', category: 'Asset', goalType: 'numeric', goal: 1200000, current: 0, cashBuffer: 0, dryPowder: 300000, assets: [{ name: 'Buffer', value: 50000 }], startDate: '2025-01-01', notes: 'สะสมดาวน์รถยนต์คันใหม่' },
-  { id: '4', name: 'Zero 3 (เกษียณ)', category: 'Retirement', goalType: 'numeric', goal: 4000000, current: 0, cashBuffer: 0, dryPowder: 750000, assets: [{ name: 'กองทุนดัชนี', value: 750000 }, { name: 'Buffer', value: 100000 }], startDate: '2025-01-01', notes: 'พอร์ตหลักระยะยาว พลิกฟื้นอิสรภาพ' },
-  { id: '5', name: 'Zero 4 (แต่งงาน)', category: 'Life Goal', goalType: 'numeric', goal: 600000, current: 0, cashBuffer: 0, dryPowder: 120000, assets: [{ name: 'Buffer', value: 30000 }], startDate: '2025-05-01', notes: 'ทุนแต่งงานในอนาคต' },
-  { id: '6', name: 'Zero 5 (บ้าน)', category: 'Asset', goalType: 'numeric', goal: 1500000, current: 0, cashBuffer: 0, dryPowder: 180000, assets: [{ name: 'Buffer', value: 20000 }], startDate: '2025-06-01', notes: 'เป้าหมายระยะกลางสำหรับที่อยู่อาศัย' },
-  { id: '7', name: 'Dividend Yield (หุ้นโลก)', category: 'Global Stock', goalType: 'numeric', goal: 300000, current: 0, cashBuffer: 0, dryPowder: 100000, assets: [{ name: 'ETF โลก', value: 100000 }, { name: 'Buffer', value: 20000 }], startDate: '2025-02-01', notes: 'ปันผลสม่ำเสมอ ลดความเสี่ยงค่าเงิน' },
-  { id: '8', name: 'THAI Dividend (หุ้นไทย)', category: 'Thai Stock', goalType: 'numeric', goal: 100000, current: 0, cashBuffer: 0, dryPowder: 55000, assets: [{ name: 'หุ้นปันผลไทย', value: 55000 }, { name: 'Buffer', value: 10000 }], startDate: '2025-01-15', notes: 'เน้นกระแสเงินสดจากปันผลในประเทศ' },
-  { id: '9', name: 'NEXT GEN (หุ้นเติบโต)', category: 'Growth Stock', goalType: 'schedule', goalSchedule: 'DCA ทุกวันที่ 25', current: 0, cashBuffer: 0, dryPowder: 4000000, assets: [{ name: 'Tech Growth', value: 4000000 }, { name: 'Buffer', value: 500000 }], startDate: '2025-03-01', notes: 'พอร์ตซิ่ง ดุดัน ไม่เกรงใจใคร โตระยะยาว', dcaDoneThisMonth: true },
-  { id: '10', name: 'FOREX LIFE', category: 'Forex', goalType: 'numeric', goal: 50000, current: 0, cashBuffer: 0, dryPowder: 10000, assets: [{ name: 'Trading Capital', value: 7500 }, { name: 'Buffer', value: 2500 }], startDate: '2025-01-01', notes: 'เทรดกระแสเงินสดรายเดือน ดอลลาร์สหรัฐ' },
-  { id: '11', name: 'FOREX RISK', category: 'Forex', goalType: 'numeric', goal: 20000, current: 0, cashBuffer: 0, dryPowder: 4000, assets: [{ name: 'Trading Capital', value: 2800 }, { name: 'Buffer', value: 1200 }], startDate: '2025-01-01', notes: 'พอร์ตเสี่ยงสูง ปั้นพอร์ตคูณเท่า' },
-  { id: '12', name: 'Option', category: 'Option', goalType: 'numeric', goal: 30000, current: 0, cashBuffer: 0, dryPowder: 7000, assets: [{ name: 'Option Collateral', value: 5100 }, { name: 'Buffer', value: 1900 }], startDate: '2025-02-01', notes: 'ใช้กลยุทธ์ออปชั่นในการ Hedging และทำกำไร' }
-];
-
-const INITIAL_QUARTERLY_RECORDS = [
-  { id: 'q-1', portfolioId: '4', year: 2025, q1: 600000, f1: 0, q2: 680000, f2: 0, q3: 750000, f3: 0, q4: 820000, f4: 0, notes: 'ภาพรวมพอร์ตเกษียณเติบโตขึ้นตามเป้าหมาย' },
-  { id: 'q-2', portfolioId: '7', year: 2025, q1: 90000, f1: 0, q2: 100000, f2: 0, q3: 110000, f3: 0, q4: 118000, f4: 0, notes: 'ปันผลสะสมต่อเนื่อง ได้รับอานิสงส์จากหุ้นกลุ่มการเงินโลก' },
-  { id: 'q-3', portfolioId: '8', year: 2025, q1: 50000, f1: 0, q2: 55000, f2: 0, q3: 58000, f3: 0, q4: 62000, f4: 0, notes: 'สภาวะตลาดไทยค่อนข้างผันผวนแต่ปันผลยังคงสม่ำเสมอ' },
-  { id: 'q-4', portfolioId: '9', year: 2025, q1: 3000000, f1: 0, q2: 3500000, f2: 0, q3: 4000000, f3: 0, q4: 4300000, f4: 0, notes: 'DCA หุ้นเทคฯ อย่างเข้มงวดทุกวันที่ 25' }
-];
-
-const INITIAL_MONTHLY_RECORDS = [
-  { id: 'm-1', portfolioId: '10', year: 2025, month: 10, profitLossUSD: 450, notes: 'เทรดคู่ EURUSD รันเทรนดสวยงาม' },
-  { id: 'm-2', portfolioId: '10', year: 2025, month: 11, profitLossUSD: 520, notes: 'ตลาดเคลื่อนไหวตามกรอบ Sideway' },
-  { id: 'm-3', portfolioId: '10', year: 2025, month: 12, profitLossUSD: -120, notes: 'มีโดน Stop Loss ปลายปีเนื่องจากปริมาณการซื้อขายเบาบาง' },
-  { id: 'm-4', portfolioId: '11', year: 2025, month: 10, profitLossUSD: 180, notes: 'เทรดทองคำ (XAUUSD) เสี่ยงสูง' },
-  { id: 'm-5', portfolioId: '11', year: 2025, month: 11, profitLossUSD: -90, notes: 'ล้างพอร์ทย่อยบางส่วนแต่กู้คืนมาได้' },
-  { id: 'm-6', portfolioId: '11', year: 2025, month: 12, profitLossUSD: 310, notes: 'ได้ไม้สไนเปอร์ช่วง FOMC' }
-];
+// 🧼 CLEAN SLATE: ลบข้อมูลตัวเลขตัวอย่างทั้งหมดให้ระบบสะอาดบริสุทธิ์เพื่อต้อนรับการใช้งานครั้งแรกจริงของคุณ
+const INITIAL_PORTFOLIOS = [];
+const INITIAL_QUARTERLY_RECORDS = [];
+const INITIAL_MONTHLY_RECORDS = [];
 
 class PixelStewardApp {
   constructor() {
@@ -61,27 +35,33 @@ class PixelStewardApp {
     this.dividendRecords = [];
     this.exchangeRate = 36.5;
     this.activeTab = 'dashboard';
-    this.selectedPortId = '1';
+    this.selectedPortId = '';
     this.init();
   }
 
   formatMoney(val, category) {
     const isUSD = ['Forex', 'Option'].includes(category);
-    return (isUSD ? '$' : '฿') + Number(val).toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 2 });
+    const sym = isUSD ? '$' : '฿';
+    const numStr = Number(val).toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 2 });
+    return `<span class="pixel-money">${sym}${numStr}</span>`;
   }
 
   init() {
-    const storedPorts = localStorage.getItem('ps_portfolios_v3');
-    const storedQuarters = localStorage.getItem('ps_quarterly_v3');
-    const storedMonthlies = localStorage.getItem('ps_monthly_v3');
-    const storedDividends = localStorage.getItem('ps_dividends_v3');
-    const storedRate = localStorage.getItem('ps_ex_rate_v3');
+    const storedPorts = localStorage.getItem('ps_portfolios_v4');
+    const storedQuarters = localStorage.getItem('ps_quarterly_v4');
+    const storedMonthlies = localStorage.getItem('ps_monthly_v4');
+    const storedDividends = localStorage.getItem('ps_dividends_v4');
+    const storedRate = localStorage.getItem('ps_ex_rate_v4');
 
     this.portfolios = storedPorts ? JSON.parse(storedPorts) : INITIAL_PORTFOLIOS;
     this.quarterlyRecords = storedQuarters ? JSON.parse(storedQuarters) : INITIAL_QUARTERLY_RECORDS;
     this.monthlyRecords = storedMonthlies ? JSON.parse(storedMonthlies) : INITIAL_MONTHLY_RECORDS;
     this.dividendRecords = storedDividends ? JSON.parse(storedDividends) : [];
     this.exchangeRate = storedRate ? Number(storedRate) : 36.5;
+
+    if (this.portfolios.length > 0 && !this.selectedPortId) {
+      this.selectedPortId = this.portfolios[0].id;
+    }
 
     if (isFirebaseActive) this.connectCloudDatabase();
 
@@ -98,67 +78,83 @@ class PixelStewardApp {
       });
     }
 
-    document.getElementById('btn-add-portfolio').addEventListener('click', () => this.openPortfolioModal());
-    document.getElementById('btn-quick-transfer').addEventListener('click', () => this.openTransferModal());
+    // 📡 ANTIGRAVITY ENGINE: ดึงค่าเงินอัตโนมัติเฉพาะตอนเริ่มเข้าแอปพลิเคชันเพื่อประหยัดโควตา Token API
+    this.fetchRateOnLoad();
 
-    document.getElementById('btn-save-quarterly').addEventListener('click', () => {
-      const portId = document.getElementById('q-port-id').value;
-      const yr = Number(document.getElementById('q-year').value);
-      let target = this.quarterlyRecords.find(r => r.portfolioId === portId && r.year === yr);
-      if (!target) {
-        target = { id: 'q-' + Date.now(), portfolioId: portId, year: yr, q1: 0, f1: 0, q2: 0, f2: 0, q3: 0, f3: 0, q4: 0, f4: 0, notes: '' };
-        this.quarterlyRecords.push(target);
+    // ==========================================================================
+    // 🎮 GLOBAL EVENT DELEGATION: ซ่อมแซมระบบปุ่มกด เพิ่ม/ลบ ทะลุทุก Dynamic DOM 100%
+    // ==========================================================================
+    document.addEventListener('click', (e) => {
+      // 1. ปุ่มเพิ่มสินทรัพย์ย่อย
+      const addAssetBtn = e.target.closest('#btn-add-asset');
+      if (addAssetBtn) {
+        let active = this.portfolios.find(p => p.id === this.selectedPortId);
+        if (!active && this.portfolios.length > 0) active = this.portfolios[0];
+        if (!active) { alert('❌ โปรดเพิ่มตลับพอร์ตหลักก่อนจัดการสินทรัพย์ย่อยครับ'); return; }
+        const name = prompt('กรอกชื่อสินทรัพย์ย่อย (เช่น MSFT หรือตั้งชื่อ Buffer สำหรับเงินสำรอง):');
+        const val = Number(prompt(`ระบุมูลค่าเงินลงทุนสุทธิในตลับ:`));
+        if (name && !isNaN(val) && val >= 0) {
+          if (!active.assets) active.assets = [];
+          active.assets.push({ name, value: val });
+          this.saveState(); this.refreshUI();
+        }
       }
-      target.q1 = Number(document.getElementById('q-val-q1').value) || 0;
-      target.f1 = Number(document.getElementById('q-flow-q1').value) || 0;
-      target.q2 = Number(document.getElementById('q-val-q2').value) || 0;
-      target.f2 = Number(document.getElementById('q-flow-q2').value) || 0;
-      target.q3 = Number(document.getElementById('q-val-q3').value) || 0;
-      target.f3 = Number(document.getElementById('q-flow-q3').value) || 0;
-      target.q4 = Number(document.getElementById('q-val-q4').value) || 0;
-      target.f4 = Number(document.getElementById('q-flow-q4').value) || 0;
-      target.notes = document.getElementById('q-notes').value;
-      this.saveState(); this.closeModals(); this.refreshUI();
+
+      // 2. ปุ่มลบพอร์ตอินไลน์ (Cartridge Rack Inline Delete)
+      const delPortBtn = e.target.closest('.btn-delete-port-inline');
+      if (delPortBtn) {
+        e.stopPropagation();
+        const portId = delPortBtn.dataset.id;
+        const port = this.portfolios.find(p => p.id === portId);
+        if (port && confirm(`⚠️ คุณต้องการสั่ง "ทำลายพอร์ต" ${port.name} พร้อมข้อมูลสินทรัพย์ทั้งหมดภายในใช่หรือไม่?`)) {
+          this.portfolios = this.portfolios.filter(p => p.id !== portId);
+          if (this.selectedPortId === portId) this.selectedPortId = this.portfolios.length > 0 ? this.portfolios[0].id : '';
+          this.saveState(); this.refreshUI();
+        }
+      }
     });
 
-    document.getElementById('portfolio-form').addEventListener('submit', (e) => {
-      e.preventDefault(); this.handleSavePortfolio();
-    });
-
-    document.getElementById('transfer-form').addEventListener('submit', (e) => {
-      e.preventDefault(); this.handleExecuteTransfer();
-    });
-
-    document.getElementById('dividend-form').addEventListener('submit', (e) => {
-      e.preventDefault();
-      const pId = document.getElementById('div-port-id').value;
-      const amount = Number(document.getElementById('div-amount').value);
-      const date = document.getElementById('div-date').value;
-      const notes = document.getElementById('div-notes').value;
-      this.dividendRecords.push({ id: 'd-' + Date.now(), portfolioId: pId, amount, date, notes });
-      this.saveState(); this.closeModals(); this.refreshUI();
-      alert('💰 บันทึกเงินปันผลเรียบร้อย!');
-    });
-
-    document.querySelectorAll('.nav-menu .nav-item').forEach(item => {
-      item.addEventListener('click', (e) => {
-        document.querySelectorAll('.nav-menu .nav-item').forEach(n => n.classList.remove('active'));
-        const btn = e.currentTarget;
-        btn.classList.add('active');
-        this.activeTab = btn.dataset.tab;
-        this.refreshUI();
+    const goalTypeSelect = document.getElementById('port-goal-type');
+    if (goalTypeSelect) {
+      goalTypeSelect.addEventListener('change', () => {
+        const valInput = document.getElementById('port-goal-value');
+        const schInput = document.getElementById('port-goal-schedule');
+        const label = document.getElementById('port-goal-label');
+        if (goalTypeSelect.value === 'numeric') {
+          label.innerText = 'เป้าหมายเงินสะสม:';
+          valInput.classList.remove('hidden'); schInput.classList.add('hidden');
+        } else {
+          label.innerText = 'เป้าหมายแผนวินัย DCA:';
+          valInput.classList.add('hidden'); schInput.classList.remove('hidden');
+        }
       });
-    });
-
-    document.querySelectorAll('.btn-close-modal').forEach(btn => {
-      btn.addEventListener('click', () => this.closeModals());
-    });
+    }
 
     this.refreshUI();
   }
 
+  async fetchRateOnLoad() {
+    const API_KEY = "ef6e99ffeeaacd06b19c0d2a";
+    const url = `https://v6.exchangerate-api.com/v6/${API_KEY}/latest/USD`;
+    try {
+      const response = await fetch(url);
+      if (!response.ok) throw new Error("API Offline");
+      const data = await response.json();
+      const rate = Number(data.conversion_rates.THB);
+      if (rate > 0) {
+        this.exchangeRate = rate;
+        const rateInput = document.getElementById('global-usd-rate');
+        if (rateInput) rateInput.value = rate.toFixed(2);
+        this.saveState(); this.refreshUI();
+        console.log(`📡 V.1.7.0 Antigravity Sync Rate Complete: 1 USD = ${rate.toFixed(2)} THB`);
+      }
+    } catch (error) {
+      console.warn("⚠️ API ดึงค่าเงินจำกัดวงเงินชั่วคราว ระบบรันโหมด Local Safe-Rate แล้วเด็ดขาด:", error);
+    }
+  }
+
   connectCloudDatabase() {
-    const dbRef = firebase.database().ref('pixel_steward_data');
+    const dbRef = firebase.database().ref('pixel_steward_data_v4');
     dbRef.on('value', (snapshot) => {
       const data = snapshot.val();
       if (data) {
@@ -172,10 +168,18 @@ class PixelStewardApp {
     });
   }
 
+  syncStateToCloud() {
+    if (!isFirebaseActive) return;
+    firebase.database().ref('pixel_steward_data_v4').set({
+      portfolios: this.portfolios, quarterlyRecords: this.quarterlyRecords,
+      monthlyRecords: this.monthlyRecords, dividendRecords: this.dividendRecords, exchangeRate: this.exchangeRate
+    });
+  }
+
   autoCalculatePortfolios() {
     this.portfolios.forEach(p => {
       const totalAssets = Array.isArray(p.assets) ? p.assets.reduce((sum, asset) => sum + (Number(asset.value) || 0), 0) : 0;
-      const bufferAsset = p.assets.find(a => a.name.toLowerCase().includes('buffer') || a.name.includes('สำรอง'));
+      const bufferAsset = p.assets ? p.assets.find(a => a.name.toLowerCase().includes('buffer') || a.name.includes('สำรอง')) : null;
       p.cashBuffer = bufferAsset ? (Number(bufferAsset.value) || 0) : 0;
       p.current = Math.max(totalAssets - p.cashBuffer, 0);
     });
@@ -183,11 +187,11 @@ class PixelStewardApp {
 
   saveState() {
     this.autoCalculatePortfolios();
-    localStorage.setItem('ps_portfolios_v3', JSON.stringify(this.portfolios));
-    localStorage.setItem('ps_quarterly_v3', JSON.stringify(this.quarterlyRecords));
-    localStorage.setItem('ps_monthly_v3', JSON.stringify(this.monthlyRecords));
-    localStorage.setItem('ps_dividends_v3', JSON.stringify(this.dividendRecords));
-    localStorage.setItem('ps_ex_rate_v3', this.exchangeRate.toString());
+    localStorage.setItem('ps_portfolios_v4', JSON.stringify(this.portfolios));
+    localStorage.setItem('ps_quarterly_v4', JSON.stringify(this.quarterlyRecords));
+    localStorage.setItem('ps_monthly_v4', JSON.stringify(this.monthlyRecords));
+    localStorage.setItem('ps_dividends_v4', JSON.stringify(this.dividendRecords));
+    localStorage.setItem('ps_ex_rate_v4', this.exchangeRate.toString());
     this.syncStateToCloud();
   }
 
@@ -214,8 +218,8 @@ class PixelStewardApp {
     if (p.goalType === 'schedule') return { icon: p.dcaDoneThisMonth ? '🔥' : '⏳', label: 'ดีซีเอสายวินัย', desc: 'รักษาวินัยเควส DCA สม่ำเสมอ', pct: p.dcaDoneThisMonth ? 100 : 0 };
     const pct = p.goal > 0 ? ((p.current + p.cashBuffer) / p.goal) * 100 : 0;
     const n = p.name.toLowerCase();
-    if (n.includes('บ้าน') || n.includes('house') || n.includes('5')) return pct >= 80 ? { icon: '🏰', label: 'วิหารทองคำ', desc: 'สกินขอบทองขั้นสูงสุดยอด!', pct } : pct >= 40 ? { icon: '🏡', label: 'บ้านโมเดิร์น', desc: 'ฐานรากมั่นคง คอนกรีตเสริมเหล็ก', pct } : { icon: '⛺', label: 'กระต๊อบ', desc: 'เพิ่งตั้งหลักเข็มเสร็จเลเวล 1', pct };
-    if (n.includes('รถ') || n.includes('car') || n.includes('2')) return pct >= 80 ? { icon: '🏎️', label: 'ซูเปอร์คาร์', desc: 'ซิ่งแซงหน้าความจน!', pct } : pct >= 40 ? { icon: '🚗', label: 'รถเก๋ง', desc: 'เดินทางอุ่นใจสไตล์ครอบครัว', pct } : { icon: '🚲', label: 'จักรยาน', desc: 'เริ่มปั่นชิวสะสมไมล์', pct };
+    if (n.includes('บ้าน') || n.includes('house')) return pct >= 80 ? { icon: '🏰', label: 'วิหารทองคำ', desc: 'สกินขอบทองขั้นสูงสุดยอด!', pct } : pct >= 40 ? { icon: '🏡', label: 'บ้านโมเดิร์น', desc: 'ฐานรากมั่นคง คอนกรีตเสริมเหล็ก', pct } : { icon: '⛺', label: 'กระต๊อบ', desc: 'เพิ่งตั้งหลักเข็มเสร็จเลเวล 1', pct };
+    if (n.includes('รถ') || n.includes('car')) return pct >= 80 ? { icon: '🏎️', label: 'ซูเปอร์คาร์', desc: 'ซิ่งแซงหน้าความจน!', pct } : pct >= 40 ? { icon: '🚗', label: 'รถเก๋ง', desc: 'เดินทางอุ่นใจสไตล์ครอบครัว', pct } : { icon: '🚲', label: 'จักรยาน', desc: 'เริ่มปั่นชิวสะสมไมล์', pct };
     if (pct >= 80) return { icon: '⚔️', label: 'มหาอัศวินขุมทรัพย์', desc: 'กองทัพการเงินมีกำลังมหาศาล!', pct };
     if (pct >= 40) return { icon: '🛡️', label: 'นักรบพิทักษ์เหรียญ', desc: 'มีโล่ป้องกัน ความเสี่ยงลดลง', pct };
     return { icon: '🐣', label: 'มอนสเตอร์เลเวล 1', desc: 'กำลังฝึกฝนวิทยายุทธ์ฟาร์มเงินสด', pct };
@@ -227,7 +231,7 @@ class PixelStewardApp {
     if (pct >= 80) return `🏆 เลเวลสูงสุดขอบทองทองแล้ว!`;
     const targetPct = pct < 40 ? 40 : 80;
     const needed = ((targetPct / 100) * p.goal) - (p.current + p.cashBuffer);
-    return `🔮 เลเวลอัปขั้นถัดไป: ขาดอีกประมาณ ${this.formatMoney(needed, p.category)}`;
+    return `🔮 เลเวลอัปขั้นถัดไป: ขาดอีกประมาณ ${p.category === 'Forex'||p.category === 'Option' ? '$' : '฿'}${needed.toLocaleString(undefined,{maximumFractionDigits:0})}`;
   }
 
   refreshUI() {
@@ -282,7 +286,7 @@ class PixelStewardApp {
         <div class="border-pixel" style="padding:20px; background:#1f273e;">
           <h4 style="font-family:'Press Start 2P'; font-size:0.65rem; color:var(--color-accent); margin-bottom:12px;">🚩 เควสใกล้บรรลุเป้าหมาย</h4>
           <div style="display:flex; flex-direction:column; gap:10px;">
-            ${topGoals.map(g => `<div style="background:#111625; padding:8px; border:2px solid #000;"><div style="display:flex; justify-content:space-between; font-size:0.8rem;"><span>${g.name}</span><b style="color:var(--color-success);">${g.pct.toFixed(1)}%</b></div><div class="progress-container" style="margin-top:4px; height:6px;"><div class="progress-bar-fill" style="width:${Math.min(100,g.pct)}%; background:var(--color-accent); height:100%;"></div></div></div>`).join('')}
+            ${this.portfolios.length===0?'<p class="text-muted" style="text-align:center;font-size:0.8rem;padding-top:20px;">คลังว่างเปล่า โปรดเพิ่มพอร์ตใหม่</p>':topGoals.map(g => `<div style="background:#111625; padding:8px; border:2px solid #000;"><div style="display:flex; justify-content:space-between; font-size:0.8rem;"><span>${g.name}</span><b style="color:var(--color-success);">${g.pct.toFixed(1)}%</b></div><div class="progress-container" style="margin-top:4px; height:6px;"><div class="progress-bar-fill" style="width:${Math.min(100,g.pct)}%; background:var(--color-accent); height:100%;"></div></div></div>`).join('')}
           </div>
         </div>
       </div>
@@ -290,6 +294,10 @@ class PixelStewardApp {
   }
 
   renderPortfolios(container) {
+    if (this.portfolios.length === 0) {
+      container.innerHTML = '<div class="border-pixel" style="padding:40px; text-align:center; background:#1f273e;">🎮 ยินดีต้อนรับสู่ระบบ Pixel Steward รุ่นแกะกล่องใหม่เอี่ยม<br><br><small class="text-muted">โปรดกดปุ่ม "➕ เพิ่มพอร์ตใหม่" ด้านบนเพื่อเริ่มจัดตั้งพอร์ตลงทุนของคุณด้วยตนเองครับ</small></div>';
+      return;
+    }
     let active = this.portfolios.find(p => p.id === this.selectedPortId) || this.portfolios[0];
     this.selectedPortId = active.id;
     const lvl = this.getPortfolioLevel(active);
@@ -297,12 +305,13 @@ class PixelStewardApp {
     const weight = this.getCalculations().netWorthTHB > 0 ? (((active.current+active.cashBuffer)*(isUSD?this.exchangeRate:1))/this.getCalculations().netWorthTHB)*100 : 0;
 
     container.innerHTML = `
-      <div style="display:grid; grid-template-columns: 0.65fr 1.35fr; gap:20px;">
+      <div style="display:grid; grid-template-columns: 0.7fr 1.3fr; gap:20px;">
         <div class="border-pixel" style="padding:15px; background:#111625;">
           <h4 style="font-family:'Press Start 2P'; font-size:0.6rem; color:#3b82f6; margin-bottom:10px; border-bottom:2px solid #000; padding-bottom:6px;">🎮 CARTRIDGE RACK</h4>
           <div class="cartridge-list-rack">
             ${this.portfolios.map(p => `
               <div class="pixel-cartridge-card ${p.id === this.selectedPortId?'active':''}" onclick="app.switchPortfolio('${p.id}')">
+                <button class="btn-delete-port-inline" data-id="${p.id}">✖</button>
                 <div class="cartridge-title">📁 ${p.name}</div>
                 <div class="cartridge-meta"><span>${p.category}</span><b>${this.getPortfolioLevel(p).icon}</b></div>
                 <div style="display:flex; justify-content:space-between; font-size:0.75rem; margin-top:4px; font-weight:bold; color:#10b981;">
@@ -324,9 +333,9 @@ class PixelStewardApp {
               <div class="progress-container" style="height:15px; background:#111625; border:2px solid #000; position:relative;"><div style="width:${Math.min(100,lvl.pct)}%; background:var(--color-success); height:100%;"></div></div>
             </div>
             <div style="margin-top:5px;">
-              <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:2px solid #000; padding-bottom:4px;"><span style="font-size:0.8rem; font-weight:bold;">💎 สินทรัพย์ย่อย</span><button class="btn btn-primary btn-retro btn-small" id="btn-add-asset" style="padding:2px 6px;">➕ เพิ่ม</button></div>
+              <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:2px solid #000; padding-bottom:4px;"><span style="font-size:0.8rem; font-weight:bold;">💎 สินทรัพย์ย่อย</span><button class="btn btn-primary btn-retro btn-small" id="btn-add-asset" style="padding:2px 6px;"><span>➕ เพิ่ม</span></button></div>
               <div style="display:flex; flex-direction:column; gap:6px; margin-top:8px; max-height:180px; overflow-y:auto;">
-                ${active.assets.length===0?'<p class="text-muted" style="font-size:0.8rem; text-align:center;">คลังว่างเปล่า</p>':active.assets.map((a,i)=>`<div style="display:flex; justify-content:space-between; background:#111625; padding:6px; border:2px solid #000; font-size:0.8rem;"><span>🔸 ${a.name}</span><div><b style="margin-right:8px;">${this.formatMoney(a.value, active.category)}</b><button class="btn btn-danger btn-small" onclick="app.deleteAsset('${active.id}',${i})" style="padding:0 4px;">✖</button></div></div>`).join('')}
+                ${(!active.assets || active.assets.length===0)?'<p class="text-muted" style="font-size:0.8rem; text-align:center;">คลังว่างเปล่า</p>':active.assets.map((a,i)=>`<div style="display:flex; justify-content:space-between; background:#111625; padding:6px; border:2px solid #000; font-size:0.8rem;"><span>🔸 ${a.name}</span><div><b style="margin-right:8px;">${this.formatMoney(a.value, active.category)}</b><button class="btn btn-danger btn-small" onclick="app.deleteAsset('${active.id}',${i})" style="padding:0 4px;">✖</button></div></div>`).join('')}
               </div>
             </div>
           </div>
@@ -344,7 +353,7 @@ class PixelStewardApp {
                 <label>เงินในพอร์ตรวมจริง (Auto):</label>
                 <div style="background:#111625; padding:6px; border:2px solid #000; font-weight:bold; color:#10b981;">${this.formatMoney(active.current+active.cashBuffer, active.category)}</div>
                 <label>ระบุเงินช้อน Dry Powder:</label>
-                <input type="number" id="update-dry" class="input-retro" value="${active.dryPowder}" required style="width:100%;">
+                <input type="number" id="update-dry" class="input-retro" value="${active.dryPowder||0}" required style="width:100%;">
                 <button type="submit" class="btn btn-success btn-retro" style="width:100%; padding:4px; font-weight:bold;"><span>💾 บันทึกเงินช้อน</span></button>
               </form>
             </div>
@@ -358,20 +367,24 @@ class PixelStewardApp {
       const p = this.portfolios.find(x => x.id === active.id);
       if (p) { p.dryPowder = Number(document.getElementById('update-dry').value); this.saveState(); this.refreshUI(); alert('🎯 อัปเดตเงินช้อนสำเร็จ!'); }
     });
-
-    document.getElementById('btn-add-asset').addEventListener('click', () => {
-      const name = prompt('กรอกชื่อสินทรัพย์ย่อย (ตั้งชื่อว่า Buffer สำหรับเงินสำรองสภาพคล่อง):');
-      const val = Number(prompt(`ระบุมูลค่าสินทรัพย์ (${isUSD?'$':'฿'}):`));
-      if (name && !isNaN(val) && val >= 0) { active.assets.push({ name, value: val }); this.saveState(); this.refreshUI(); }
-    });
   }
 
   switchPortfolio(id) { this.selectedPortId = id; this.refreshUI(); }
-  deleteAsset(id, idx) { const p = this.portfolios.find(x=>x.id===id); if(p&&p.assets[idx]&&confirm('ลบสินทรัพย์ย่อยนี้?')) { p.assets.splice(idx,1); this.saveState(); this.refreshUI(); } }
+  
+  deleteAsset(id, idx) { 
+    const p = this.portfolios.find(x => x.id === id); 
+    if (p && p.assets && p.assets[idx]) { 
+      if (confirm(`ลบสินทรัพย์ย่อย "${p.assets[idx].name}" หรือไม่?`)) { 
+        p.assets.splice(idx, 1); 
+        this.saveState(); this.refreshUI(); 
+      } 
+    } 
+  }
 
   renderQuarterly(container) {
     const stockPorts = this.portfolios.filter(p => !['Forex', 'Option'].includes(p.category));
     const year = new Date().getFullYear();
+    if(stockPorts.length===0){ container.innerHTML='<div class="border-pixel" style="padding:20px; background:#1f273e;">ไม่มีรายการหุ้นรายไตรมาส (โปรดตั้งค่าเปิดตลับพอร์ตหลักก่อนครับ)</div>'; return; }
     
     container.innerHTML = `
       <div style="display:flex; flex-direction:column; gap:16px;">
@@ -429,7 +442,7 @@ class PixelStewardApp {
         <div style="display:grid; grid-template-columns:1fr 2fr; gap:15px;">
           <div class="border-pixel-inset" style="padding:12px; background:#111625;">
             <label style="font-size:0.8rem;">เลือกพอร์ต:</label>
-            <select id="opt-port-select" class="input-retro" style="width:100%; margin-bottom:8px;">${optionPorts.map(p=>`<option value="${p.id}">${p.name}</option>`).join('')}</select>
+            <select id="opt-port-select" class="input-retro" style="width:100%; margin-bottom:8px;">${optionPorts.length===0?'<option>ไม่มีตลับพอร์ตออปชัน</option>':optionPorts.map(p=>`<option value="${p.id}">${p.name}</option>`).join('')}</select>
             <label style="font-size:0.8rem;">เดือนงวด:</label>
             <select id="opt-month-select" class="input-retro" style="width:100%; margin-bottom:8px;">${[...Array(12).keys()].map(i=>`<option value="${i+1}">เดือน ${i+1}</option>`).join('')}</select>
             <label style="font-size:0.8rem;">P/L สุทธิ (USD):</label>
@@ -439,20 +452,22 @@ class PixelStewardApp {
           <div class="border-pixel-inset" style="padding:12px; background:#111625;">
             <h5>📜 ประวัติสัญญารายเดือนย่อย</h5>
             <div style="max-height:220px; overflow-y:auto; font-size:0.85rem; margin-top:8px;">
-              ${records.length===0?'<p class="text-muted">ไม่มีประวัติ Mock Data ตกค้าง พร้อมบันทึกข้อมูลจริง</p>':records.map(r=>`<div style="display:flex; justify-content:space-between; border-bottom:1px solid #333; padding:6px 0;"><span><b>${this.portfolios.find(x=>x.id===r.portfolioId)?.name}</b> (เดือน ${r.month})</span><b class="${r.profitLossUSD>=0?'text-success':'text-danger'}">${r.profitLossUSD>=0?'+':''}$${r.profitLossUSD}</b></div>`).join('')}
+              ${records.length===0?'<p class="text-muted">ไม่มีประวัติคงเหลือตลับเซฟสะอาดพร้อมใช้งาน</p>':records.map(r=>`<div style="display:flex; justify-content:space-between; border-bottom:1px solid #333; padding:6px 0;"><span><b>${this.portfolios.find(x=>x.id===r.portfolioId)?.name}</b> (เดือน ${r.month})</span><b class="${r.profitLossUSD>=0?'text-success':'text-danger'}">${r.profitLossUSD>=0?'+':''}$${r.profitLossUSD}</b></div>`).join('')}
             </div>
           </div>
         </div>
       </div>
     `;
-    document.getElementById('btn-save-opt-manual').addEventListener('click', () => {
-      const pId = document.getElementById('opt-port-select').value;
-      const m = Number(document.getElementById('opt-month-select').value);
-      const pl = Number(document.getElementById('opt-pl-input').value);
-      if(!pId || isNaN(pl)) return;
-      this.monthlyRecords.push({ id:'m-'+Date.now(), portfolioId:pId, year:new Date().getFullYear(), month:m, profitLossUSD:pl, notes:'Manual' });
-      this.saveState(); this.refreshUI();
-    });
+    if(optionPorts.length>0){
+      document.getElementById('btn-save-opt-manual').addEventListener('click', () => {
+        const pId = document.getElementById('opt-port-select').value;
+        const m = Number(document.getElementById('opt-month-select').value);
+        const pl = Number(document.getElementById('opt-pl-input').value);
+        if(!pId || isNaN(pl)) return;
+        this.monthlyRecords.push({ id:'m-'+Date.now(), portfolioId:pId, year:new Date().getFullYear(), month:m, profitLossUSD:pl, notes:'Manual' });
+        this.saveState(); this.refreshUI();
+      });
+    }
   }
 
   renderDividends(container) {
@@ -462,7 +477,7 @@ class PixelStewardApp {
         <table class="retro-table" style="width:100%; border-collapse:collapse; font-size:0.85rem;">
           <thead><tr style="background:#111625;"><th style="padding:8px; border:2px solid #000;">ชื่อพอร์ต</th><th style="padding:8px; border:2px solid #000;">ต้นทุนสินทรัพย์ย่อย</th><th style="padding:8px; border:2px solid #000;">รวมรับปันผล</th><th style="padding:8px; border:2px solid #000; color:var(--color-accent);">YOC Score</th></tr></thead>
           <tbody>
-            ${this.portfolios.map(p => {
+            ${this.portfolios.length===0?'<tr><td colspan=\"4\" style=\"text-align:center;padding:15px;\" class=\"text-muted\">ไม่มีพอร์ตลงทุนในคลังคลาวด์</td></tr>':this.portfolios.map(p => {
               const divs = this.dividendRecords.filter(x=>x.portfolioId===p.id).reduce((s,x)=>s+Number(x.amount),0);
               const yoc = p.current>0?((divs/p.current)*100).toFixed(2)+'%':'0.00%';
               return `<tr><td style="padding:8px; border:2px solid #000;"><b>${p.name}</b></td><td style="padding:8px; border:2px solid #000;">${this.formatMoney(p.current,p.category)}</td><td style="padding:8px; border:2px solid #000; color:var(--color-success);">${this.formatMoney(divs,p.category)}</td><td style="padding:8px; border:2px solid #000; font-weight:bold; color:var(--color-accent);">${yoc}</td></tr>`;
@@ -476,6 +491,7 @@ class PixelStewardApp {
   }
 
   renderCashFlow(container) {
+    if(this.portfolios.length===0){ container.innerHTML='<div class="border-pixel" style="padding:20px; background:#1f273e;">ไม่มีสภาพคล่องคงเหลือ (ตลับเซฟว่างเปล่า)</div>'; return; }
     container.innerHTML = `
       <div style="display:grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap:16px;">
         ${this.portfolios.map(p => {
@@ -489,7 +505,7 @@ class PixelStewardApp {
               <div class="border-pixel-inset" style="padding:10px; background:#111625; font-size:0.85rem; margin-top:10px; display:flex; flex-direction:column; gap:4px;">
                 <div style="display:flex; justify-content:space-between;"><span>สำรอง Buffer:</span><span style="color:var(--color-secondary); font-weight:bold;">${this.formatMoney(p.cashBuffer,p.category)}</span></div>
                 <div style="display:flex; justify-content:space-between;"><span>กองเงินช้อน Dry:</span><span style="color:var(--color-warning); font-weight:bold;">${this.formatMoney(p.dryPowder, p.category)}</span></div>
-                <div style="border-top:1px solid #444; margin-top:4px; padding-top:4px; display:flex; justify-content:space-between;"><span>สภาพคล่องรวม:</span><b style="color:#fff;">${this.formatMoney(liquidity, p.category)}</b></div>
+                <div style="border-top:1px solid #444; margin-top:4px; padding-top:4px; display:flex; justify-content:space-between;"><span>สภาพคล่องรวม:</span><b>${this.formatMoney(liquidity, p.category)}</b></div>
               </div>
             </div>
           `;
@@ -499,6 +515,7 @@ class PixelStewardApp {
   }
 
   renderComparison(container) {
+    if(this.portfolios.length===0){ container.innerHTML='<div class="border-pixel" style="padding:20px; background:#1f273e;">ไม่มีตารางเปรียบเทียบ (ตลับเซฟว่างเปล่า)</div>'; return; }
     container.innerHTML = `
       <div class="border-pixel" style="padding:15px; background:#1f273e; overflow-x:auto;">
         <table class="retro-table" style="width:100%; border-collapse:collapse; font-size:0.8rem; text-align:left;">
@@ -521,7 +538,7 @@ class PixelStewardApp {
   renderSettings(container) {
     container.innerHTML = `
       <div class="border-pixel" style="padding:20px; background:#1f273e; display:flex; flex-direction:column; gap:12px;">
-        <h3>⚙️ จัดการคลาวด์เซฟสถิติระบบนิเวศ</h3>
+        <h3>⚙️ จัดการคลาวด์เซฟสถิติระบบนิเวศ (V.1.7.0)</h3>
         <p>การเชื่อมต่อ Realtime Firebase: <b>${isFirebaseActive?'🟢 CONNECTED':'🔴 LOCAL ONLY'}</b></p>
         <textarea id="import-json-area" class="input-retro" rows="8" style="width:100%; font-family:monospace; background:#0c1020; color:#10b981; padding:10px; border:2px solid #000;" placeholder="วางข้อความวัตถุดิบ JSON สำรองข้อมูลที่นี่..."></textarea>
         <button class="btn btn-success btn-retro" id="btn-execute-import" style="width:180px;"><span>📥 โหลดฐานข้อมูล</span></button>
@@ -531,7 +548,15 @@ class PixelStewardApp {
       const s = document.getElementById('import-json-area').value.trim(); if(!s) return;
       try {
         const p = JSON.parse(s);
-        if(p.portfolios) { this.portfolios=p.portfolios; this.quarterlyRecords=p.quarterlyRecords||[]; this.monthlyRecords=p.monthlyRecords||[]; this.dividendRecords=p.dividendRecords||[]; this.exchangeRate=Number(p.exchangeRate)||36.5; this.saveState(); this.refreshUI(); alert('🎯 นำเข้าเสร็จสิ้น!'); }
+        if(p.portfolios) { 
+          this.portfolios=p.portfolios; 
+          this.quarterlyRecords=p.quarterlyRecords||[]; 
+          this.monthlyRecords=p.monthlyRecords||[]; 
+          this.dividendRecords=p.dividendRecords||[]; 
+          this.exchangeRate=Number(p.exchangeRate)||36.5; 
+          this.selectedPortId = this.portfolios.length > 0 ? this.portfolios[0].id : '';
+          this.saveState(); this.refreshUI(); alert('🎯 นำเข้าเสร็จสิ้น ข้อมูลคาร์ทริจซิงก์เรียบร้อย!'); 
+        }
       } catch(e) { alert('ข้อมูลเสียหาย: '+e.message); }
     });
   }
@@ -542,7 +567,9 @@ class PixelStewardApp {
     const goalType = document.getElementById('port-goal-type').value;
     const dry = Number(document.getElementById('port-dry-powder').value)||0;
     const newPort = { id:'p-'+Date.now(), name, category, goalType, goal:goalType==='numeric'?Number(document.getElementById('port-goal-value').value)||0:0, goalSchedule:document.getElementById('port-goal-schedule').value, current:0, cashBuffer:0, dryPowder:dry, assets:[], notes:'', dcaDoneThisMonth:false };
-    this.portfolios.push(newPort); this.saveState(); this.closeModals(); this.refreshUI();
+    this.portfolios.push(newPort);
+    this.selectedPortId = newPort.id;
+    this.saveState(); this.closeModals(); this.refreshUI();
   }
 
   handleExecuteTransfer() {
@@ -568,6 +595,7 @@ class PixelStewardApp {
 
   openPortfolioModal() { document.getElementById('portfolio-modal').classList.remove('hidden'); }
   openTransferModal() {
+    if(this.portfolios.length===0){ alert('❌ โปรดสร้างตลับพอร์ตเพื่อทำรายการโยกย้ายเสบียง'); return; }
     document.getElementById('tf-source').innerHTML = this.portfolios.map(p=>`<option value="${p.id}">${p.name} (Dry: ${p.dryPowder})</option>`).join('');
     document.getElementById('tf-target').innerHTML = '<option value="system">ถอนเงินออกนอกคลัง</option>'+this.portfolios.map(p=>`<option value="${p.id}">${p.name}</option>`).join('');
     document.getElementById('tf-rate').value = this.exchangeRate;
