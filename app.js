@@ -1,5 +1,5 @@
 /* ==========================================
-   PIXEL STEWARD CORE ENGINE - APP.JS (V.1.7.3 BULLETPROOF CLOUD)
+   PIXEL STEWARD CORE ENGINE - APP.JS (V.1.7.4 ANALYTICS COMMAND CENTER)
    ========================================== */
 
 const firebaseConfig = {
@@ -36,6 +36,11 @@ class PixelStewardApp {
     this.exchangeRate = 36.5;
     this.activeTab = 'dashboard';
     this.selectedPortId = '';
+    
+    // 🎛️ PIPELINE FILTER STATES (ระบบจำจำสถานะตัวกรอง Forex)
+    this.forexMonthFilter = 'all';
+    this.forexAssetFilter = 'all';
+    
     this.init();
   }
 
@@ -63,13 +68,10 @@ class PixelStewardApp {
       this.selectedPortId = this.portfolios[0].id;
     }
 
-    // 📡 เปิดใช้งานท่อสัญญาณดักจับคลาวด์เรียลไทม์
     this.connectCloudDatabase();
 
-    // 🎮 GLOBAL EVENT DELEGATION ENGINE (ควบคุมสิทธิ์คลิกและปุ่มเมนูซ้ายแบบครอบจักรวาล)
+    // 🎮 GLOBAL EVENT DELEGATION ENGINE
     document.addEventListener('click', (e) => {
-      
-      // 🕹️ ปลุกสิทธิ์ปุ่มเมนูด้านซ้าย (Sidebar Tabs Navigation) - ป้องกันอาการกดไม่ได้ถาวร
       const navItem = e.target.closest('.nav-menu .nav-item');
       if (navItem) {
         document.querySelectorAll('.nav-menu .nav-item').forEach(n => n.classList.remove('active'));
@@ -79,7 +81,6 @@ class PixelStewardApp {
         return;
       }
 
-      // ปุ่มเพิ่มสินทรัพย์ย่อย
       const addAssetBtn = e.target.closest('#btn-add-asset');
       if (addAssetBtn) {
         let active = this.portfolios.find(p => p.id === this.selectedPortId);
@@ -95,7 +96,6 @@ class PixelStewardApp {
         return;
       }
 
-      // ปุ่มลบพอร์ตอินไลน์
       const delPortBtn = e.target.closest('.btn-delete-port-inline');
       if (delPortBtn) {
         e.stopPropagation();
@@ -160,7 +160,6 @@ class PixelStewardApp {
     } catch (error) { console.warn("⚠️ API Mode ค้างชั่วคราว:", error); }
   }
 
-  // 📡 SAFE REALTIME LISTENERS (ตัวกรองความปลอดภัยสลักแปลง Object -> Array)
   connectCloudDatabase() {
     if (!isFirebaseActive) return;
     console.log("📡 Pixel Steward Realtime Cloud Pipeline: WORKING");
@@ -168,18 +167,10 @@ class PixelStewardApp {
     firebase.database().ref('pixel_steward_data_v4').on('value', (snapshot) => {
       const data = snapshot.val();
       if (data) {
-        if (data.portfolios) {
-          this.portfolios = Array.isArray(data.portfolios) ? data.portfolios : Object.values(data.portfolios);
-        }
-        if (data.quarterlyRecords) {
-          this.quarterlyRecords = Array.isArray(data.quarterlyRecords) ? data.quarterlyRecords : Object.values(data.quarterlyRecords);
-        }
-        if (data.monthlyRecords) {
-          this.monthlyRecords = Array.isArray(data.monthlyRecords) ? data.monthlyRecords : Object.values(data.monthlyRecords);
-        }
-        if (data.dividendRecords) {
-          this.dividendRecords = Array.isArray(data.dividendRecords) ? data.dividendRecords : Object.values(data.dividendRecords);
-        }
+        if (data.portfolios) this.portfolios = Array.isArray(data.portfolios) ? data.portfolios : Object.values(data.portfolios);
+        if (data.quarterlyRecords) this.quarterlyRecords = Array.isArray(data.quarterlyRecords) ? data.quarterlyRecords : Object.values(data.quarterlyRecords);
+        if (data.monthlyRecords) this.monthlyRecords = Array.isArray(data.monthlyRecords) ? data.monthlyRecords : Object.values(data.monthlyRecords);
+        if (data.dividendRecords) this.dividendRecords = Array.isArray(data.dividendRecords) ? data.dividendRecords : Object.values(data.dividendRecords);
         if (data.exchangeRate) this.exchangeRate = Number(data.exchangeRate) || this.exchangeRate;
         this.processJournalRouting();
         this.refreshUI();
@@ -208,7 +199,6 @@ class PixelStewardApp {
     });
   }
 
-  // 🧠 ANTI-CRASH CALCULATION ENGINE
   autoCalculatePortfolios() {
     if (!Array.isArray(this.portfolios)) return;
     this.portfolios.forEach(p => {
@@ -225,7 +215,6 @@ class PixelStewardApp {
           const totalDep = accCFs.filter(c => c.type === 'Deposit').reduce((sum, c) => sum + (Number(c.amount) || 0), 0);
           const totalWit = accCFs.filter(c => c.type === 'Withdraw').reduce((sum, c) => sum + (Number(c.amount) || 0), 0);
           const cumProfit = accTrades.reduce((sum, t) => sum + (Number(t.pnl) || 0), 0);
-
           const baseBalance = targetName === 'Demo' ? (Number(this.retroJournalRawData.balance) || 0) : 0;
           
           p.current = baseBalance + totalDep - totalWit + cumProfit;
@@ -416,7 +405,7 @@ class PixelStewardApp {
                 <div style="background:#111625; padding:6px; border:2px solid #000; font-weight:bold; color:#10b981;">${this.formatMoney(active.current+active.cashBuffer, active.category)}</div>
                 <label>ระบุเงินช้อน Dry Powder:</label>
                 <input type="number" id="update-dry" class="input-retro" value="${active.dryPowder||0}" required style="width:100%;">
-                <button type="submit" class="btn btn-success btn-retro" style="width:100%; padding:4px; font-weight:bold;"><span>💾 บันทึกเงินช้อน</span></button>
+                <input type="submit" class="btn btn-success btn-retro" style="width:100%; padding:4px; font-weight:bold;" value="💾 บันทึกเงินช้อน">
               </form>
             </div>
           </div>
@@ -443,42 +432,152 @@ class PixelStewardApp {
     } 
   }
 
+  // 💵 FOREX ADVANCED COMMAND CENTER RENDERING (V.1.7.4)
   renderForexCloud(container) {
     if (!this.retroJournalRawData) {
       container.innerHTML = '<div class="border-pixel" style="padding:20px; background:#1f273e; text-align:center;">📡 กำลังเชื่อมต่อและสแกนหาสัญญาณเรียลไทม์จาก Retro Trading Journal...</div>';
       return;
     }
+
     const trades = Array.isArray(this.retroJournalRawData.trades) ? this.retroJournalRawData.trades : Object.values(this.retroJournalRawData.trades || {});
+    
+    // 🎛️ สกัดข้อมูลเพื่อสร้างตัวเลือก Filter รายเดือนและรายสินทรัพย์
+    const uniqueMonths = [...new Set(trades.map(t => t && t.date ? t.date.substring(0, 7) : ''))].filter(Boolean).sort().reverse();
+    const uniqueAssets = [...new Set(trades.map(t => t && t.symbol ? t.symbol : ''))].filter(Boolean).sort();
+
+    // 🎯 คัดกรองข้อมูลตาม Filter State
+    const filteredTrades = trades.filter(t => {
+      if (!t) return false;
+      const monthMatch = this.forexMonthFilter === 'all' || (t.date && t.date.startsWith(this.forexMonthFilter));
+      const assetMatch = this.forexAssetFilter === 'all' || t.symbol === this.forexAssetFilter;
+      return monthMatch && assetMatch;
+    });
+
+    // 🧠 ENGINE CALCULATION (ประมวลผลการคำนวณสถิติระดับสูงของชุดข้อมูลที่คัดกรอง)
+    let netPnL = 0;
+    let winCount = 0;
+    let grossProfit = 0;
+    let grossLoss = 0;
+
+    filteredTrades.forEach(t => {
+      const pnl = Number(t.pnl) || 0;
+      netPnL += pnl;
+      if (pnl > 0) {
+        winCount++;
+        grossProfit += pnl;
+      } else if (pnl < 0) {
+        grossLoss += Math.abs(pnl);
+      }
+    });
+
+    const totalTradesCount = filteredTrades.length;
+    const winRate = totalTradesCount > 0 ? (winCount / totalTradesCount) * 100 : 0;
+    const profitFactor = grossLoss > 0 ? (grossProfit / grossLoss).toFixed(2) : (grossProfit > 0 ? '∞' : '1.00');
+
     container.innerHTML = `
-      <div class="border-pixel" style="padding:15px; background:#1f273e;">
-        <h4 style="font-family:'Press Start 2P'; font-size:0.65rem; color:var(--color-primary); margin-bottom:10px;">💵 FOREX REALTIME CLOUD STREAM (${trades.length} ไม้)</h4>
-        <div style="background:#111625; padding:12px; border:2px solid #000; max-height:400px; overflow-y:auto;">
-          <table class="retro-table" style="width:100%; font-size:0.75rem; border-collapse:collapse; text-align:left;">
-            <thead>
-              <tr style="background:#0c1020; color:#64748b;">
-                <th style="padding:6px; border:1px solid #222;">วันเทรด</th>
-                <th style="padding:6px; border:1px solid #222;">สินทรัพย์</th>
-                <th style="padding:6px; border:1px solid #222;">คำสั่ง</th>
-                <th style="padding:6px; border:1px solid #222;">กำไร/ขาดทุน</th>
-                <th style="padding:6px; border:1px solid #222;">คลังพอร์ต</th>
-              </tr>
-            </thead>
-            <tbody>
-              ${trades.map(t => {
-                if(!t) return '';
-                return `
-                <tr style="border-bottom:1px solid #222;">
-                  <td style="padding:6px; border:1px solid #222;">${t.date || ''}</td>
-                  <td style="padding:6px; border:1px solid #222; font-weight:bold; color:#3b82f6;">${t.symbol || ''}</td>
-                  <td style="padding:6px; border:1px solid #222; color:${(t.dir || 'Buy')==='Buy'?'#10b981':'#ef4444'};">${(t.dir || 'BUY').toUpperCase()}</td>
-                  <td style="padding:6px; border:1px solid #222; font-weight:bold; color:${(t.pnl||0)>=0?'#10b981':'#ef4444'};">${(t.pnl||0)>=0?'+':''}$${t.pnl || 0}</td>
-                  <td style="padding:6px; border:1px solid #222; color:#eab308;">${t.account||'Demo'}</td>
-                </tr>`;
-              }).join('')}
-            </tbody>
-          </table>
+      <div style="display:flex; flex-direction:column; gap:20px;">
+        
+        <!-- 📊 SECTION 1: PERFORMANCE CARDS (กล่องสถิติสไตล์พิกเซลระดับสูง) -->
+        <div style="display:grid; grid-template-columns: repeat(4, 1fr); gap:15px;">
+          <div class="border-pixel" style="background:#111625; padding:12px; text-align:center;">
+            <div style="font-size:0.65rem; color:#64748b; font-family:'Press Start 2P'; margin-bottom:6px;">NET P&L</div>
+            <div class="pixel-money" style="font-size:1.25rem!important; font-weight:bold; color:${netPnL >= 0 ? '#10b981' : '#ef4444'};">
+              ${netPnL >= 0 ? '+' : ''}$${netPnL.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}
+            </div>
+          </div>
+          <div class="border-pixel" style="background:#111625; padding:12px; text-align:center;">
+            <div style="font-size:0.65rem; color:#64748b; font-family:'Press Start 2P'; margin-bottom:6px;">WIN RATE</div>
+            <div class="pixel-money" style="font-size:1.25rem!important; font-weight:bold; color:#eab308;">
+              ${winRate.toFixed(1)}%
+            </div>
+          </div>
+          <div class="border-pixel" style="background:#111625; padding:12px; text-align:center;">
+            <div style="font-size:0.65rem; color:#64748b; font-family:'Press Start 2P'; margin-bottom:6px;">PROFIT FACTOR</div>
+            <div class="pixel-money" style="font-size:1.25rem!important; font-weight:bold; color:#3b82f6;">
+              ${profitFactor}
+            </div>
+          </div>
+          <div class="border-pixel" style="background:#111625; padding:12px; text-align:center;">
+            <div style="font-size:0.65rem; color:#64748b; font-family:'Press Start 2P'; margin-bottom:6px;">TOTAL TRADES</div>
+            <div class="pixel-money" style="font-size:1.25rem!important; font-weight:bold; color:#fff;">
+              ${totalTradesCount} ไม้
+            </div>
+          </div>
+        </div>
+
+        <!-- 🎛️ SECTION 2: ANALYTICS FILTER PANEL -->
+        <div class="border-pixel" style="background:#1f273e; padding:12px; display:flex; gap:20px; align-items:center;">
+          <div style="display:flex; align-items:center; gap:8px;">
+            <label style="font-size:0.75rem; font-weight:bold; color:#94a3b8;">📅 เลือกงวดเดือน:</label>
+            <select id="fx-filter-month" class="input-retro" style="padding:4px 8px; font-size:0.75rem; background:#0c1020; color:#fff; border:2px solid #000;">
+              <option value="all" ${this.forexMonthFilter === 'all' ? 'selected' : ''}>🗓️ ทั้งหมดทุกงวด</option>
+              ${uniqueMonths.map(m => `<option value="${m}" ${this.forexMonthFilter === m ? 'selected' : ''}>📅 ${m}</option>`).join('')}
+            </select>
+          </div>
+
+          <div style="display:flex; align-items:center; gap:8px;">
+            <label style="font-size:0.75rem; font-weight:bold; color:#94a3b8;">🪙 สินทรัพย์:</label>
+            <select id="fx-filter-asset" class="input-retro" style="padding:4px 8px; font-size:0.75rem; background:#0c1020; color:#fff; border:2px solid #000;">
+              <option value="all" ${this.forexAssetFilter === 'all' ? 'selected' : ''}>🪙 สินทรัพย์ทั้งหมด</option>
+              ${uniqueAssets.map(a => `<option value="${a}" ${this.forexAssetFilter === a ? 'selected' : ''}>🔸 ${a}</option>`).join('')}
+            </select>
+          </div>
+        </div>
+
+        <!-- 📜 SECTION 3: STRUCTURED TRANSACTION TABLE (ตารางประวัติสะอาดสายตา) -->
+        <div class="border-pixel" style="padding:15px; background:#1f273e;">
+          <h4 style="font-family:'Press Start 2P'; font-size:0.6rem; color:#64748b; margin-bottom:12px;">📜 LOG HISTORY</h4>
+          <div style="background:#111625; padding:8px; border:2px solid #000; max-height:360px; overflow-y:auto;">
+            <table class="retro-table" style="width:100%; font-size:0.8rem; border-collapse:collapse; text-align:left;">
+              <thead>
+                <tr style="background:#0c1020; color:#94a3b8; border-bottom:2px solid #000;">
+                  <th style="padding:8px; text-align:center;">วันเทรด</th>
+                  <th style="padding:8px; text-align:center;">สินทรัพย์</th>
+                  <th style="padding:8px; text-align:center;">คำสั่ง</th>
+                  <th style="padding:8px; text-align:right; padding-right:15px;">กำไร/ขาดทุน (USD)</th>
+                  <th style="padding:8px; text-align:center;">คลังพอร์ต</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${filteredTrades.length === 0 
+                  ? '<tr><td colspan="5" style="text-align:center; padding:30px; color:#64748b;">📭 ไม่พบประวัติการเทรดตามเงื่อนไขตัวกรอง</td></tr>'
+                  : filteredTrades.map(t => {
+                      if(!t) return '';
+                      const amt = Number(t.pnl) || 0;
+                      return `
+                      <tr style="border-bottom:1px solid #222; background:#111625;">
+                        <td style="padding:8px; text-align:center; color:#94a3b8; font-family:monospace;">${t.date || ''}</td>
+                        <td style="padding:8px; text-align:center; font-weight:bold; color:#3b82f6;">${t.symbol || ''}</td>
+                        <td style="padding:8px; text-align:center;"><span style="background:${t.dir==='Buy'?'#064e3b':'#7f1d1d'}; color:${t.dir==='Buy'?'#10b981':'#f87171'}; padding:2px 6px; border:1px solid #000; font-size:0.7rem; font-weight:bold;">${(t.dir || 'BUY').toUpperCase()}</span></td>
+                        <td style="padding:8px; text-align:right; padding-right:15px; font-weight:bold; font-family:monospace; color:${amt >= 0 ? '#10b981' : '#ef4444'};">
+                          ${amt >= 0 ? '+' : ''}$${amt.toLocaleString(undefined,{minimumFractionDigits:2, maximumFractionDigits:2})}
+                        </td>
+                        <td style="padding:8px; text-align:center; color:#eab308; font-size:0.75rem;">${t.account||'Demo'}</td>
+                      </tr>`;
+                    }).join('')}
+              </tbody>
+            </table>
+          </div>
         </div>
       </div>`;
+
+    // ⚡ INJECT ACTIVE LISTENERS (ผูกระบบสลับคัดแยกข้อมูลทันทีหลังวาดหน้าจอเสร็จ)
+    setTimeout(() => {
+      const monthSelect = document.getElementById('fx-filter-month');
+      const assetSelect = document.getElementById('fx-filter-asset');
+      if (monthSelect) {
+        monthSelect.addEventListener('change', (e) => {
+          this.forexMonthFilter = e.target.value;
+          this.refreshUI();
+        });
+      }
+      if (assetSelect) {
+        assetSelect.addEventListener('change', (e) => {
+          this.forexAssetFilter = e.target.value;
+          this.refreshUI();
+        });
+      }
+    }, 0);
   }
 
   renderQuarterly(container) {
@@ -506,7 +605,7 @@ class PixelStewardApp {
               <div style="display:grid; grid-template-columns:repeat(4, 1fr); gap:12px; text-align:center;">
                 <div class="border-pixel-inset" style="padding:8px; background:#111625;"><b style="font-size:0.75rem; color:var(--color-accent);">Q1</b><div>฿${(r.q1||0).toLocaleString()}</div><span style="font-size:0.65rem; color:#64748b;">อัดฉีด: ฿${(r.f1||0).toLocaleString()}</span><div style="font-size:0.75rem;" class="text-muted">Base</div></div>
                 <div class="border-pixel-inset" style="padding:8px; background:#111625;"><b style="font-size:0.75rem; color:var(--color-success);">Q2</b><div>฿${(r.q2||0).toLocaleString()}</div><span style="font-size:0.65rem; color:#64748b;">อัดฉีด: ฿${(r.f2||0).toLocaleString()}</span><div style="font-size:0.75rem;" class="${g2.cls}">โต: ${g2.text}</div></div>
-                <div class="border-pixel-inset" style="padding:8px; background:#111625;"><b style="font-size:0.75rem; color:var(--color-secondary);">Q3</b><div>฿${(r.q3||0).toLocaleString()}</div><span style="font-size:0.65rem; color:#64748b;">อัดฉีด: ฿${(r.f3||0).toLocaleString()}</span><div style="font-size:0.75rem;" class="${g3.cls}">โต: ${g3.text}</div></div>
+                <div class="border-pixel-inset" style="padding:8px; background:#111625;"><b style="font-size:0.75rem; color:var(--color-secondary);">Q3</b><div>฿${(r.q2||0).toLocaleString()}</div><span style="font-size:0.65rem; color:#64748b;">อัดฉีด: ฿${(r.f3||0).toLocaleString()}</span><div style="font-size:0.75rem;" class="${g3.cls}">โต: ${g3.text}</div></div>
                 <div class="border-pixel-inset" style="padding:8px; background:#111625;"><b style="font-size:0.75rem; color:var(--color-accent);">Q4</b><div>฿${(r.q4||0).toLocaleString()}</div><span style="font-size:0.65rem; color:#64748b;">อัดฉีด: ฿${(r.f4||0).toLocaleString()}</span><div style="font-size:0.75rem;" class="${g4.cls}">โต: ${g4.text}</div></div>
               </div>
             </div>`;
@@ -624,7 +723,7 @@ class PixelStewardApp {
   renderSettings(container) {
     container.innerHTML = `
       <div class="border-pixel" style="padding:20px; background:#1f273e; display:flex; flex-direction:column; gap:12px;">
-        <h3>⚙️ จัดการคลาวด์เซฟสถิติระบบนิเวศ (V.1.7.3)</h3>
+        <h3>⚙️ จัดการคลาวด์เซฟสถิติระบบนิเวศ (V.1.7.4)</h3>
         <p>การเชื่อมต่อ Realtime Firebase: <b>${isFirebaseActive?'🟢 CONNECTED':'🔴 LOCAL ONLY'}</b></p>
         <textarea id="import-json-area" class="input-retro" rows="8" style="width:100%; font-family:monospace; background:#0c1020; color:#10b981; padding:10px; border:2px solid #000;" placeholder="วางข้อความวัตถุดิบ JSON สำรองข้อมูลที่นี่..."></textarea>
         <button class="btn btn-success btn-retro" id="btn-execute-import" style="width:180px;"><span>📥 โหลดฐานข้อมูล</span></button>
