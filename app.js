@@ -827,4 +827,4 @@ class PixelStewardApp {
   closeModals() { document.querySelectorAll('.modal-overlay').forEach(m => m.classList.add('hidden')); }
 }
 
-window.app = new PixelStewardApp();
+window.app = new PixelStewardApp(); 
