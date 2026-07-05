@@ -1,5 +1,5 @@
 /* ==========================================
-   PIXEL STEWARD CORE ENGINE - APP.JS (V.1.8.1 STREAMLINED STRIKER)
+   PIXEL STEWARD CORE ENGINE - APP.JS (V.1.8.2 QUARTERLY STRIKER)
    ========================================== */
 
 const firebaseConfig = {
@@ -137,6 +137,12 @@ class PixelStewardApp {
     const transForm = document.getElementById('transfer-form');
     if(transForm) {
       transForm.addEventListener('submit', (e) => { e.preventDefault(); this.handleExecuteTransfer(); });
+    }
+    
+    // 📐 FIXED LINK: ดักจับระบบบันทึกรายไตรมาสเข้าสแต็ก
+    const quarterlyForm = document.getElementById('quarterly-form');
+    if (quarterlyForm) {
+      quarterlyForm.addEventListener('submit', (e) => { e.preventDefault(); this.handleSaveQuarterly(); });
     }
 
     this.fetchRateOnLoad();
@@ -686,12 +692,39 @@ class PixelStewardApp {
     document.getElementById('q-port-id').value = portfolioId; document.getElementById('q-year').value = year;
     document.getElementById('q-port-label').innerText = `พอร์ต: ${port.name} (${year})`;
     const rec = this.quarterlyRecords.find(r => r && r.portfolioId === portfolioId && r.year === year) || { q1:'', f1:0, q2:'', f2:0, q3:'', f3:0, q4:'', f4:0, notes:'' };
-    document.getElementById('q-val-q1').value = rec.q1; document.getElementById('q-flow-q1').value = rec.f1;
-    document.getElementById('q-val-q2').value = rec.q2; document.getElementById('q-flow-q2').value = rec.f2;
-    document.getElementById('q-val-q3').value = rec.q3; document.getElementById('q-flow-q3').value = rec.f3;
-    document.getElementById('q-val-q4').value = rec.q4; document.getElementById('q-flow-q4').value = rec.f4;
+    document.getElementById('q-val-q1').value = rec.q1 || 0; document.getElementById('q-flow-q1').value = rec.f1 || 0;
+    document.getElementById('q-val-q2').value = rec.q2 || 0; document.getElementById('q-flow-q2').value = rec.f2 || 0;
+    document.getElementById('q-val-q3').value = rec.q3 || 0; document.getElementById('q-flow-q3').value = rec.f3 || 0;
+    document.getElementById('q-val-q4').value = rec.q4 || 0; document.getElementById('q-flow-q4').value = rec.f4 || 0;
     document.getElementById('q-notes').value = rec.notes || '';
     document.getElementById('quarterly-modal').classList.remove('hidden');
+  }
+
+  // 📐 FIXED ENGINE: เมธอดเซฟค่าไตรมาสลง Array และ Firebase Cloud ดึงค่าเข้าตรงจุด
+  handleSaveQuarterly() {
+    const portfolioId = document.getElementById('q-port-id').value;
+    const year = Number(document.getElementById('q-year').value);
+    if (!portfolioId) return;
+
+    let rec = this.quarterlyRecords.find(r => r && r.portfolioId === portfolioId && r.year === year);
+    if (!rec) {
+      rec = { id: 'q-' + Date.now(), portfolioId, year };
+      this.quarterlyRecords.push(rec);
+    }
+
+    rec.q1 = Number(document.getElementById('q-val-q1').value) || 0;
+    rec.f1 = Number(document.getElementById('q-flow-q1').value) || 0;
+    rec.q2 = Number(document.getElementById('q-val-q2').value) || 0;
+    rec.f2 = Number(document.getElementById('q-flow-q2').value) || 0;
+    rec.q3 = Number(document.getElementById('q-val-q3').value) || 0;
+    rec.f3 = Number(document.getElementById('q-flow-q3').value) || 0;
+    rec.q4 = Number(document.getElementById('q-val-q4').value) || 0;
+    rec.f4 = Number(document.getElementById('q-flow-q4').value) || 0;
+    rec.notes = document.getElementById('q-notes').value || '';
+
+    this.saveState();
+    this.closeModals();
+    this.refreshUI();
   }
 
   renderOptionManual(container) {
@@ -768,7 +801,7 @@ class PixelStewardApp {
   renderSettings(container) {
     container.innerHTML = `
       <div class="border-pixel" style="padding:20px; background:#1f273e; display:flex; flex-direction:column; gap:12px;">
-        <h3>⚙️ จัดการคลาวด์เซฟสถิติระบบนิเวศ (V.1.8.1)</h3>
+        <h3>⚙️ จัดการคลาวด์เซฟสถิติระบบนิเวศ (V.1.8.2)</h3>
         <p>การเชื่อมต่อ Realtime Firebase: <b>${isFirebaseActive?'🟢 CONNECTED':'🔴 LOCAL ONLY'}</b></p>
         <textarea id="import-json-area" class="input-retro" rows="8" style="width:100%; font-family:monospace; background:#0c1020; color:#10b981; padding:10px; border:2px solid #000;" placeholder="วางข้อความวัตถุดิบ JSON สำรองข้อมูลที่นี่..."></textarea>
         <button class="btn btn-success btn-retro" id="btn-execute-import" style="width:180px;"><span>📥 โหลดฐานข้อมูล</span></button>
@@ -827,4 +860,4 @@ class PixelStewardApp {
   closeModals() { document.querySelectorAll('.modal-overlay').forEach(m => m.classList.add('hidden')); }
 }
 
-window.app = new PixelStewardApp(); 
+window.app = new PixelStewardApp();
