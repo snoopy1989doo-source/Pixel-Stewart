@@ -1,0 +1,42 @@
+name: Deploy Pixel Steward Ecosystem
+
+on:
+  push:
+    branches: ["main"]
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: "pages"
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js Runtime
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+
+      - name: Setup GitHub Pages Environment
+        uses: actions/configure-pages@v5
+
+      - name: Upload Deployment Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: github-pages
+          path: '.'
+
+      - name: Deploy Artifact to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
