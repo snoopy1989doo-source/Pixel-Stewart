@@ -1,5 +1,5 @@
 /* ==========================================
-   PIXEL STEWARD CORE ENGINE - APP.JS (V.1.8.2 QUARTERLY STRIKER)
+   PIXEL STEWARD CORE ENGINE - APP.JS (V.1.8.3 OPTIMIZED STRIKER)
    ========================================== */
 
 const firebaseConfig = {
@@ -554,7 +554,6 @@ class PixelStewardApp {
 
     container.innerHTML = `
       <div style="display:flex; flex-direction:column; gap:20px;">
-        
         <div style="display:grid; grid-template-columns: repeat(4, 1fr); gap:15px;">
           <div class="border-pixel" style="background:#111625; padding:12px; text-align:center;">
             <div style="font-size:0.65rem; color:#64748b; font-family:'Press Start 2P'; margin-bottom:6px;">NET P&L</div>
@@ -687,20 +686,23 @@ class PixelStewardApp {
       </div>`;
   }
 
+  // 📐 OPTIMIZED LOOP: เมธอดโหลดข้อมูลไตรมาสลงฟิลด์ UI สไตล์สั้นและสวยงาม
   openQuarterlyModal(portfolioId, year) {
     const port = this.portfolios.find(p => p && p.id === portfolioId); if (!port) return;
-    document.getElementById('q-port-id').value = portfolioId; document.getElementById('q-year').value = year;
+    document.getElementById('q-port-id').value = portfolioId; 
+    document.getElementById('q-year').value = year;
     document.getElementById('q-port-label').innerText = `พอร์ต: ${port.name} (${year})`;
-    const rec = this.quarterlyRecords.find(r => r && r.portfolioId === portfolioId && r.year === year) || { q1:'', f1:0, q2:'', f2:0, q3:'', f3:0, q4:'', f4:0, notes:'' };
-    document.getElementById('q-val-q1').value = rec.q1 || 0; document.getElementById('q-flow-q1').value = rec.f1 || 0;
-    document.getElementById('q-val-q2').value = rec.q2 || 0; document.getElementById('q-flow-q2').value = rec.f2 || 0;
-    document.getElementById('q-val-q3').value = rec.q3 || 0; document.getElementById('q-flow-q3').value = rec.f3 || 0;
-    document.getElementById('q-val-q4').value = rec.q4 || 0; document.getElementById('q-flow-q4').value = rec.f4 || 0;
+    
+    const rec = this.quarterlyRecords.find(r => r && r.portfolioId === portfolioId && r.year === year) || {};
+    for (let i = 1; i <= 4; i++) {
+      document.getElementById(`q-val-q${i}`).value = rec[`q${i}`] !== undefined ? rec[`q${i}`] : 0;
+      document.getElementById(`q-flow-q${i}`).value = rec[`f${i}`] !== undefined ? rec[`f${i}`] : 0;
+    }
     document.getElementById('q-notes').value = rec.notes || '';
     document.getElementById('quarterly-modal').classList.remove('hidden');
   }
 
-  // 📐 FIXED ENGINE: เมธอดเซฟค่าไตรมาสลง Array และ Firebase Cloud ดึงค่าเข้าตรงจุด
+  // 📐 OPTIMIZED LOOP: เมธอดดึงค่าฟอร์มเก็บลงฐานข้อมูลและยิงขึ้น Realtime Firebase Cloud 
   handleSaveQuarterly() {
     const portfolioId = document.getElementById('q-port-id').value;
     const year = Number(document.getElementById('q-year').value);
@@ -712,14 +714,10 @@ class PixelStewardApp {
       this.quarterlyRecords.push(rec);
     }
 
-    rec.q1 = Number(document.getElementById('q-val-q1').value) || 0;
-    rec.f1 = Number(document.getElementById('q-flow-q1').value) || 0;
-    rec.q2 = Number(document.getElementById('q-val-q2').value) || 0;
-    rec.f2 = Number(document.getElementById('q-flow-q2').value) || 0;
-    rec.q3 = Number(document.getElementById('q-val-q3').value) || 0;
-    rec.f3 = Number(document.getElementById('q-flow-q3').value) || 0;
-    rec.q4 = Number(document.getElementById('q-val-q4').value) || 0;
-    rec.f4 = Number(document.getElementById('q-flow-q4').value) || 0;
+    for (let i = 1; i <= 4; i++) {
+      rec[`q${i}`] = Number(document.getElementById(`q-val-q${i}`).value) || 0;
+      rec[`f${i}`] = Number(document.getElementById(`q-flow-q${i}`).value) || 0;
+    }
     rec.notes = document.getElementById('q-notes').value || '';
 
     this.saveState();
@@ -801,7 +799,7 @@ class PixelStewardApp {
   renderSettings(container) {
     container.innerHTML = `
       <div class="border-pixel" style="padding:20px; background:#1f273e; display:flex; flex-direction:column; gap:12px;">
-        <h3>⚙️ จัดการคลาวด์เซฟสถิติระบบนิเวศ (V.1.8.2)</h3>
+        <h3>⚙️ จัดการคลาวด์เซฟสถิติระบบนิเวศ (V.1.8.3)</h3>
         <p>การเชื่อมต่อ Realtime Firebase: <b>${isFirebaseActive?'🟢 CONNECTED':'🔴 LOCAL ONLY'}</b></p>
         <textarea id="import-json-area" class="input-retro" rows="8" style="width:100%; font-family:monospace; background:#0c1020; color:#10b981; padding:10px; border:2px solid #000;" placeholder="วางข้อความวัตถุดิบ JSON สำรองข้อมูลที่นี่..."></textarea>
         <button class="btn btn-success btn-retro" id="btn-execute-import" style="width:180px;"><span>📥 โหลดฐานข้อมูล</span></button>
