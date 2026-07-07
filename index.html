@@ -1,16 +1,18 @@
 <!DOCTYPE html>
 <html lang="th">
 <head>
-  <!-- วางโค้ดนี้ไว้ในแท็ก <head> ของ index.html ฝั่ง Pixel Steward เพื่อเปิดช่องสัญญาณคลาวด์ -->
   <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-database-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-database-compat.js"></script>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>Pixel Steward - ผู้พิทักษ์พอร์ตมหาสมบัติ</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Kanit:wght@300;400;500;700;900&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="style.css?v=183">
+  <link rel="stylesheet" href="style.css?v=127">
+  
+  <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-database-compat.js"></script>
 
   <style>
     /* ==========================================================================
@@ -118,6 +120,29 @@
     .stat-desc { font-size: 0.75rem; color: #64748b; }
     .text-accent { color: var(--color-accent, #eab308) !important; }
     @keyframes pixel-blink { 0%, 100% { opacity: 1; } 50% { opacity: 0; } }
+
+    /* ==========================================================================
+       🕹️ ARCADE EXP BAR & GOLD SKIN OVERLAY
+       ========================================================================== */
+    .progress-bar-fill-animated {
+      height: 100%;
+      background-size: 30px 30px;
+      background-image: linear-gradient(135deg, rgba(255,255,255,.15) 25%, transparent 25%, transparent 50%, rgba(255,255,255,.15) 50%, rgba(255,255,255,.15) 75%, transparent 75%, transparent);
+      animation: arcade-bar-move 1s linear infinite;
+    }
+    @keyframes arcade-bar-move {
+      0% { background-position: 0 0; }
+      100% { background-position: 30px 0; }
+    }
+    .gold-skin-border {
+      border: 4px solid #ffcc00 !important;
+      box-shadow: 0 0 12px rgba(255, 204, 0, 0.4), 4px 4px 0px #000 !important;
+      animation: gold-glow-pulse 2s infinite alternate;
+    }
+    @keyframes gold-glow-pulse {
+      0% { border-color: #ffcc00; }
+      100% { border-color: #ffe680; box-shadow: 0 0 18px rgba(255, 204, 0, 0.7), 4px 4px 0px #000 !important; }
+    }
   </style>
 </head>
 <body>
@@ -128,7 +153,7 @@
         <div class="title-container">
           <h1 class="brand-title">PIXEL</h1>
           <h1 class="brand-title highlight">STEWARD</h1>
-          <span class="badge-version">🔸 V.1.8.3 OPTIMIZED STRIKER</span>
+          <span class="badge-version">🔸 V.1.8.3 ARCADE PATCH</span>
         </div>
       </div>
       
@@ -172,39 +197,36 @@
 
   <div id="toast-container" class="toast-container"></div>
 
-  <!-- 🟢 MODAL 1: บันทึกรายงานไตรมาส (แก้ไขความซ้ำซ้อนเรียบร้อย) -->
   <div id="quarterly-modal" class="modal-overlay hidden">
     <div class="modal-card border-pixel">
-      <form id="quarterly-form">
-        <div class="modal-header">
-          <h3 id="q-port-label">✏️ บันทึกรายงานไตรมาส (สูตรคำนวณสากล)</h3>
-          <button type="button" class="btn-close-modal">✖</button>
+      <div class="modal-header">
+        <h3 id="q-port-label">✏️ บันทึกรายงานไตรมาส (สูตรคำนวณสากล)</h3>
+        <button class="btn-close-modal">✖</button>
+      </div>
+      <form id="quarterly-form" class="modal-body">
+        <input type="hidden" id="q-port-id">
+        <input type="hidden" id="q-year">
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:12px;">
+          <div class="form-group"><label>ยอดสิ้นไตรมาส 1 (THB):</label><input type="number" id="q-val-q1" class="input-retro"></div>
+          <div class="form-group"><label>ทุนเติม/ถอนสุทธิ Q1:</label><input type="number" id="q-flow-q1" class="input-retro" value="0"></div>
         </div>
-        <div class="modal-body">
-          <input type="hidden" id="q-port-id">
-          <input type="hidden" id="q-year">
-          <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:12px;">
-            <div class="form-group"><label>ยอดสิ้นไตรมาส 1 (THB):</label><input type="number" id="q-val-q1" class="input-retro" step="any"></div>
-            <div class="form-group"><label>ทุนเติม/ถอนสุทธิ Q1:</label><input type="number" id="q-flow-q1" class="input-retro" value="0" step="any"></div>
-          </div>
-          <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:12px;">
-            <div class="form-group"><label>ยอดสิ้นไตรมาส 2 (THB):</label><input type="number" id="q-val-q2" class="input-retro" step="any"></div>
-            <div class="form-group"><label>ทุนเติม/ถอนสุทธิ Q2:</label><input type="number" id="q-flow-q2" class="input-retro" value="0" step="any"></div>
-          </div>
-          <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:12px;">
-            <div class="form-group"><label>ยอดสิ้นไตรมาส 3 (THB):</label><input type="number" id="q-val-q3" class="input-retro" step="any"></div>
-            <div class="form-group"><label>ทุนเติม/ถอนสุทธิ Q3:</label><input type="number" id="q-flow-q3" class="input-retro" value="0" step="any"></div>
-          </div>
-          <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:12px;">
-            <div class="form-group"><label>ยอดสิ้นไตรมาส 4 (THB):</label><input type="number" id="q-val-q4" class="input-retro" step="any"></div>
-            <div class="form-group"><label>ทุนเติม/ถอนสุทธิ Q4:</label><input type="number" id="q-flow-q4" class="input-retro" value="0" step="any"></div>
-          </div>
-          <div class="form-group">
-            <label>หมายเหตุความจำ:</label>
-            <input type="text" id="q-notes" class="input-retro" style="width:100%;">
-          </div>
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:12px;">
+          <div class="form-group"><label>ยอดสิ้นไตรมาส 2 (THB):</label><input type="number" id="q-val-q2" class="input-retro"></div>
+          <div class="form-group"><label>ทุนเติม/ถอนสุทธิ Q2:</label><input type="number" id="q-flow-q2" class="input-retro" value="0"></div>
         </div>
-        <div class="modal-footer">
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:12px;">
+          <div class="form-group"><label>ยอดสิ้นไตรมาส 3 (THB):</label><input type="number" id="q-val-q3" class="input-retro"></div>
+          <div class="form-group"><label>ทุนเติม/ถอนสุทธิ Q3:</label><input type="number" id="q-flow-q3" class="input-retro" value="0"></div>
+        </div>
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:12px;">
+          <div class="form-group"><label>ยอดสิ้นไตรมาส 4 (THB):</label><input type="number" id="q-val-q4" class="input-retro"></div>
+          <div class="form-group"><label>ทุนเติม/ถอนสุทธิ Q4:</label><input type="number" id="q-flow-q4" class="input-retro" value="0"></div>
+        </div>
+        <div class="form-group">
+          <label>หมายเหตุความจำ:</label>
+          <input type="text" id="q-notes" class="input-retro" style="width:100%;">
+        </div>
+        <div class="modal-footer" style="padding:10px 0 0 0;">
           <button type="button" class="btn btn-secondary btn-close-modal"><span>ยกเลิก</span></button>
           <button type="submit" class="btn btn-success" id="btn-save-quarterly"><span>💾 บันทึกข้อมูลไตรมาส</span></button>
         </div>
@@ -212,7 +234,6 @@
     </div>
   </div>
 
-  <!-- 💰 MODAL 2: บันทึกรับเงินปันผล -->
   <div id="dividend-modal" class="modal-overlay hidden">
     <div class="modal-card border-pixel">
       <div class="modal-header">
@@ -221,7 +242,7 @@
       </div>
       <form id="dividend-form" class="modal-body">
         <div class="form-group">
-          <label for="div-port-id">เลือกพॉर्टลงทุน:</label>
+          <label for="div-port-id">เลือกพอร์ตลงทุน:</label>
           <select id="div-port-id" required class="input-retro"></select>
         </div>
         <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:12px;">
@@ -246,7 +267,6 @@
     </div>
   </div>
 
-  <!-- 📦 MODAL 3: จัดการพอร์ตลงทุน -->
   <div id="portfolio-modal" class="modal-overlay hidden">
     <div class="modal-card border-pixel">
       <div class="modal-header">
@@ -293,7 +313,6 @@
     </div>
   </div>
 
-  <!-- ⚡ MODAL 4: โยกย้ายและจัดสรรเสบียง -->
   <div id="transfer-modal" class="modal-overlay hidden">
     <div class="modal-card border-pixel">
       <div class="modal-header">

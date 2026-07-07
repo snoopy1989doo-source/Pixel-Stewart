@@ -145,6 +145,12 @@ class PixelStewardApp {
       quarterlyForm.addEventListener('submit', (e) => { e.preventDefault(); this.handleSaveQuarterly(); });
     }
 
+    // 📐 เพิ่มฟังก์ชันดักจับปุ่มกดบันทึกฟอร์มปันผลเข้าสู่ระบบคลาวด์
+    const divForm = document.getElementById('dividend-form');
+    if (divForm) {
+      divForm.addEventListener('submit', (e) => { e.preventDefault(); this.handleSaveDividend(); });
+    }
+
     this.fetchRateOnLoad();
     this.refreshUI();
   }
@@ -169,7 +175,6 @@ class PixelStewardApp {
   connectCloudDatabase() {
     if (!isFirebaseActive) return;
     console.log("📡 Pixel Steward Realtime Cloud Pipeline: WORKING");
-
     firebase.database().ref('pixel_steward_data_v4').on('value', (snapshot) => {
       const data = snapshot.val();
       if (data) {
@@ -178,11 +183,11 @@ class PixelStewardApp {
         if (data.monthlyRecords) this.monthlyRecords = Array.isArray(data.monthlyRecords) ? data.monthlyRecords : Object.values(data.monthlyRecords);
         if (data.dividendRecords) this.dividendRecords = Array.isArray(data.dividendRecords) ? data.dividendRecords : Object.values(data.dividendRecords);
         if (data.exchangeRate) this.exchangeRate = Number(data.exchangeRate) || this.exchangeRate;
+  
         this.processJournalRouting();
         this.refreshUI();
       }
     });
-
     firebase.database().ref('retro_trading_journal_data').on('value', (snapshot) => {
       const data = snapshot.val();
       if (data) {
@@ -221,8 +226,8 @@ class PixelStewardApp {
           const totalDep = accCFs.filter(c => c.type === 'Deposit').reduce((sum, c) => sum + (Number(c.amount) || 0), 0);
           const totalWit = accCFs.filter(c => c.type === 'Withdraw').reduce((sum, c) => sum + (Number(c.amount) || 0), 0);
           const cumProfit = accTrades.reduce((sum, t) => sum + (Number(t.pnl) || 0), 0);
+    
           const baseBalance = targetName === 'Demo' ? (Number(this.retroJournalRawData.balance) || 0) : 0;
-          
           p.current = baseBalance + totalDep - totalWit + cumProfit;
           p.cashBuffer = 0;
         }
@@ -292,7 +297,6 @@ class PixelStewardApp {
     const tabContent = document.getElementById('tab-content');
     if (!tabContent) return;
     tabContent.innerHTML = '';
-
     switch (this.activeTab) {
       case 'dashboard': this.renderDashboard(tabContent); break;
       case 'portfolios': this.renderPortfolios(tabContent); break;
@@ -310,7 +314,6 @@ class PixelStewardApp {
     const topGoals = Array.isArray(this.portfolios) ? this.portfolios.filter(p => p && p.goalType === 'numeric' && p.goal > 0).map(p => ({ name: p.name, pct: ((p.current + p.cashBuffer) / p.goal) * 100 })).sort((a, b) => b.pct - a.pct).slice(0, 3) : [];
     const yr = new Date().getFullYear();
     let q1 = 0, q2 = 0, q3 = 0, q4 = 0;
-    
     if (Array.isArray(this.quarterlyRecords)) {
       this.quarterlyRecords.filter(r => r && r.year === yr).forEach(r => {
         const p = this.portfolios.find(port => port && port.id === r.portfolioId);
@@ -319,7 +322,6 @@ class PixelStewardApp {
       });
     }
     const maxQ = Math.max(q1, q2, q3, q4, 1);
-
     container.innerHTML = `
       <div style="display:grid; grid-template-columns:1fr 1fr; gap:20px;">
         <div class="stat-card border-pixel"><div class="stat-header"><span>ความมั่งคั่งสุทธิ</span><span>👑</span></div><div class="stat-value text-accent">฿${calc.netWorthTHB.toLocaleString(undefined,{maximumFractionDigits:2})}</div><div class="stat-desc">เงินทุน: ฿${(calc.totalTHB+(calc.totalUSD*this.exchangeRate)).toLocaleString()} | สำรอง Buffer: ฿${calc.totalCashBufferTHB.toLocaleString()}</div></div>
@@ -336,7 +338,7 @@ class PixelStewardApp {
           </div>
         </div>
         <div class="border-pixel" style="padding:20px; background:#1f273e;">
-          <h4 style="font-family:'Press Start 2P'; font-size:0.65rem; color:var(--color-accent); margin-bottom:12px;">🚩 เควสใกล้บรรลุเป้าหมาย</h4>
+          <h4 style="font-family:'Press Start 2P'; font-size:0.65rem; color:var(--color-accent); margin-bottom:12px;">🚩 เเควสใกล้บรรลุเป้าหมาย</h4>
           <div style="display:flex; flex-direction:column; gap:10px;">
             ${this.portfolios.length===0?'<p class="text-muted" style="text-align:center;font-size:0.8rem;padding-top:20px;">คลังว่างเปล่า โปรดเพิ่มพอร์ตใหม่</p>':topGoals.map(g => `<div style="background:#111625; padding:8px; border:2px solid #000;"><div style="display:flex; justify-content:space-between; font-size:0.8rem;"><span>${g.name}</span><b style="color:var(--color-success);">${g.pct.toFixed(1)}%</b></div><div class="progress-container" style="margin-top:4px; height:6px;"><div class="progress-bar-fill" style="width:${Math.min(100,g.pct)}%; background:var(--color-accent); height:100%;"></div></div></div>`).join('')}
           </div>
@@ -355,6 +357,9 @@ class PixelStewardApp {
     const lvl = this.getPortfolioLevel(active);
     const isUSD = ['Forex', 'Option'].includes(active.category);
     const weight = this.getCalculations().netWorthTHB > 0 ? (((active.current+active.cashBuffer)*(isUSD?this.exchangeRate:1))/this.getCalculations().netWorthTHB)*100 : 0;
+
+    // 👑 สกินพอร์ตทองเรืองแสง และ แถบพลัง EXP ขยับอนิเมชัน
+    const cardSkinClass = lvl.pct >= 80 ? 'gold-skin-border' : '';
 
     container.innerHTML = `
       <div style="display:grid; grid-template-columns: 0.7fr 1.3fr; gap:20px;">
@@ -377,7 +382,7 @@ class PixelStewardApp {
           </div>
         </div>
         <div style="display:grid; grid-template-columns: 1.1fr 0.9fr; gap:20px;">
-          <div class="border-pixel" style="background:#1f273e; padding:15px; display:flex; flex-direction:column; gap:12px;">
+          <div class="border-pixel ${cardSkinClass}" style="background:#1f273e; padding:15px; display:flex; flex-direction:column; gap:12px;">
             <div style="display:flex; justify-content:space-between; border-bottom:2px solid #000; padding-bottom:6px;">
               <h3>📦 ${active.name}</h3>
               <span class="port-card-cat" style="cursor:pointer; border:1px dashed #3b82f6;" onclick="app.inlineEditCategory('${active.id}')" title="คลิกเพื่อเปลี่ยนหมวดหมู่">${active.category} ✏️</span>
@@ -391,7 +396,9 @@ class PixelStewardApp {
             <div style="background:#0c1020; padding:8px; border:2px solid #000; font-size:0.75rem; color:#94a3b8;">⚖️ Weight Score: <b>${weight.toFixed(1)}% ของความมั่งคั่งรวม</b></div>
             <div>
               <div style="display:flex; justify-content:space-between; font-size:0.8rem; font-weight:bold; margin-bottom:2px;"><span>เควสโปรเกรส:</span><span>${lvl.pct.toFixed(1)}%</span></div>
-              <div class="progress-container" style="height:15px; background:#111625; border:2px solid #000; position:relative;"><div style="width:${Math.min(100,lvl.pct)}%; background:var(--color-success); height:100%;"></div></div>
+              <div class="progress-container" style="height:15px; background:#111625; border:2px solid #000; position:relative; overflow:hidden;">
+                <div class="progress-bar-fill-animated" style="width:${Math.min(100,lvl.pct)}%; background-color:${lvl.pct>=80?'#ffcc00':'#10b981'}; height:100%;"></div>
+              </div>
             </div>
             <div style="margin-top:5px;">
               <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:2px solid #000; padding-bottom:4px;"><span style="font-size:0.8rem; font-weight:bold;">💎 สินทรัพย์ย่อย</span><button class="btn btn-primary btn-retro btn-small" id="btn-add-asset" style="padding:2px 6px;"><span>➕ เพิ่ม</span></button></div>
@@ -502,10 +509,10 @@ class PixelStewardApp {
   switchPortfolio(id) { this.selectedPortId = id; this.refreshUI(); }
   
   deleteAsset(id, idx) { 
-    const p = this.portfolios.find(x => x && x.id === id); 
+    const p = this.portfolios.find(x => x && x.id === id);
     if (p && p.assets && p.assets[idx]) { 
       if (confirm(`ลบสินทรัพย์ย่อย "${p.assets[idx].name}" หรือไม่?`)) { 
-        p.assets.splice(idx, 1); 
+        p.assets.splice(idx, 1);
         this.saveState(); this.refreshUI(); 
       } 
     } 
@@ -518,26 +525,21 @@ class PixelStewardApp {
     }
 
     const trades = Array.isArray(this.retroJournalRawData.trades) ? this.retroJournalRawData.trades : Object.values(this.retroJournalRawData.trades || {});
-    
     const uniqueMonths = [...new Set(trades.map(t => t && t.date ? t.date.substring(0, 7) : ''))].filter(Boolean).sort().reverse();
     const uniqueAssets = [...new Set(trades.map(t => t && t.symbol ? t.symbol : ''))].filter(Boolean).sort();
-
     const filteredTrades = trades.filter(t => {
       if (!t) return false;
       const monthMatch = this.forexMonthFilter === 'all' || (t.date && t.date.startsWith(this.forexMonthFilter));
       const assetMatch = this.forexAssetFilter === 'all' || t.symbol === this.forexAssetFilter;
       return monthMatch && assetMatch;
     });
-
     let netPnL = 0;
     let winCount = 0;
     let grossProfit = 0;
     let grossLoss = 0;
-
     filteredTrades.forEach(t => {
       const pnl = Number(t.pnl) || 0;
       netPnL += pnl; 
-      
       if (pnl > 0.90) { 
         winCount++;
         grossProfit += pnl;
@@ -551,7 +553,6 @@ class PixelStewardApp {
     const totalTradesCount = filteredTrades.length;
     const winRate = totalTradesCount > 0 ? (winCount / totalTradesCount) * 100 : 0;
     const profitFactor = grossLoss > 0 ? (grossProfit / grossLoss).toFixed(2) : (grossProfit > 0 ? '∞' : '1.00');
-
     container.innerHTML = `
       <div style="display:flex; flex-direction:column; gap:20px;">
         <div style="display:grid; grid-template-columns: repeat(4, 1fr); gap:15px;">
@@ -663,18 +664,23 @@ class PixelStewardApp {
         ${stockPorts.map(p => {
           if(!p) return '';
           const r = this.quarterlyRecords.find(x => x && x.portfolioId === p.id && x.year === year) || { q1:0, f1:0, q2:0, f2:0, q3:0, f3:0, q4:0, f4:0, notes:'' };
+          
+          // 📐 FIXED LOGIC 2.1: ถ้าค่าไตรมาสปลายยังคงเป็น 0 ให้แดช (-) สีเทาเงียบสงบ ไม่คำนวณติดลบหลอกตา -100.00%
           const calcTWR = (cur, flow, prev) => {
+            if (cur === 0) return { text: '-', cls: 'text-muted' };
             if (!prev || prev <= 0) return { text: 'N/A', cls: 'text-muted' };
             const pct = ((cur - flow - prev) / prev) * 100;
             return { text: (pct >= 0 ? '+' : '') + pct.toFixed(2) + '%', cls: pct >= 0 ? 'text-success' : 'text-danger' };
           };
           const g2 = calcTWR(r.q2, r.f2, r.q1); const g3 = calcTWR(r.q3, r.f3, r.q2); const g4 = calcTWR(r.q4, r.f4, r.q3);
+       
           return `
             <div class="border-pixel" style="padding:15px; background:#1f273e;">
               <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:2px solid #000; padding-bottom:6px; margin-bottom:10px;">
                 <h4 style="font-weight:bold;">📈 ${p.name} (${year})</h4>
                 <button class="btn btn-secondary btn-retro btn-small" onclick="app.openQuarterlyModal('${p.id}', ${year})">✏️ บันทึกตารางงวด</button>
               </div>
+   
               <div style="display:grid; grid-template-columns:repeat(4, 1fr); gap:12px; text-align:center;">
                 <div class="border-pixel-inset" style="padding:8px; background:#111625;"><b style="font-size:0.75rem; color:var(--color-accent);">Q1</b><div>฿${(r.q1||0).toLocaleString()}</div><span style="font-size:0.65rem; color:#64748b;">อัดฉีด: ฿${(r.f1||0).toLocaleString()}</span><div style="font-size:0.75rem;" class="text-muted">Base</div></div>
                 <div class="border-pixel-inset" style="padding:8px; background:#111625;"><b style="font-size:0.75rem; color:var(--color-success);">Q2</b><div>฿${(r.q2||0).toLocaleString()}</div><span style="font-size:0.65rem; color:#64748b;">อัดฉีด: ฿${(r.f2||0).toLocaleString()}</span><div style="font-size:0.75rem;" class="${g2.cls}">โต: ${g2.text}</div></div>
@@ -686,13 +692,12 @@ class PixelStewardApp {
       </div>`;
   }
 
-  // 📐 OPTIMIZED LOOP: เมธอดโหลดข้อมูลไตรมาสลงฟิลด์ UI สไตล์สั้นและสวยงาม
   openQuarterlyModal(portfolioId, year) {
     const port = this.portfolios.find(p => p && p.id === portfolioId); if (!port) return;
     document.getElementById('q-port-id').value = portfolioId; 
     document.getElementById('q-year').value = year;
     document.getElementById('q-port-label').innerText = `พอร์ต: ${port.name} (${year})`;
-    
+ 
     const rec = this.quarterlyRecords.find(r => r && r.portfolioId === portfolioId && r.year === year) || {};
     for (let i = 1; i <= 4; i++) {
       document.getElementById(`q-val-q${i}`).value = rec[`q${i}`] !== undefined ? rec[`q${i}`] : 0;
@@ -702,7 +707,6 @@ class PixelStewardApp {
     document.getElementById('quarterly-modal').classList.remove('hidden');
   }
 
-  // 📐 OPTIMIZED LOOP: เมธอดดึงค่าฟอร์มเก็บลงฐานข้อมูลและยิงขึ้น Realtime Firebase Cloud 
   handleSaveQuarterly() {
     const portfolioId = document.getElementById('q-port-id').value;
     const year = Number(document.getElementById('q-year').value);
@@ -783,13 +787,32 @@ class PixelStewardApp {
     container.innerHTML = `
       <div class="border-pixel" style="padding:15px; background:#1f273e; overflow-x:auto;">
         <table class="retro-table" style="width:100%; border-collapse:collapse; font-size:0.8rem; text-align:left;">
-          <thead><tr style="background:#111625;"><th style="padding:8px; border:2px solid #000;">ชื่อพอร์ต</th><th style="padding:8px; border:2px solid #000;">เป้าหมายรวม</th><th style="padding:8px; border:2px solid #000;">พอร์ตรวมจริง (THB)</th><th style="padding:8px; border:2px solid #000;">ส่วนต่างที่ขาด (THB)</th><th style="padding:8px; border:2px solid #000; color:var(--color-success);">เควสสเกล</th></tr></thead>
+          <thead>
+            <tr style="background:#111625;">
+              <th style="padding:8px; border:2px solid #000;">ชื่อพอร์ต</th>
+              <th style="padding:8px; border:2px solid #000;">เป้าหมายรวม</th>
+              <th style="padding:8px; border:2px solid #000;">พอร์ตรวมจริง</th>
+              <th style="padding:8px; border:2px solid #000;">ส่วนต่างที่ขาด</th>
+              <th style="padding:8px; border:2px solid #000; color:var(--color-success);">เควสสเกล</th>
+            </tr>
+          </thead>
           <tbody>
             ${this.portfolios.map(p => {
               if(!p) return '';
-              const r = ['Forex', 'Option'].includes(p.category)?this.exchangeRate:1;
-              const curTHB = ((p.current||0)+(p.cashBuffer||0))*r; const goalTHB = p.goalType==='numeric'?((p.goal||0)*r):0; const diff = p.goalType==='numeric'?Math.max(goalTHB-curTHB,0):0; const pct = p.goalType==='numeric'?(p.goal>0?(curTHB/goalTHB)*100:0):(p.dcaDoneThisMonth?100:0);
-              return `<tr><td style="padding:8px; border:2px solid #000;"><b>${p.name}</b></td><td style="padding:8px; border:2px solid #000;">${p.goalType==='numeric'?this.formatMoney(p.goal||0,p.category):p.goalSchedule}</td><td style="padding:8px; border:2px solid #000;">฿${curTHB.toLocaleString(undefined,{maximumFractionDigits:0})}</td><td style="padding:8px; border:2px solid #000; color:#ef4444;">${diff>0?'฿'+diff.toLocaleString(undefined,{maximumFractionDigits:0}):'✔️ เควสเคลียร์'}</td><td style="padding:8px; border:2px solid #000; font-family:'Press Start 2P'; font-size:0.55rem; color:var(--color-success);">${pct.toFixed(1)}%</td></tr>`;
+              
+              // 📐 FIXED LOGIC 1.B: ลบระบบการนำเงินต่างสกุลไปคูณแปลงค่าข้ามสายพันธุ์ ให้วัดผลและแสดงผลตรงหน่วยจริงประจำตลับพอร์ต
+              const curAmt = (p.current || 0) + (p.cashBuffer || 0); 
+              const goalAmt = p.goalType === 'numeric' ? (p.goal || 0) : 0; 
+              const diff = p.goalType === 'numeric' ? Math.max(goalAmt - curAmt, 0) : 0;
+              const pct = p.goalType === 'numeric' ? (p.goal > 0 ? (curAmt / goalAmt) * 100 : 0) : (p.dcaDoneThisMonth ? 100 : 0);
+              
+              return `<tr>
+                <td style="padding:8px; border:2px solid #000;"><b>${p.name}</b></td>
+                <td style="padding:8px; border:2px solid #000;">${p.goalType==='numeric'?this.formatMoney(p.goal||0,p.category):p.goalSchedule}</td>
+                <td style="padding:8px; border:2px solid #000;">${this.formatMoney(curAmt, p.category)}</td>
+                <td style="padding:8px; border:2px solid #000; color:#ef4444;">${diff > 0 ? this.formatMoney(diff, p.category) : '✔️ เควสเคลียร์'}</td>
+                <td style="padding:8px; border:2px solid #000; font-family:'Press Start 2P'; font-size:0.55rem; color:var(--color-success);">${pct.toFixed(1)}%</td>
+              </tr>`;
             }).join('')}
           </tbody>
         </table>
@@ -832,8 +855,36 @@ class PixelStewardApp {
     this.saveState(); this.closeModals(); this.refreshUI();
   }
 
+  // 📐 เมธอดดักจับฟอร์มและประมวลผลตรรกะบันทึกเงินปันผลเพื่อคำนวณหาค่า YOC Score แบบคงที่
+  handleSaveDividend() {
+    const portfolioId = document.getElementById('div-port-id').value;
+    const amount = Number(document.getElementById('div-amount').value) || 0;
+    const date = document.getElementById('div-date').value;
+    const notes = document.getElementById('div-notes').value || '';
+
+    if (!portfolioId || amount <= 0 || !date) {
+      alert('❌ โปรดกรอกข้อมูลจำนวนเงินและวันที่ให้ครบถ้วนครับ');
+      return;
+    }
+
+    const newDiv = {
+      id: 'd-' + Date.now(),
+      portfolioId,
+      amount,
+      date,
+      notes
+    };
+
+    this.dividendRecords.push(newDiv);
+    this.saveState();
+    this.closeModals();
+    this.refreshUI();
+    alert('💰 บันทึกรับเงินปันผลเข้าคลังคาร์ทริจสำเร็จ!');
+  }
+
   handleExecuteTransfer() {
-    const srcId = document.getElementById('tf-source').value; const destId = document.getElementById('tf-target').value; const amt = Number(document.getElementById('tf-amount').value); const r = Number(document.getElementById('tf-rate').value)||this.exchangeRate; const src = this.portfolios.find(x=>x && x.id===srcId);
+    const srcId = document.getElementById('tf-source').value;
+    const destId = document.getElementById('tf-target').value; const amt = Number(document.getElementById('tf-amount').value); const r = Number(document.getElementById('tf-rate').value)||this.exchangeRate; const src = this.portfolios.find(x=>x && x.id===srcId);
     if(!src || src.dryPowder < amt) { alert('❌ กระสุนไม่เพียงพอ'); return; }
     src.dryPowder -= amt;
     if(destId!=='system') {
