@@ -1,5 +1,5 @@
 /* ==========================================
-   PIXEL STEWARD CORE ENGINE - APP.JS (V.1.8.4 PIXEL MASTER)
+   PIXEL STEWARD CORE ENGINE - APP.JS (V.1.8.5 PIXEL MASTER)
    ========================================== */
 
 const firebaseConfig = {
@@ -603,11 +603,11 @@ class PixelStewardApp {
             <table class="retro-table" style="width:100%; font-size:0.8rem; border-collapse:collapse; text-align:left;">
               <thead>
                 <tr style="background:#0c1020; color:#94a3b8; border-bottom:2px solid #000;">
-                  <th style="padding:8px; text-align:center; border:1px solid #000;">วันเทรด</th>
-                  <th style="padding:8px; text-align:center; border:1px solid #000;">สินทรัพย์</th>
-                  <th style="padding:8px; text-align:center; border:1px solid #000;">คำสั่ง</th>
-                  <th style="padding:8px; text-align:right; padding-right:15px; border:1px solid #000;">กำไร/ขาดทุน (USD)</th>
-                  <th style="padding:8px; text-align:center; border:1px solid #000;">คลังพอร์ต</th>
+                  <th style="padding:8px; border:1px solid #000; text-align:center;">วันเทรด</th>
+                  <th style="padding:8px; border:1px solid #000; text-align:center;">สินทรัพย์</th>
+                  <th style="padding:8px; border:1px solid #000; text-align:center;">คำสั่ง</th>
+                  <th style="padding:8px; border:1px solid #000; text-align:right; padding-right:15px;">กำไร/ขาดทุน (USD)</th>
+                  <th style="padding:8px; border:1px solid #000; text-align:center;">คลังพอร์ต</th>
                 </tr>
               </thead>
               <tbody>
@@ -792,7 +792,7 @@ class PixelStewardApp {
         </table>
 
         <div style="margin-top:5px;">
-          <h5 style="font-family:'Press Start 2P'; font-size:0.55rem; color:#64748b; margin-bottom:10px;">📜 DIVIDEND LOG HISTORY (คลิกแก้ไขแถวประวัติ)</h5>
+          <h5 style="font-family:'Press Start 2P'; font-size:0.55rem; color:#64748b; margin-bottom:10px;">📜 DIVIDEND LOG HISTORY (คลิกจัดการประวัติบัญชี)</h5>
           <div style="background:#111625; padding:8px; border:2px solid #000; max-height:280px; overflow-y:auto;">
             <table class="retro-table" style="width:100%; border-collapse:collapse; text-align:left;">
               <thead>
@@ -820,6 +820,7 @@ class PixelStewardApp {
                         <td style="padding:8px; border:1px solid #000; text-align:right; padding-right:10px; font-weight:bold;">${this.formatMoney(r.amount || 0, pCat)}</td>
                         <td style="padding:8px; border:1px solid #000; text-align:center;">
                           <button class="btn btn-warning btn-small" onclick="app.inlineEditDividend('${r.id}')" style="padding:2px 6px; font-size:0.7rem; font-weight:bold; color:#000; border:1px solid #000; cursor:pointer;">✏️ แก้ไข</button>
+                          <button class="btn btn-danger btn-small" onclick="app.deleteDividend('${r.id}')" style="padding:2px 6px; font-size:0.7rem; font-weight:bold; color:#fff; border:1px solid #000; cursor:pointer; margin-left:4px;">✖ ลบ</button>
                         </td>
                       </tr>`;
                     }).join('')}
@@ -832,7 +833,6 @@ class PixelStewardApp {
     const select = document.getElementById('div-port-id'); if(select && Array.isArray(this.portfolios)) select.innerHTML = this.portfolios.map(p=>p?`<option value="${p.id}">${p.name}</option>`:'').join('');
   }
 
-  // 📐 เปิดระบบการแก้ไขตัวแปรปันผล (แก้จำนวนเงินสดและโน้ตช่วยจำผ่าน Prompt ปลอดภัยไร้บั๊กหน้าต่างค้าง)
   inlineEditDividend(id) {
     const r = this.dividendRecords.find(x => x && x.id === id);
     if (!r) return;
@@ -847,6 +847,17 @@ class PixelStewardApp {
         this.refreshUI();
         alert('💾 บันทึกการแก้ไขข้อมูลตัวแปรเงินปันผลและอัปเดตสเกล YOC เรียบร้อยครับ!');
       }
+    }
+  }
+
+  // 📐 เมธอดคำสั่งทำลาย/ลบรายการเงินปันผลออกจากคลังข้อมูลและซิงก์คลาวด์ Firebase ทันที
+  deleteDividend(id) {
+    const r = this.dividendRecords.find(x => x && x.id === id);
+    if (r && confirm(`⚠️ คุณต้องการสั่ง "ลบประวัติ" รายการปันผลจำนวนนี้ออกจากประบบหรือไม่? (สถิติ YOC จะถูกคำนวณใหม่)`)) {
+      this.dividendRecords = this.dividendRecords.filter(x => x && x.id !== id);
+      this.saveState();
+      this.refreshUI();
+      alert('🗑️ ลบรายการเงินปันผลสำเร็จ!');
     }
   }
 
@@ -889,7 +900,7 @@ class PixelStewardApp {
   renderSettings(container) {
     container.innerHTML = `
       <div class="border-pixel" style="padding:20px; background:#1f273e; display:flex; flex-direction:column; gap:12px;">
-        <h3>⚙️ จัดการคลาวด์เซฟสถิติระบบนิเวศ (V.1.8.4)</h3>
+        <h3>⚙️ จัดการคลาวด์เซฟสถิติระบบนิเวศ (V.1.8.5)</h3>
         <p>การเชื่อมต่อ Realtime Firebase: <b>${isFirebaseActive?'🟢 CONNECTED':'🔴 LOCAL ONLY'}</b></p>
         <textarea id="import-json-area" class="input-retro" rows="8" style="width:100%; font-family:monospace; background:#0c1020; color:#10b981; padding:10px; border:2px solid #000;" placeholder="วางข้อความวัตถุดิบ JSON สำรองข้อมูลที่นี่..."></textarea>
         <button class="btn btn-success btn-retro" id="btn-execute-import" style="width:180px;"><span>📥 โหลดฐานข้อมูล</span></button>
