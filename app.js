@@ -1,5 +1,5 @@
 /* ==========================================
-   PIXEL STEWARD CORE ENGINE - APP.JS (V.1.8.6 PIXEL MASTER RELEASE)
+   PIXEL STEWARD CORE ENGINE - APP.JS (V.1.8.7 QUARTERLY MASTER RELEASE)
    ========================================== */
 
 const firebaseConfig = {
@@ -139,13 +139,11 @@ class PixelStewardApp {
       transForm.addEventListener('submit', (e) => { e.preventDefault(); this.handleExecuteTransfer(); });
     }
     
-    // 📐 FIXED LINK: ดักจับระบบบันทึกรายไตรมาสเข้าสแต็ก
     const quarterlyForm = document.getElementById('quarterly-form');
     if (quarterlyForm) {
       quarterlyForm.addEventListener('submit', (e) => { e.preventDefault(); this.handleSaveQuarterly(); });
     }
 
-    // 💰 จุดเชื่อมต่อที่ 1: เพิ่มตัวดักจับคำสั่งส่งข้อมูลของฟอร์มปันผลเข้าสู่ระบบคลาวด์
     const divForm = document.getElementById('dividend-form');
     if (divForm) {
       divForm.addEventListener('submit', (e) => { e.preventDefault(); this.handleSaveDividend(); });
@@ -649,6 +647,7 @@ class PixelStewardApp {
     }, 0);
   }
 
+  // 📐 FIXED LOGIC & NEW FEATURE: ซ่อมสูตรเติบโตติดลบพอร์ต (Strict TWR) และฝังปุ่มล้างประวัติไตรมาสอัตโนมัติ
   renderQuarterly(container) {
     const stockPorts = Array.isArray(this.portfolios) ? this.portfolios.filter(p => p && !['Forex', 'Option'].includes(p.category)) : [];
     const year = new Date().getFullYear();
@@ -659,25 +658,34 @@ class PixelStewardApp {
         ${stockPorts.map(p => {
           if(!p) return '';
           const r = this.quarterlyRecords.find(x => x && x.portfolioId === p.id && x.year === year) || { q1:0, f1:0, q2:0, f2:0, q3:0, f3:0, q4:0, f4:0, notes:'' };
+          
           const calcTWR = (cur, flow, prev) => {
+            if (cur === 0 || prev === 0) return { text: '-', cls: 'text-muted' };
             if (!prev || prev <= 0) return { text: 'N/A', cls: 'text-muted' };
+            // สูตรคำนวณสากลสะท้อนผลลัพธ์พอร์ตดิ่งลงจริง (หักลบเงินอัดฉีดออกแล้วเทียบฐานงวดก่อนหน้า)
             const pct = ((cur - flow - prev) / prev) * 100;
             return { text: (pct >= 0 ? '+' : '') + pct.toFixed(2) + '%', cls: pct >= 0 ? 'text-success' : 'text-danger' };
           };
-          const g2 = calcTWR(r.q2, r.f2, r.q1); const g3 = calcTWR(r.q3, r.f3, r.q2); const g4 = calcTWR(r.q4, r.f4, r.q3);
+          
+          const g2 = calcTWR(r.q2, r.f2, r.q1); 
+          const g3 = calcTWR(r.q3, r.f3, r.q2); 
+          const g4 = calcTWR(r.q4, r.f4, r.q3);
        
           return `
             <div class="border-pixel" style="padding:15px; background:#1f273e;">
               <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:2px solid #000; padding-bottom:6px; margin-bottom:10px;">
                 <h4 style="font-weight:bold;">📈 ${p.name} (${year})</h4>
-                <button class="btn btn-secondary btn-retro btn-small" onclick="app.openQuarterlyModal('${p.id}', ${year})">✏️ บันทึกตารางงวด</button>
+                <div style="display:flex; gap:6px;">
+                  <button class="btn btn-secondary btn-retro btn-small" onclick="app.openQuarterlyModal('${p.id}', ${year})">✏️ บันทึกตารางงวด</button>
+                  <button class="btn btn-danger btn-retro btn-small" onclick="app.deleteQuarterlyRecord('${p.id}', ${year})" style="background:#ef4444; color:#fff;">✖ ล้างข้อมูล</button>
+                </div>
               </div>
    
               <div style="display:grid; grid-template-columns:repeat(4, 1fr); gap:12px; text-align:center;">
                 <div class="border-pixel-inset" style="padding:8px; background:#111625;"><b style="font-size:0.75rem; color:var(--color-accent);">Q1</b><div>฿${(r.q1||0).toLocaleString()}</div><span style="font-size:0.65rem; color:#64748b;">อัดฉีด: ฿${(r.f1||0).toLocaleString()}</span><div style="font-size:0.75rem;" class="text-muted">Base</div></div>
-                <div class="border-pixel-inset" style="padding:8px; background:#111625;"><b style="font-size:0.75rem; color:var(--color-success);">Q2</b><div>฿${(r.q2||0).toLocaleString()}</div><span style="font-size:0.65rem; color:#64748b;">อัดฉีด: ฿${(r.f2||0).toLocaleString()}</span><div style="font-size:0.75rem;" class="${g2.cls}">โต: ${g2.text}</div></div>
-                <div class="border-pixel-inset" style="padding:8px; background:#111625;"><b style="font-size:0.75rem; color:var(--color-secondary);">Q3</b><div>฿${(r.q3||0).toLocaleString()}</div><span style="font-size:0.65rem; color:#64748b;">อัดฉีด: ฿${(r.f3||0).toLocaleString()}</span><div style="font-size:0.75rem;" class="${g3.cls}">โต: ${g3.text}</div></div>
-                <div class="border-pixel-inset" style="padding:8px; background:#111625;"><b style="font-size:0.75rem; color:var(--color-accent);">Q4</b><div>฿${(r.q4||0).toLocaleString()}</div><span style="font-size:0.65rem; color:#64748b;">อัดฉีด: ฿${(r.f4||0).toLocaleString()}</span><div style="font-size:0.75rem;" class="${g4.cls}">โต: ${g4.text}</div></div>
+                <div class="border-pixel-inset" style="padding:8px; background:#111625;"><b style="font-size:0.75rem; color:var(--color-success);">Q2</b><div>฿${(r.q2||0).toLocaleString()}</div><span style="font-size:0.65rem; color:#64748b;">อัดฉีด: ฿${(r.f2||0).toLocaleString()}</span><div style="font-size:0.75rem; font-weight:bold;" class="${g2.cls}">โต: <span class="pixel-money" style="font-size:0.65rem!important;">${g2.text}</span></div></div>
+                <div class="border-pixel-inset" style="padding:8px; background:#111625;"><b style="font-size:0.75rem; color:var(--color-secondary);">Q3</b><div>฿${(r.q3||0).toLocaleString()}</div><span style="font-size:0.65rem; color:#64748b;">อัดฉีด: ฿${(r.f3||0).toLocaleString()}</span><div style="font-size:0.75rem; font-weight:bold;" class="${g3.cls}">โต: <span class="pixel-money" style="font-size:0.65rem!important;">${g3.text}</span></div></div>
+                <div class="border-pixel-inset" style="padding:8px; background:#111625;"><b style="font-size:0.75rem; color:var(--color-accent);">Q4</b><div>฿${(r.q4||0).toLocaleString()}</div><span style="font-size:0.65rem; color:#64748b;">อัดฉีด: ฿${(r.f4||0).toLocaleString()}</span><div style="font-size:0.75rem; font-weight:bold;" class="${g4.cls}">โต: <span class="pixel-money" style="font-size:0.65rem!important;">${g4.text}</span></div></div>
               </div>
             </div>`;
         }).join('')}
@@ -721,6 +729,16 @@ class PixelStewardApp {
     this.refreshUI();
   }
 
+  // 📐 NEW ARTIFACT METHOD: ฟังก์ชันล้าง/รีเซ็ตตัวแปรรายงานงวดรายไตรมาสของพอร์ตที่เลือกให้เป็นศูนย์
+  deleteQuarterlyRecord(portfolioId, year) {
+    if (confirm('⚠️ คุณต้องการ "ล้างข้อมูลรายงานไตรมาสทั้งหมด" ของปีนี้ใช่หรือไม่? ตัวเลขสถิติความเติบโตจะกลับไปเริ่มต้นใหม่')) {
+      this.quarterlyRecords = this.quarterlyRecords.filter(r => !(r && r.portfolioId === portfolioId && r.year === year));
+      this.saveState();
+      this.refreshUI();
+      alert('🗑️ ล้างข้อมูลรายงานไตรมาสประจำปีเรียบร้อยครับ!');
+    }
+  }
+
   renderOptionManual(container) {
     const optionPorts = Array.isArray(this.portfolios) ? this.portfolios.filter(p => p && p.category === 'Option') : [];
     const records = Array.isArray(this.monthlyRecords) ? this.monthlyRecords.filter(r => r && optionPorts.map(p => p.id).includes(r.portfolioId)) : [];
@@ -755,7 +773,6 @@ class PixelStewardApp {
     }
   }
 
-  // 📐 จุดเชื่อมต่อที่ 2: เพิ่มตารางประวัติ LOG ย่อยด้านล่าง แสดงผลฟอนต์พิกเซลความแม่นยำสูง พร้อมปุ่มแก้ไขและลบถาวร
   renderDividends(container) {
     container.innerHTML = `
       <div class="border-pixel" style="padding:15px; background:#1f273e; display:flex; flex-direction:column; gap:20px;">
@@ -846,7 +863,7 @@ class PixelStewardApp {
   renderSettings(container) {
     container.innerHTML = `
       <div class="border-pixel" style="padding:20px; background:#1f273e; display:flex; flex-direction:column; gap:12px;">
-        <h3>⚙️ จัดการคลาวด์เซฟสถิติระบบนิเวศ (V.1.8.6)</h3>
+        <h3>⚙️ จัดการคลาวด์เซฟสถิติระบบนิเวศ (V.1.8.7)</h3>
         <p>การเชื่อมต่อ Realtime Firebase: <b>${isFirebaseActive?'🟢 CONNECTED':'🔴 LOCAL ONLY'}</b></p>
         <textarea id="import-json-area" class="input-retro" rows="8" style="width:100%; font-family:monospace; background:#0c1020; color:#10b981; padding:10px; border:2px solid #000;" placeholder="วางข้อความวัตถุดิบ JSON สำรองข้อมูลที่นี่..."></textarea>
         <button class="btn btn-success btn-retro" id="btn-execute-import" style="width:180px;"><span>📥 โหลดฐานข้อมูล</span></button>
@@ -895,7 +912,6 @@ class PixelStewardApp {
     this.saveState(); this.closeModals(); this.refreshUI(); alert('⚡ โยกย้ายจัดสรรเรียบร้อย!');
   }
 
-  // 📐 จุดเชื่อมต่อที่ 3: เพิ่มเมธอดรับฟอร์มบันทึกเงินปันผล, ปลดล็อก Prompt แก้ไข, และตรรกะสั่งลบข้อมูลออกจากเซฟคลาวด์ Firebase
   handleSaveDividend() {
     const portfolioId = document.getElementById('div-port-id').value;
     const amount = Number(document.getElementById('div-amount').value) || 0;
