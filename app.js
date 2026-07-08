@@ -1,5 +1,5 @@
 /* ==========================================
-   PIXEL STEWARD CORE ENGINE - APP.JS (V.1.8.5 PIXEL MASTER)
+   PIXEL STEWARD CORE ENGINE - APP.JS (V.1.8.6 PIXEL MASTER RELEASE)
    ========================================== */
 
 const firebaseConfig = {
@@ -139,11 +139,13 @@ class PixelStewardApp {
       transForm.addEventListener('submit', (e) => { e.preventDefault(); this.handleExecuteTransfer(); });
     }
     
+    // 📐 FIXED LINK: ดักจับระบบบันทึกรายไตรมาสเข้าสแต็ก
     const quarterlyForm = document.getElementById('quarterly-form');
     if (quarterlyForm) {
       quarterlyForm.addEventListener('submit', (e) => { e.preventDefault(); this.handleSaveQuarterly(); });
     }
 
+    // 💰 จุดเชื่อมต่อที่ 1: เพิ่มตัวดักจับคำสั่งส่งข้อมูลของฟอร์มปันผลเข้าสู่ระบบคลาวด์
     const divForm = document.getElementById('dividend-form');
     if (divForm) {
       divForm.addEventListener('submit', (e) => { e.preventDefault(); this.handleSaveDividend(); });
@@ -329,16 +331,16 @@ class PixelStewardApp {
         <div class="border-pixel" style="padding:20px; background:#1f273e;">
           <h4 style="font-family:'Press Start 2P'; font-size:0.65rem; color:#3b82f6; margin-bottom:15px;">📊 สรุปความเติบโตรายไตรมาส (${yr})</h4>
           <div style="display:flex; justify-content:space-around; align-items:flex-end; height:150px; background:#111625; padding:15px; border:2px solid #000;">
-            <div style="width:20%; display:flex; flex-direction:column; align-items:center; height:100%; justify-content:flex-end;"><div style="font-size:0.65rem; font-family:'Press Start 2P'!important;">฿${q1.toLocaleString(undefined,{maximumFractionDigits:0})}</div><div style="width:100%; height:${(q1/maxQ)*100}%; background:var(--color-primary); border:2px solid #000;"></div><div style="font-size:0.7rem; margin-top:4px;">Q1</div></div>
-            <div style="width:20%; display:flex; flex-direction:column; align-items:center; height:100%; justify-content:flex-end;"><div style="font-size:0.65rem; font-family:'Press Start 2P'!important;">฿${q2.toLocaleString(undefined,{maximumFractionDigits:0})}</div><div style="width:100%; height:${(q2/maxQ)*100}%; background:var(--color-success); border:2px solid #000;"></div><div style="font-size:0.7rem; margin-top:4px;">Q2</div></div>
-            <div style="width:20%; display:flex; flex-direction:column; align-items:center; height:100%; justify-content:flex-end;"><div style="font-size:0.65rem; font-family:'Press Start 2P'!important;">฿${q3.toLocaleString(undefined,{maximumFractionDigits:0})}</div><div style="width:100%; height:${(q3/maxQ)*100}%; background:var(--color-secondary); border:2px solid #000;"></div><div style="font-size:0.7rem; margin-top:4px;">Q3</div></div>
-            <div style="width:20%; display:flex; flex-direction:column; align-items:center; height:100%; justify-content:flex-end;"><div style="font-size:0.65rem; font-family:'Press Start 2P'!important;">฿${q4.toLocaleString(undefined,{maximumFractionDigits:0})}</div><div style="width:100%; height:${(q4/maxQ)*100}%; background:var(--color-accent); border:2px solid #000;"></div><div style="font-size:0.7rem; margin-top:4px;">Q4</div></div>
+            <div style="width:20%; display:flex; flex-direction:column; align-items:center; height:100%; justify-content:flex-end;"><div style="font-size:0.65rem;">฿${q1.toLocaleString(undefined,{maximumFractionDigits:0})}</div><div style="width:100%; height:${(q1/maxQ)*100}%; background:var(--color-primary); border:2px solid #000;"></div><div style="font-size:0.7rem; margin-top:4px;">Q1</div></div>
+            <div style="width:20%; display:flex; flex-direction:column; align-items:center; height:100%; justify-content:flex-end;"><div style="font-size:0.65rem;">฿${q2.toLocaleString(undefined,{maximumFractionDigits:0})}</div><div style="width:100%; height:${(q2/maxQ)*100}%; background:var(--color-success); border:2px solid #000;"></div><div style="font-size:0.7rem; margin-top:4px;">Q2</div></div>
+            <div style="width:20%; display:flex; flex-direction:column; align-items:center; height:100%; justify-content:flex-end;"><div style="font-size:0.65rem;">฿${q3.toLocaleString(undefined,{maximumFractionDigits:0})}</div><div style="width:100%; height:${(q3/maxQ)*100}%; background:var(--color-secondary); border:2px solid #000;"></div><div style="font-size:0.7rem; margin-top:4px;">Q3</div></div>
+            <div style="width:20%; display:flex; flex-direction:column; align-items:center; height:100%; justify-content:flex-end;"><div style="font-size:0.65rem;">฿${q4.toLocaleString(undefined,{maximumFractionDigits:0})}</div><div style="width:100%; height:${(q4/maxQ)*100}%; background:var(--color-accent); border:2px solid #000;"></div><div style="font-size:0.7rem; margin-top:4px;">Q4</div></div>
           </div>
         </div>
         <div class="border-pixel" style="padding:20px; background:#1f273e;">
-          <h4 style="font-family:'Press Start 2P'; font-size:0.65rem; color:var(--color-accent); margin-bottom:12px;">🚩 เเควสใกล้บรรลุเป้าหมาย</h4>
+          <h4 style="font-family:'Press Start 2P'; font-size:0.65rem; color:var(--color-accent); margin-bottom:12px;">🚩 เเวสใกล้บรรลุเป้าหมาย</h4>
           <div style="display:flex; flex-direction:column; gap:10px;">
-            ${this.portfolios.length===0?'<p class="text-muted" style="text-align:center;font-size:0.8rem;padding-top:20px;">คลังว่างเปล่า โปรดเพิ่มพอร์ตใหม่</p>':topGoals.map(g => `<div style="background:#111625; padding:8px; border:2px solid #000;"><div style="display:flex; justify-content:space-between; font-size:0.8rem;"><span>${g.name}</span><b style="color:var(--color-success); font-family:'Press Start 2P'!important;">${g.pct.toFixed(1)}%</b></div><div class="progress-container" style="margin-top:4px; height:6px;"><div class="progress-bar-fill" style="width:${Math.min(100,g.pct)}%; background:var(--color-accent); height:100%;"></div></div></div>`).join('')}
+            ${this.portfolios.length===0?'<p class="text-muted" style="text-align:center;font-size:0.8rem;padding-top:20px;">คลังว่างเปล่า โปรดเพิ่มพอร์ตใหม่</p>':topGoals.map(g => `<div style="background:#111625; padding:8px; border:2px solid #000;"><div style="display:flex; justify-content:space-between; font-size:0.8rem;"><span>${g.name}</span><b style="color:var(--color-success);">${g.pct.toFixed(1)}%</b></div><div class="progress-container" style="margin-top:4px; height:6px;"><div class="progress-bar-fill" style="width:${Math.min(100,g.pct)}%; background:var(--color-accent); height:100%;"></div></div></div>`).join('')}
           </div>
         </div>
       </div>
@@ -356,8 +358,6 @@ class PixelStewardApp {
     const isUSD = ['Forex', 'Option'].includes(active.category);
     const weight = this.getCalculations().netWorthTHB > 0 ? (((active.current+active.cashBuffer)*(isUSD?this.exchangeRate:1))/this.getCalculations().netWorthTHB)*100 : 0;
 
-    const cardSkinClass = lvl.pct >= 80 ? 'gold-skin-border' : '';
-
     container.innerHTML = `
       <div style="display:grid; grid-template-columns: 0.7fr 1.3fr; gap:20px;">
         <div class="border-pixel" style="padding:15px; background:#111625;">
@@ -370,7 +370,7 @@ class PixelStewardApp {
                 <button class="btn-delete-port-inline" data-id="${p.id}">✖</button>
                 <div class="cartridge-title">📁 ${p.name}</div>
                 <div class="cartridge-meta"><span>${p.category}</span><b>${this.getPortfolioLevel(p).icon}</b></div>
-                <div style="display:flex; justify-content:space-between; margin-top:4px; font-weight:bold; color:#10b981;">
+                <div style="display:flex; justify-content:space-between; font-size:0.75rem; margin-top:4px; font-weight:bold; color:#10b981;">
                   <span>${this.formatMoney(p.current+p.cashBuffer, p.category)}</span>
                   ${p.dryPowder<=0?'<span class="ammo-warning-tag">⚠️ NO AMMO</span>':''}
                 </div>
@@ -379,7 +379,7 @@ class PixelStewardApp {
           </div>
         </div>
         <div style="display:grid; grid-template-columns: 1.1fr 0.9fr; gap:20px;">
-          <div class="border-pixel ${cardSkinClass}" style="background:#1f273e; padding:15px; display:flex; flex-direction:column; gap:12px;">
+          <div class="border-pixel" style="background:#1f273e; padding:15px; display:flex; flex-direction:column; gap:12px;">
             <div style="display:flex; justify-content:space-between; border-bottom:2px solid #000; padding-bottom:6px;">
               <h3>📦 ${active.name}</h3>
               <span class="port-card-cat" style="cursor:pointer; border:1px dashed #3b82f6;" onclick="app.inlineEditCategory('${active.id}')" title="คลิกเพื่อเปลี่ยนหมวดหมู่">${active.category} ✏️</span>
@@ -390,12 +390,10 @@ class PixelStewardApp {
             </div>
             
             <div style="background:#111625; padding:10px; border:2px solid #000; font-size:0.85rem; color:#10b981; font-weight:bold;">💼 พอร์ตรวมสุทธิ: ${this.formatMoney(active.current+active.cashBuffer, active.category)}</div>
-            <div style="background:#0c1020; padding:8px; border:2px solid #000; font-size:0.75rem; color:#94a3b8;">⚖️ Weight Score: <b style="font-family:'Press Start 2P'!important;">${weight.toFixed(1)}%</b></div>
+            <div style="background:#0c1020; padding:8px; border:2px solid #000; font-size:0.75rem; color:#94a3b8;">⚖️ Weight Score: <b>${weight.toFixed(1)}% ของความมั่งคั่งรวม</b></div>
             <div>
-              <div style="display:flex; justify-content:space-between; font-size:0.8rem; font-weight:bold; margin-bottom:2px;"><span>เควสโปรเกรส:</span><span style="font-family:'Press Start 2P'!important;">${lvl.pct.toFixed(1)}%</span></div>
-              <div class="progress-container" style="height:15px; background:#111625; border:2px solid #000; position:relative; overflow:hidden;">
-                <div class="progress-bar-fill-animated" style="width:${Math.min(100,lvl.pct)}%; background-color:${lvl.pct>=80?'#ffcc00':'#10b981'}; height:100%;"></div>
-              </div>
+              <div style="display:flex; justify-content:space-between; font-size:0.8rem; font-weight:bold; margin-bottom:2px;"><span>เควสโปรเกรส:</span><span>${lvl.pct.toFixed(1)}%</span></div>
+              <div class="progress-container" style="height:15px; background:#111625; border:2px solid #000; position:relative;"><div style="width:${Math.min(100,lvl.pct)}%; background:var(--color-success); height:100%;"></div></div>
             </div>
             <div style="margin-top:5px;">
               <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:2px solid #000; padding-bottom:4px;"><span style="font-size:0.8rem; font-weight:bold;">💎 สินทรัพย์ย่อย</span><button class="btn btn-primary btn-retro btn-small" id="btn-add-asset" style="padding:2px 6px;"><span>➕ เพิ่ม</span></button></div>
@@ -603,11 +601,11 @@ class PixelStewardApp {
             <table class="retro-table" style="width:100%; font-size:0.8rem; border-collapse:collapse; text-align:left;">
               <thead>
                 <tr style="background:#0c1020; color:#94a3b8; border-bottom:2px solid #000;">
-                  <th style="padding:8px; border:1px solid #000; text-align:center;">วันเทรด</th>
-                  <th style="padding:8px; border:1px solid #000; text-align:center;">สินทรัพย์</th>
-                  <th style="padding:8px; border:1px solid #000; text-align:center;">คำสั่ง</th>
-                  <th style="padding:8px; border:1px solid #000; text-align:right; padding-right:15px;">กำไร/ขาดทุน (USD)</th>
-                  <th style="padding:8px; border:1px solid #000; text-align:center;">คลังพอร์ต</th>
+                  <th style="padding:8px; text-align:center;">วันเทรด</th>
+                  <th style="padding:8px; text-align:center;">สินทรัพย์</th>
+                  <th style="padding:8px; text-align:center;">คำสั่ง</th>
+                  <th style="padding:8px; text-align:right; padding-right:15px;">กำไร/ขาดทุน (USD)</th>
+                  <th style="padding:8px; text-align:center;">คลังพอร์ต</th>
                 </tr>
               </thead>
               <tbody>
@@ -618,13 +616,13 @@ class PixelStewardApp {
                       const amt = Number(t.pnl) || 0;
                       return `
                       <tr style="border-bottom:1px solid #222; background:#111625;">
-                        <td style="padding:8px; text-align:center; color:#94a3b8; font-family:monospace; border:1px solid #000;">${t.date || ''}</td>
-                        <td style="padding:8px; text-align:center; font-weight:bold; color:#3b82f6; border:1px solid #000;">${t.symbol || ''}</td>
-                        <td style="padding:8px; text-align:center; border:1px solid #000;"><span style="background:${t.dir==='Buy'?'#064e3b':'#7f1d1d'}; color:${t.dir==='Buy'?'#10b981':'#f87171'}; padding:2px 6px; border:1px solid #000; font-size:0.7rem; font-weight:bold;">${(t.dir || 'BUY').toUpperCase()}</span></td>
-                        <td style="padding:8px; text-align:right; padding-right:15px; font-weight:bold; font-family:monospace; color:${amt >= 0 ? '#10b981' : '#ef4444'}; border:1px solid #000;">
+                        <td style="padding:8px; text-align:center; color:#94a3b8; font-family:monospace;">${t.date || ''}</td>
+                        <td style="padding:8px; text-align:center; font-weight:bold; color:#3b82f6;">${t.symbol || ''}</td>
+                        <td style="padding:8px; text-align:center;"><span style="background:${t.dir==='Buy'?'#064e3b':'#7f1d1d'}; color:${t.dir==='Buy'?'#10b981':'#f87171'}; padding:2px 6px; border:1px solid #000; font-size:0.7rem; font-weight:bold;">${(t.dir || 'BUY').toUpperCase()}</span></td>
+                        <td style="padding:8px; text-align:right; padding-right:15px; font-weight:bold; font-family:monospace; color:${amt >= 0 ? '#10b981' : '#ef4444'};">
                           ${amt >= 0 ? '+' : ''}$${amt.toLocaleString(undefined,{minimumFractionDigits:2, maximumFractionDigits:2})}
                         </td>
-                        <td style="padding:8px; text-align:center; color:#eab308; font-size:0.75rem; border:1px solid #000;">${t.account||'Demo'}</td>
+                        <td style="padding:8px; text-align:center; color:#eab308; font-size:0.75rem;">${t.account||'Demo'}</td>
                       </tr>`;
                     }).join('')}
               </tbody>
@@ -661,9 +659,7 @@ class PixelStewardApp {
         ${stockPorts.map(p => {
           if(!p) return '';
           const r = this.quarterlyRecords.find(x => x && x.portfolioId === p.id && x.year === year) || { q1:0, f1:0, q2:0, f2:0, q3:0, f3:0, q4:0, f4:0, notes:'' };
-          
           const calcTWR = (cur, flow, prev) => {
-            if (cur === 0) return { text: '-', cls: 'text-muted' };
             if (!prev || prev <= 0) return { text: 'N/A', cls: 'text-muted' };
             const pct = ((cur - flow - prev) / prev) * 100;
             return { text: (pct >= 0 ? '+' : '') + pct.toFixed(2) + '%', cls: pct >= 0 ? 'text-success' : 'text-danger' };
@@ -679,9 +675,9 @@ class PixelStewardApp {
    
               <div style="display:grid; grid-template-columns:repeat(4, 1fr); gap:12px; text-align:center;">
                 <div class="border-pixel-inset" style="padding:8px; background:#111625;"><b style="font-size:0.75rem; color:var(--color-accent);">Q1</b><div>฿${(r.q1||0).toLocaleString()}</div><span style="font-size:0.65rem; color:#64748b;">อัดฉีด: ฿${(r.f1||0).toLocaleString()}</span><div style="font-size:0.75rem;" class="text-muted">Base</div></div>
-                <div class="border-pixel-inset" style="padding:8px; background:#111625;"><b style="font-size:0.75rem; color:var(--color-success);">Q2</b><div>฿${(r.q2||0).toLocaleString()}</div><span style="font-size:0.65rem; color:#64748b;">อัดฉีด: ฿${(r.f2||0).toLocaleString()}</span><div style="font-size:0.75rem;" class="${g2.cls}">โต: <span class="pixel-money" style="font-size:0.65rem!important;">${g2.text}</span></div></div>
-                <div class="border-pixel-inset" style="padding:8px; background:#111625;"><b style="font-size:0.75rem; color:var(--color-secondary);">Q3</b><div>฿${(r.q3||0).toLocaleString()}</div><span style="font-size:0.65rem; color:#64748b;">อัดฉีด: ฿${(r.f3||0).toLocaleString()}</span><div style="font-size:0.75rem;" class="${g3.cls}">โต: <span class="pixel-money" style="font-size:0.65rem!important;">${g3.text}</span></div></div>
-                <div class="border-pixel-inset" style="padding:8px; background:#111625;"><b style="font-size:0.75rem; color:var(--color-accent);">Q4</b><div>฿${(r.q4||0).toLocaleString()}</div><span style="font-size:0.65rem; color:#64748b;">อัดฉีด: ฿${(r.f4||0).toLocaleString()}</span><div style="font-size:0.75rem;" class="${g4.cls}">โต: <span class="pixel-money" style="font-size:0.65rem!important;">${g4.text}</span></div></div>
+                <div class="border-pixel-inset" style="padding:8px; background:#111625;"><b style="font-size:0.75rem; color:var(--color-success);">Q2</b><div>฿${(r.q2||0).toLocaleString()}</div><span style="font-size:0.65rem; color:#64748b;">อัดฉีด: ฿${(r.f2||0).toLocaleString()}</span><div style="font-size:0.75rem;" class="${g2.cls}">โต: ${g2.text}</div></div>
+                <div class="border-pixel-inset" style="padding:8px; background:#111625;"><b style="font-size:0.75rem; color:var(--color-secondary);">Q3</b><div>฿${(r.q3||0).toLocaleString()}</div><span style="font-size:0.65rem; color:#64748b;">อัดฉีด: ฿${(r.f3||0).toLocaleString()}</span><div style="font-size:0.75rem;" class="${g3.cls}">โต: ${g3.text}</div></div>
+                <div class="border-pixel-inset" style="padding:8px; background:#111625;"><b style="font-size:0.75rem; color:var(--color-accent);">Q4</b><div>฿${(r.q4||0).toLocaleString()}</div><span style="font-size:0.65rem; color:#64748b;">อัดฉีด: ฿${(r.f4||0).toLocaleString()}</span><div style="font-size:0.75rem;" class="${g4.cls}">โต: ${g4.text}</div></div>
               </div>
             </div>`;
         }).join('')}
@@ -759,6 +755,7 @@ class PixelStewardApp {
     }
   }
 
+  // 📐 จุดเชื่อมต่อที่ 2: เพิ่มตารางประวัติ LOG ย่อยด้านล่าง แสดงผลฟอนต์พิกเซลความแม่นยำสูง พร้อมปุ่มแก้ไขและลบถาวร
   renderDividends(container) {
     container.innerHTML = `
       <div class="border-pixel" style="padding:15px; background:#1f273e; display:flex; flex-direction:column; gap:20px;">
@@ -781,18 +778,13 @@ class PixelStewardApp {
               if(!p) return '';
               const divs = Array.isArray(this.dividendRecords) ? this.dividendRecords.filter(x=>x && x.portfolioId===p.id).reduce((s,x)=>s+Number(x.amount||0),0) : 0;
               const yoc = p.current>0?((divs/p.current)*100).toFixed(2)+'%':'0.00%';
-              return `<tr>
-                <td style="padding:8px; border:2px solid #000;"><b>${p.name}</b></td>
-                <td style="padding:8px; border:2px solid #000;">${this.formatMoney(p.current||0,p.category)}</td>
-                <td style="padding:8px; border:2px solid #000; color:var(--color-success);">${this.formatMoney(divs,p.category)}</td>
-                <td style="padding:8px; border:2px solid #000; font-weight:bold; color:var(--color-accent); font-family:'Press Start 2P'!important; font-size:0.75rem!important;">${yoc}</td>
-              </tr>`;
+              return `<tr><td style="padding:8px; border:2px solid #000;"><b>${p.name}</b></td><td style="padding:8px; border:2px solid #000;">${this.formatMoney(p.current||0,p.category)}</td><td style="padding:8px; border:2px solid #000; color:var(--color-success);">${this.formatMoney(divs,p.category)}</td><td style="padding:8px; border:2px solid #000; font-weight:bold; color:var(--color-accent); font-family:'Press Start 2P'!important; font-size:0.75rem!important;">${yoc}</td></tr>`;
             }).join('')}
           </tbody>
         </table>
 
         <div style="margin-top:5px;">
-          <h5 style="font-family:'Press Start 2P'; font-size:0.55rem; color:#64748b; margin-bottom:10px;">📜 DIVIDEND LOG HISTORY (คลิกจัดการประวัติบัญชี)</h5>
+          <h5 style="font-family:'Press Start 2P'; font-size:0.55rem; color:#64748b; margin-bottom:10px;">📜 DIVIDEND LOG HISTORY (คลิกจัดการบัญชีรายตัว)</h5>
           <div style="background:#111625; padding:8px; border:2px solid #000; max-height:280px; overflow-y:auto;">
             <table class="retro-table" style="width:100%; border-collapse:collapse; text-align:left;">
               <thead>
@@ -828,37 +820,8 @@ class PixelStewardApp {
             </table>
           </div>
         </div>
-
       </div>`;
     const select = document.getElementById('div-port-id'); if(select && Array.isArray(this.portfolios)) select.innerHTML = this.portfolios.map(p=>p?`<option value="${p.id}">${p.name}</option>`:'').join('');
-  }
-
-  inlineEditDividend(id) {
-    const r = this.dividendRecords.find(x => x && x.id === id);
-    if (!r) return;
-    
-    const newAmount = prompt(`✏️ ระบุจำนวนตัวเลขเงินปันผลใหม่ที่ถูกต้อง (ยอดเดิมคือ: ${r.amount}):`, r.amount);
-    if (newAmount !== null && !isNaN(Number(newAmount)) && Number(newAmount) > 0) {
-      const newNotes = prompt(`✏️ ระบุโน้ตชื่อหุ้นหรือหมายเหตุช่วยจำใหม่ (ยอดเดิมคือ: ${r.notes || ''}):`, r.notes || '');
-      if (newNotes !== null) {
-        r.amount = Number(newAmount);
-        r.notes = newNotes.trim();
-        this.saveState();
-        this.refreshUI();
-        alert('💾 บันทึกการแก้ไขข้อมูลตัวแปรเงินปันผลและอัปเดตสเกล YOC เรียบร้อยครับ!');
-      }
-    }
-  }
-
-  // 📐 เมธอดคำสั่งทำลาย/ลบรายการเงินปันผลออกจากคลังข้อมูลและซิงก์คลาวด์ Firebase ทันที
-  deleteDividend(id) {
-    const r = this.dividendRecords.find(x => x && x.id === id);
-    if (r && confirm(`⚠️ คุณต้องการสั่ง "ลบประวัติ" รายการปันผลจำนวนนี้ออกจากประบบหรือไม่? (สถิติ YOC จะถูกคำนวณใหม่)`)) {
-      this.dividendRecords = this.dividendRecords.filter(x => x && x.id !== id);
-      this.saveState();
-      this.refreshUI();
-      alert('🗑️ ลบรายการเงินปันผลสำเร็จ!');
-    }
   }
 
   renderComparison(container) {
@@ -866,31 +829,14 @@ class PixelStewardApp {
     container.innerHTML = `
       <div class="border-pixel" style="padding:15px; background:#1f273e; overflow-x:auto;">
         <table class="retro-table" style="width:100%; border-collapse:collapse; font-size:0.8rem; text-align:left;">
-          <thead>
-            <tr style="background:#111625;">
-              <th style="padding:8px; border:2px solid #000;">ชื่อพอร์ต</th>
-              <th style="padding:8px; border:2px solid #000;">เป้าหมายรวม</th>
-              <th style="padding:8px; border:2px solid #000;">พอร์ตรวมจริง</th>
-              <th style="padding:8px; border:2px solid #000;">ส่วนต่างที่ขาด</th>
-              <th style="padding:8px; border:2px solid #000; color:var(--color-success);">เควสสเกล</th>
-            </tr>
-          </thead>
+          <thead><tr style="background:#111625;"><th style="padding:8px; border:2px solid #000;">ชื่อพอร์ต</th><th style="padding:8px; border:2px solid #000;">เป้าหมายรวม</th><th style="padding:8px; border:2px solid #000;">พอร์ตรวมจริง (THB)</th><th style="padding:8px; border:2px solid #000;">ส่วนต่างที่ขาด (THB)</th><th style="padding:8px; border:2px solid #000; color:var(--color-success);">เควสสเกล</th></tr></thead>
           <tbody>
             ${this.portfolios.map(p => {
               if(!p) return '';
-              
-              const curAmt = (p.current || 0) + (p.cashBuffer || 0); 
-              const goalAmt = p.goalType === 'numeric' ? (p.goal || 0) : 0; 
-              const diff = p.goalType === 'numeric' ? Math.max(goalAmt - curAmt, 0) : 0;
-              const pct = p.goalType === 'numeric' ? (p.goal > 0 ? (curAmt / goalAmt) * 100 : 0) : (p.dcaDoneThisMonth ? 100 : 0);
-              
-              return `<tr>
-                <td style="padding:8px; border:2px solid #000;"><b>${p.name}</b></td>
-                <td style="padding:8px; border:2px solid #000;">${p.goalType==='numeric'?this.formatMoney(p.goal||0,p.category):p.goalSchedule}</td>
-                <td style="padding:8px; border:2px solid #000;">${this.formatMoney(curAmt, p.category)}</td>
-                <td style="padding:8px; border:2px solid #000; color:#ef4444;">${diff > 0 ? this.formatMoney(diff, p.category) : '✔️ เควสเคลียร์'}</td>
-                <td style="padding:8px; border:2px solid #000; font-family:'Press Start 2P'; font-size:0.55rem; color:var(--color-success);">${pct.toFixed(1)}%</td>
-              </tr>`;
+              const r = ['Forex', 'Option'].includes(p.category)?this.exchangeRate:1;
+              const curTHB = ((p.current||0)+(p.cashBuffer||0))*r; const goalTHB = p.goalType==='numeric'?((p.goal||0)*r):0; const diff = p.goalType==='numeric'?Math.max(goalTHB-curTHB,0):0;
+              const pct = p.goalType==='numeric'?(p.goal>0?(curTHB/goalTHB)*100:0):(p.dcaDoneThisMonth?100:0);
+              return `<tr><td style="padding:8px; border:2px solid #000;"><b>${p.name}</b></td><td style="padding:8px; border:2px solid #000;">${p.goalType==='numeric'?this.formatMoney(p.goal||0,p.category):p.goalSchedule}</td><td style="padding:8px; border:2px solid #000;">฿${curTHB.toLocaleString(undefined,{maximumFractionDigits:0})}</td><td style="padding:8px; border:2px solid #000; color:#ef4444;">${diff>0?'฿'+diff.toLocaleString(undefined,{maximumFractionDigits:0}):'✔️ เควสเคลียร์'}</td><td style="padding:8px; border:2px solid #000; font-family:'Press Start 2P'; font-size:0.55rem; color:var(--color-success);">${pct.toFixed(1)}%</td></tr>`;
             }).join('')}
           </tbody>
         </table>
@@ -900,7 +846,7 @@ class PixelStewardApp {
   renderSettings(container) {
     container.innerHTML = `
       <div class="border-pixel" style="padding:20px; background:#1f273e; display:flex; flex-direction:column; gap:12px;">
-        <h3>⚙️ จัดการคลาวด์เซฟสถิติระบบนิเวศ (V.1.8.5)</h3>
+        <h3>⚙️ จัดการคลาวด์เซฟสถิติระบบนิเวศ (V.1.8.6)</h3>
         <p>การเชื่อมต่อ Realtime Firebase: <b>${isFirebaseActive?'🟢 CONNECTED':'🔴 LOCAL ONLY'}</b></p>
         <textarea id="import-json-area" class="input-retro" rows="8" style="width:100%; font-family:monospace; background:#0c1020; color:#10b981; padding:10px; border:2px solid #000;" placeholder="วางข้อความวัตถุดิบ JSON สำรองข้อมูลที่นี่..."></textarea>
         <button class="btn btn-success btn-retro" id="btn-execute-import" style="width:180px;"><span>📥 โหลดฐานข้อมูล</span></button>
@@ -933,6 +879,23 @@ class PixelStewardApp {
     this.saveState(); this.closeModals(); this.refreshUI();
   }
 
+  handleExecuteTransfer() {
+    const srcId = document.getElementById('tf-source').value;
+    const destId = document.getElementById('tf-target').value; const amt = Number(document.getElementById('tf-amount').value); const r = Number(document.getElementById('tf-rate').value)||this.exchangeRate; const src = this.portfolios.find(x=>x && x.id===srcId);
+    if(!src || src.dryPowder < amt) { alert('❌ กระสุนไม่เพียงพอ'); return; }
+    src.dryPowder -= amt;
+    if(destId!=='system') {
+      const dest = this.portfolios.find(x=>x && x.id===destId);
+      if(dest) {
+        const sUSD = ['Forex', 'Option'].includes(src.category); const tUSD = ['Forex', 'Option'].includes(dest.category);
+        let conv = amt; if(sUSD && !tUSD) conv = amt * r; else if(!sUSD && tUSD) conv = amt / r;
+        dest.dryPowder += conv;
+      }
+    }
+    this.saveState(); this.closeModals(); this.refreshUI(); alert('⚡ โยกย้ายจัดสรรเรียบร้อย!');
+  }
+
+  // 📐 จุดเชื่อมต่อที่ 3: เพิ่มเมธอดรับฟอร์มบันทึกเงินปันผล, ปลดล็อก Prompt แก้ไข, และตรรกะสั่งลบข้อมูลออกจากเซฟคลาวด์ Firebase
   handleSaveDividend() {
     const portfolioId = document.getElementById('div-port-id').value;
     const amount = Number(document.getElementById('div-amount').value) || 0;
@@ -956,23 +919,33 @@ class PixelStewardApp {
     this.saveState();
     this.closeModals();
     this.refreshUI();
-    alert('💰 บันทึกรับเงินปันผลเข้าคลังคาร์ทริจสำเร็จ!');
+    alert('💰 บันทึกรับเงินปันผลเข้าคลังสำเร็จ!');
   }
 
-  handleExecuteTransfer() {
-    const srcId = document.getElementById('tf-source').value;
-    const destId = document.getElementById('tf-target').value; const amt = Number(document.getElementById('tf-amount').value); const r = Number(document.getElementById('tf-rate').value)||this.exchangeRate; const src = this.portfolios.find(x=>x && x.id===srcId);
-    if(!src || src.dryPowder < amt) { alert('❌ กระสุนไม่เพียงพอ'); return; }
-    src.dryPowder -= amt;
-    if(destId!=='system') {
-      const dest = this.portfolios.find(x=>x && x.id===destId);
-      if(dest) {
-        const sUSD = ['Forex', 'Option'].includes(src.category); const tUSD = ['Forex', 'Option'].includes(dest.category);
-        let conv = amt; if(sUSD && !tUSD) conv = amt * r; else if(!sUSD && tUSD) conv = amt / r;
-        dest.dryPowder += conv;
+  inlineEditDividend(id) {
+    const r = this.dividendRecords.find(x => x && x.id === id);
+    if (!r) return;
+    
+    const newAmount = prompt(`✏️ ระบุจำนวนตัวเลขเงินปันผลใหม่ที่ถูกต้อง (ยอดเดิมคือ: ${r.amount}):`, r.amount);
+    if (newAmount !== null && !isNaN(Number(newAmount)) && Number(newAmount) > 0) {
+      const newNotes = prompt(`✏️ ระบุโน้ตชื่อหุ้นหรือหมายเหตุช่วยจำใหม่ (ยอดเดิมคือ: ${r.notes || ''}):`, r.notes || '');
+      if (newNotes !== null) {
+        r.amount = Number(newAmount);
+        r.notes = newNotes.trim();
+        this.saveState();
+        this.refreshUI();
+        alert('💾 แก้ไขข้อมูลเงินปันผลสำเร็จและรีสเกลยอด YOC เรียบร้อยครับ!');
       }
     }
-    this.saveState(); this.closeModals(); this.refreshUI(); alert('⚡ โยกย้ายจัดสรรเรียบร้อย!');
+  }
+
+  deleteDividend(id) {
+    if (confirm('⚠️ คุณต้องการสั่ง "ลบประวัติ" รายการปันผลนี้ใช่หรือไม่? ยอดสรุปรวม YOC บนคลาวด์จะทำการคำนวณใหม่ทันที')) {
+      this.dividendRecords = this.dividendRecords.filter(x => x && x.id !== id);
+      this.saveState();
+      this.refreshUI();
+      alert('🗑️ ลบรายการสำเร็จ!');
+    }
   }
 
   openPortfolioModal() { document.getElementById('portfolio-modal').classList.remove('hidden'); }
