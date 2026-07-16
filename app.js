@@ -1,5 +1,5 @@
 /* ==========================================
-   PIXEL STEWARD CORE ENGINE - APP.JS (V.1.8.9 FILE-BASED BACKUP RELEASE)
+   PIXEL STEWARD CORE ENGINE - APP.JS (V.1.9.0 SYSTEM SYNC MASTER RELEASE)
    ========================================== */
 
 const firebaseConfig = {
@@ -186,6 +186,7 @@ class PixelStewardApp {
         this.refreshUI();
       }
     });
+    // 🔧 FIXED: เพิ่มระบบดักเช็กความปลอดภัยป้องกันสคริปต์ล่มตอนทำโหมดออฟไลน์
     firebase.database().ref('retro_trading_journal_data').on('value', (snapshot) => {
       const data = snapshot.val();
       if (data) {
@@ -657,12 +658,18 @@ class PixelStewardApp {
         ${stockPorts.map(p => {
           if(!p) return '';
           const r = this.quarterlyRecords.find(x => x && x.portfolioId === p.id && x.year === year) || { q1:0, f1:0, q2:0, f2:0, q3:0, f3:0, q4:0, f4:0, notes:'' };
+          
+          // 🔧 FIXED LOGIC: ป้องกันการเกิดบั๊กสลับทศนิยมติดลบล้นสเกล 100% กรณีไม่มีฐานทุนงวดก่อนหน้า
           const calcTWR = (cur, flow, prev) => {
+            if (cur === 0 && prev === 0) return { text: '-', cls: 'text-muted' };
             if (!prev || prev <= 0) return { text: 'N/A', cls: 'text-muted' };
             const pct = ((cur - flow - prev) / prev) * 100;
             return { text: (pct >= 0 ? '+' : '') + pct.toFixed(2) + '%', cls: pct >= 0 ? 'text-success' : 'text-danger' };
           };
-          const g2 = calcTWR(r.q2, r.f2, r.q1); const g3 = calcTWR(r.q3, r.f3, r.q2); const g4 = calcTWR(r.q4, r.f4, r.q3);
+          
+          const g2 = calcTWR(r.q2, r.f2, r.q1); 
+          const g3 = calcTWR(r.q3, r.f3, r.q2); 
+          const g4 = calcTWR(r.q4, r.f4, r.q3);
        
           return `
             <div class="border-pixel" style="padding:15px; background:#1f273e;">
@@ -852,10 +859,11 @@ class PixelStewardApp {
       </div>`;
   }
 
-  // 📐 FIXED ARTIFACT METHOD: เปลี่ยนหน้ากากระบบเป็น File Upload และดาวน์โหลดไฟล์สำรองข้อมูล JSON ตรงลงเครื่องคอมพิวเตอร์
   renderSettings(container) {
     container.innerHTML = `
       <div style="display:flex; flex-direction:column; gap:20px;">
+        <div style="display:none;"><input type="number" id="global-usd-rate" value="${this.exchangeRate}"></div>
+
         <div class="border-pixel" style="padding:20px; background:#1f273e; display:flex; flex-direction:column; gap:12px;">
           <h3>📥 IMPORT DATA (โหลดไฟล์ข้อมูลเข้าคลังบราวเซอร์)</h3>
           <p class="text-muted" style="font-size:0.8rem; color:#94a3b8;">เลือกไฟล์สำรองข้อมูล (.json) จากเครื่องของคุณเพื่อกู้คืนฐานข้อมูล:</p>
@@ -868,10 +876,16 @@ class PixelStewardApp {
           <p class="text-muted" style="font-size:0.8rem; color:#94a3b8;">คลิกปุ่มด้านล่างเพื่อทำการดึงข้อมูลคลังพอร์ต สถิติไตรมาส และเงินปันผลทั้งหมด โหลดออกมาเป็นไฟล์ภายนอกเพื่อป้อนเข้า Second Brain:</p>
           <button class="btn btn-primary btn-retro" id="btn-execute-download" style="width:280px; padding:10px;"><span>💾 ดาวน์โหลดไฟล์ JSON สำรองข้อมูล</span></button>
         </div>
+        
+        <div class="border-pixel" style="padding:15px; background:#111625; font-size:0.8rem;">
+          📡 สถานะการซิงก์เครือข่าย Firebase Realtime Cloud: 
+          <b style="color:${isFirebaseActive ? '#10b981' : '#ef4444'};">
+            ${isFirebaseActive ? '🟢 CONNECTED (เชื่อมต่อสำเร็จ)' : '🔴 OFFLINE LOCAL MODE'}
+          </b>
+        </div>
       </div>
     `;
 
-    // 📥 ดักจับตรรกะฝั่งโหลดไฟล์เข้า (FileReader Engine)
     document.getElementById('btn-execute-file-import').addEventListener('click', () => {
       const fileInput = document.getElementById('import-file-input');
       if (!fileInput.files || fileInput.files.length === 0) {
@@ -894,16 +908,13 @@ class PixelStewardApp {
             this.refreshUI();
             alert('🎯 นำเข้าไฟล์เสร็จสิ้น ข้อมูลคาร์ทริจซิงก์เรียบร้อย!');
           } else {
-            alert('❌ โครงสร้างไฟล์ไม่ถูกต้อง (ไม่พบชุดอาร์เรย์พอร์ตลงทุนหลัก)');
+            alert('❌ โครงสร้างไฟล์ไม่ถูกต้อง');
           }
-        } catch (err) {
-          alert('❌ ไฟล์เกิดความเสียหายหรือไม่ใช่ JSON: ' + err.message);
-        }
+        } catch (err) { alert('❌ ไฟล์เกิดความเสียหาย: ' + err.message); }
       };
       reader.readAsText(file);
     });
 
-    // 📤 ดักจับตรรกะการส่งออกดาวน์โหลดไฟล์จริงลงเครื่อง (HTML5 Anchor Downloader Engine)
     document.getElementById('btn-execute-download').addEventListener('click', () => {
       const currentDataState = {
         portfolios: this.portfolios,
@@ -912,7 +923,6 @@ class PixelStewardApp {
         dividendRecords: this.dividendRecords,
         exchangeRate: this.exchangeRate
       };
-      
       const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(currentDataState, null, 2));
       const downloadAnchor = document.createElement('a');
       downloadAnchor.setAttribute("href", dataStr);
@@ -955,50 +965,26 @@ class PixelStewardApp {
     const amount = Number(document.getElementById('div-amount').value) || 0;
     const date = document.getElementById('div-date').value;
     const notes = document.getElementById('div-notes').value || '';
-
-    if (!portfolioId || amount <= 0 || !date) {
-      alert('❌ โปรดกรอกข้อมูลจำนวนเงินและวันที่ให้ครบถ้วนครับ');
-      return;
-    }
-
-    const newDiv = {
-      id: 'd-' + Date.now(),
-      portfolioId,
-      amount,
-      date,
-      notes
-    };
-
+    if (!portfolioId || amount <= 0 || !date) { alert('❌ โปรดกรอกข้อมูลให้ครบถ้วนครับ'); return; }
+    const newDiv = { id: 'd-' + Date.now(), portfolioId, amount, date, notes };
     this.dividendRecords.push(newDiv);
-    this.saveState();
-    this.closeModals();
-    this.refreshUI();
-    alert('💰 บันทึกรับเงินปันผลเข้าคลังสำเร็จ!');
+    this.saveState(); this.closeModals(); this.refreshUI(); alert('💰 บันทึกรับเงินปันผลเข้าคลังสำเร็จ!');
   }
 
   inlineEditDividend(id) {
     const r = this.dividendRecords.find(x => x && x.id === id);
     if (!r) return;
-    
-    const newAmount = prompt(`✏️ ระบุจำนวนตัวเลขเงินปันผลใหม่ที่ถูกต้อง (ยอดเดิมคือ: ${r.amount}):`, r.amount);
+    const newAmount = prompt(`✏️ ระบุจำนวนตัวเลขเงินปันผลใหม่ที่ถูกต้อง:`, r.amount);
     if (newAmount !== null && !isNaN(Number(newAmount)) && Number(newAmount) > 0) {
-      const newNotes = prompt(`✏️ ระบุโน้ตชื่อหุ้นหรือหมายเหตุใหม่ (ยอดเดิมคือ: ${r.notes || ''}):`, r.notes || '');
-      if (newNotes !== null) {
-        r.amount = Number(newAmount);
-        r.notes = newNotes.trim();
-        this.saveState();
-        this.refreshUI();
-        alert('💾 แก้ไขข้อมูลเงินปันผลสำเร็จและรีสเกลยอด YOC เรียบร้อยครับ!');
-      }
+      const newNotes = prompt(`✏️ ระบุโน้ตชื่อหุ้นหรือหมายเหตุใหม่:`, r.notes || '');
+      if (newNotes !== null) { r.amount = Number(newAmount); r.notes = newNotes.trim(); this.saveState(); this.refreshUI(); }
     }
   }
 
   deleteDividend(id) {
     if (confirm('⚠️ คุณต้องการสั่ง "ลบประวัติ" รายการปันผลนี้ใช่หรือไม่?')) {
       this.dividendRecords = this.dividendRecords.filter(x => x && x.id !== id);
-      this.saveState();
-      this.refreshUI();
-      alert('🗑️ ลบรายการสำเร็จ!');
+      this.saveState(); this.refreshUI(); alert('🗑️ ลบรายการสำเร็จ!');
     }
   }
 
