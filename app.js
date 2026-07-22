@@ -1,5 +1,5 @@
 /* ==========================================
-   PIXEL STEWARD CORE ENGINE - APP.JS (V.1.9.0 SYSTEM SYNC MASTER RELEASE)
+   PIXEL STEWARD CORE ENGINE - APP.JS (V.1.9.5 PRODUCTION RELEASE)
    ========================================== */
 
 const firebaseConfig = {
@@ -90,7 +90,7 @@ class PixelStewardApp {
         const val = Number(prompt(`ระบุมูลค่าเงินลงทุนสุทธิในตลับ:`));
         if (name && !isNaN(val) && val >= 0) {
           if (!active.assets) active.assets = [];
-          active.assets.push({ name, value: val });
+          active.assets.push({ name, value: val, costBasis: val });
           this.saveState(); this.refreshUI();
         }
         return;
@@ -186,7 +186,7 @@ class PixelStewardApp {
         this.refreshUI();
       }
     });
-    // 🔧 FIXED: เพิ่มระบบดักเช็กความปลอดภัยป้องกันสคริปต์ล่มตอนทำโหมดออฟไลน์
+
     firebase.database().ref('retro_trading_journal_data').on('value', (snapshot) => {
       const data = snapshot.val();
       if (data) {
@@ -293,6 +293,17 @@ class PixelStewardApp {
 
   refreshUI() {
     this.autoCalculatePortfolios();
+    
+    // 🔧 FEATURE 3: HEADER CONDITIONAL DISPLAY
+    const mainHeader = document.querySelector('.main-header');
+    if (mainHeader) {
+      if (this.activeTab === 'dashboard') {
+        mainHeader.style.display = 'flex';
+      } else {
+        mainHeader.style.display = 'none';
+      }
+    }
+
     const tabContent = document.getElementById('tab-content');
     if (!tabContent) return;
     tabContent.innerHTML = '';
@@ -308,6 +319,7 @@ class PixelStewardApp {
     }
   }
 
+  // 🔧 FEATURE 5: DASHBOARD ANALYSIS MODULES
   renderDashboard(container) {
     const calc = this.getCalculations();
     const topGoals = Array.isArray(this.portfolios) ? this.portfolios.filter(p => p && p.goalType === 'numeric' && p.goal > 0).map(p => ({ name: p.name, pct: ((p.current + p.cashBuffer) / p.goal) * 100 })).sort((a, b) => b.pct - a.pct).slice(0, 3) : [];
@@ -321,25 +333,85 @@ class PixelStewardApp {
       });
     }
     const maxQ = Math.max(q1, q2, q3, q4, 1);
+
+    // 📊 Asset Allocation Breakdown Calculation
+    const categoryTotals = {};
+    if (Array.isArray(this.portfolios)) {
+      this.portfolios.forEach(p => {
+        if (!p) return;
+        const cat = p.category || 'Uncategorized';
+        const rate = ['Forex', 'Option'].includes(cat) ? this.exchangeRate : 1;
+        const valTHB = ((p.current || 0) + (p.cashBuffer || 0)) * rate;
+        categoryTotals[cat] = (categoryTotals[cat] || 0) + valTHB;
+      });
+    }
+    const totalAssetVal = calc.netWorthTHB > 0 ? calc.netWorthTHB : 1;
+    const catBreakdown = Object.keys(categoryTotals).map(cat => ({
+      name: cat,
+      val: categoryTotals[cat],
+      pct: (categoryTotals[cat] / totalAssetVal) * 100
+    })).sort((a, b) => b.val - a.val);
+
+    // 🥄 Dry Powder Readiness Calculation
+    const dryPowderRatio = calc.netWorthTHB > 0 ? (calc.totalDryPowderTHB / calc.netWorthTHB) * 100 : 0;
+    const isAmmoReady = dryPowderRatio >= 5;
+
+    // 🏅 Health Score Calculation (0-100 Score)
+    let healthScore = 50;
+    if (calc.totalDryPowderTHB > 0) healthScore += 20;
+    if (topGoals.length > 0 && topGoals[0].pct >= 50) healthScore += 15;
+    if (this.portfolios.length >= 3) healthScore += 15;
+    healthScore = Math.min(100, healthScore);
+
     container.innerHTML = `
       <div style="display:grid; grid-template-columns:1fr 1fr; gap:20px;">
         <div class="stat-card border-pixel"><div class="stat-header"><span>ความมั่งคั่งสุทธิ</span><span>👑</span></div><div class="stat-value text-accent">฿${calc.netWorthTHB.toLocaleString(undefined,{maximumFractionDigits:2})}</div><div class="stat-desc">เงินทุน: ฿${(calc.totalTHB+(calc.totalUSD*this.exchangeRate)).toLocaleString()} | สำรอง Buffer: ฿${calc.totalCashBufferTHB.toLocaleString()}</div></div>
-        <div class="stat-card border-pixel"><div class="stat-header"><span>Dry Powder (กระสุนรอช้อน)</span><span>🥄</span></div><div class="stat-value" style="color:var(--color-warning)!important;">฿${calc.totalDryPowderTHB.toLocaleString(undefined,{maximumFractionDigits:2})}</div><div class="stat-desc">สภาพคล่องกองกลางสำหรับรอเข้าซื้อคลังของถูก</div></div>
+        <div class="stat-card border-pixel"><div class="stat-header"><span>Dry Powder (กระสุนรอช้อน)</span><span>🥄</span></div><div class="stat-value" style="color:var(--color-warning)!important;">฿${calc.totalDryPowderTHB.toLocaleString(undefined,{maximumFractionDigits:2})}</div><div class="stat-desc">สัดส่วนกระสุน: ${dryPowderRatio.toFixed(1)}% ของพอร์ตรวม (${isAmmoReady ? '🟢 พร้อมลุย' : '🔴 กระสุนต่ำ'})</div></div>
       </div>
-      <div style="display:grid; grid-template-columns:1.2fr 0.8fr; gap:20px; margin-top:20px;">
-        <div class="border-pixel" style="padding:20px; background:#1f273e;">
-          <h4 style="font-family:'Press Start 2P'; font-size:0.65rem; color:#3b82f6; margin-bottom:15px;">📊 สรุปความเติบโตรายไตรมาส (${yr})</h4>
-          <div style="display:flex; justify-content:space-around; align-items:flex-end; height:150px; background:#111625; padding:15px; border:2px solid #000;">
-            <div style="width:20%; display:flex; flex-direction:column; align-items:center; height:100%; justify-content:flex-end;"><div style="font-size:0.65rem;">฿${q1.toLocaleString(undefined,{maximumFractionDigits:0})}</div><div style="width:100%; height:${(q1/maxQ)*100}%; background:var(--color-primary); border:2px solid #000;"></div><div style="font-size:0.7rem; margin-top:4px;">Q1</div></div>
-            <div style="width:20%; display:flex; flex-direction:column; align-items:center; height:100%; justify-content:flex-end;"><div style="font-size:0.65rem;">฿${q2.toLocaleString(undefined,{maximumFractionDigits:0})}</div><div style="width:100%; height:${(q2/maxQ)*100}%; background:var(--color-success); border:2px solid #000;"></div><div style="font-size:0.7rem; margin-top:4px;">Q2</div></div>
-            <div style="width:20%; display:flex; flex-direction:column; align-items:center; height:100%; justify-content:flex-end;"><div style="font-size:0.65rem;">฿${q3.toLocaleString(undefined,{maximumFractionDigits:0})}</div><div style="width:100%; height:${(q3/maxQ)*100}%; background:var(--color-secondary); border:2px solid #000;"></div><div style="font-size:0.7rem; margin-top:4px;">Q3</div></div>
-            <div style="width:20%; display:flex; flex-direction:column; align-items:center; height:100%; justify-content:flex-end;"><div style="font-size:0.65rem;">฿${q4.toLocaleString(undefined,{maximumFractionDigits:0})}</div><div style="width:100%; height:${(q4/maxQ)*100}%; background:var(--color-accent); border:2px solid #000;"></div><div style="font-size:0.7rem; margin-top:4px;">Q4</div></div>
+
+      <div style="display:grid; grid-template-columns:1fr 1.2fr 0.8fr; gap:20px; margin-top:20px;">
+        <!-- Analysis 1: Asset Allocation -->
+        <div class="border-pixel" style="padding:15px; background:#1f273e;">
+          <h4 style="font-family:'Press Start 2P'; font-size:0.6rem; color:#10b981; margin-bottom:12px;">📊 ASSET ALLOCATION</h4>
+          <div style="display:flex; flex-direction:column; gap:8px;">
+            ${catBreakdown.length === 0 ? '<p class="text-muted" style="font-size:0.8rem;">ไม่มีสินทรัพย์</p>' : catBreakdown.map(c => `
+              <div>
+                <div style="display:flex; justify-content:space-between; font-size:0.75rem; margin-bottom:2px;">
+                  <span>${c.name}</span>
+                  <b>฿${c.val.toLocaleString(undefined,{maximumFractionDigits:0})} (${c.pct.toFixed(1)}%)</b>
+                </div>
+                <div class="progress-container" style="height:8px; background:#111625; border:1px solid #000;">
+                  <div class="progress-bar-fill-animated" style="width:${Math.min(100, c.pct)}%; background:#3b82f6; height:100%;"></div>
+                </div>
+              </div>
+            `).join('')}
           </div>
         </div>
-        <div class="border-pixel" style="padding:20px; background:#1f273e;">
-          <h4 style="font-family:'Press Start 2P'; font-size:0.65rem; color:var(--color-accent); margin-bottom:12px;">🚩 เเวสใกล้บรรลุเป้าหมาย</h4>
-          <div style="display:flex; flex-direction:column; gap:10px;">
-            ${this.portfolios.length===0?'<p class="text-muted" style="text-align:center;font-size:0.8rem;padding-top:20px;">คลังว่างเปล่า โปรดเพิ่มพอร์ตใหม่</p>':topGoals.map(g => `<div style="background:#111625; padding:8px; border:2px solid #000;"><div style="display:flex; justify-content:space-between; font-size:0.8rem;"><span>${g.name}</span><b style="color:var(--color-success);">${g.pct.toFixed(1)}%</b></div><div class="progress-container" style="margin-top:4px; height:6px;"><div class="progress-bar-fill" style="width:${Math.min(100,g.pct)}%; background:var(--color-accent); height:100%;"></div></div></div>`).join('')}
+
+        <!-- Quarterly Growth Bar -->
+        <div class="border-pixel" style="padding:15px; background:#1f273e;">
+          <h4 style="font-family:'Press Start 2P'; font-size:0.6rem; color:#3b82f6; margin-bottom:12px;">📈 สรุปความเติบโตรายไตรมาส (${yr})</h4>
+          <div style="display:flex; justify-content:space-around; align-items:flex-end; height:130px; background:#111625; padding:12px; border:2px solid #000;">
+            <div style="width:20%; display:flex; flex-direction:column; align-items:center; height:100%; justify-content:flex-end;"><div style="font-size:0.6rem;">฿${q1.toLocaleString(undefined,{maximumFractionDigits:0})}</div><div style="width:100%; height:${(q1/maxQ)*100}%; background:var(--color-primary); border:2px solid #000;"></div><div style="font-size:0.65rem; margin-top:4px;">Q1</div></div>
+            <div style="width:20%; display:flex; flex-direction:column; align-items:center; height:100%; justify-content:flex-end;"><div style="font-size:0.6rem;">฿${q2.toLocaleString(undefined,{maximumFractionDigits:0})}</div><div style="width:100%; height:${(q2/maxQ)*100}%; background:var(--color-success); border:2px solid #000;"></div><div style="font-size:0.65rem; margin-top:4px;">Q2</div></div>
+            <div style="width:20%; display:flex; flex-direction:column; align-items:center; height:100%; justify-content:flex-end;"><div style="font-size:0.6rem;">฿${q3.toLocaleString(undefined,{maximumFractionDigits:0})}</div><div style="width:100%; height:${(q3/maxQ)*100}%; background:var(--color-secondary); border:2px solid #000;"></div><div style="font-size:0.65rem; margin-top:4px;">Q3</div></div>
+            <div style="width:20%; display:flex; flex-direction:column; align-items:center; height:100%; justify-content:flex-end;"><div style="font-size:0.6rem;">฿${q4.toLocaleString(undefined,{maximumFractionDigits:0})}</div><div style="width:100%; height:${(q4/maxQ)*100}%; background:var(--color-accent); border:2px solid #000;"></div><div style="font-size:0.65rem; margin-top:4px;">Q4</div></div>
+          </div>
+        </div>
+
+        <!-- Analysis 3: Health Score & Top Goals -->
+        <div style="display:flex; flex-direction:column; gap:12px;">
+          <div class="border-pixel" style="padding:12px; background:#1f273e; text-align:center;">
+            <h5 style="font-family:'Press Start 2P'; font-size:0.55rem; color:var(--color-accent); margin-bottom:4px;">🩺 PORTFOLIO HEALTH</h5>
+            <div style="font-size:1.5rem; font-family:'Press Start 2P'; color:#10b981; margin:4px 0;">${healthScore}/100</div>
+            <div style="font-size:0.75rem; color:#94a3b8;">${healthScore >= 80 ? '🌟 พอร์ตสเกลสมบูรณ์แบบ!' : '🛡️ สภาพพอร์ตมั่นคงปลอดภัย'}</div>
+          </div>
+
+          <div class="border-pixel" style="padding:12px; background:#1f273e;">
+            <h4 style="font-family:'Press Start 2P'; font-size:0.55rem; color:var(--color-accent); margin-bottom:8px;">🚩 เควสใกล้บรรลุเป้าหมาย</h4>
+            <div style="display:flex; flex-direction:column; gap:6px;">
+              ${this.portfolios.length===0?'<p class="text-muted" style="text-align:center;font-size:0.8rem;">คลังว่างเปล่า</p>':topGoals.map(g => `<div style="background:#111625; padding:6px; border:2px solid #000;"><div style="display:flex; justify-content:space-between; font-size:0.75rem;"><span>${g.name}</span><b style="color:var(--color-success);">${g.pct.toFixed(1)}%</b></div><div class="progress-container" style="margin-top:2px; height:5px;"><div class="progress-bar-fill" style="width:${Math.min(100,g.pct)}%; background:var(--color-accent); height:100%;"></div></div></div>`).join('')}
+            </div>
           </div>
         </div>
       </div>
@@ -474,12 +546,15 @@ class PixelStewardApp {
     }
   }
 
+  // 🔧 FEATURE 2: BACKWARD-COMPATIBLE COST BASIS DEPOSIT
   modularDepositAsset(portId, assetIdx) {
     const p = this.portfolios.find(x => x && x.id === portId);
     if (p && p.assets && p.assets[assetIdx]) {
-      const amount = prompt(`📥 [ฝากเสบียงเพิ่ม/➕] ระบุจำนวนเงินที่ต้องการเติมเข้าช่อง "${p.assets[assetIdx].name}":`);
+      const amount = prompt(`📥 [ฝากเสบียงเพิ่ม/➕] ระบุจำนวนเงินต้นที่ต้องการเติมเข้าช่อง "${p.assets[assetIdx].name}":`);
       if (amount !== null && !isNaN(Number(amount)) && Number(amount) > 0) {
-        p.assets[assetIdx].value += Number(amount);
+        const numAmt = Number(amount);
+        p.assets[assetIdx].value += numAmt;
+        p.assets[assetIdx].costBasis = (p.assets[assetIdx].costBasis || (p.assets[assetIdx].value - numAmt)) + numAmt;
         this.saveState(); this.refreshUI();
       }
     }
@@ -494,7 +569,9 @@ class PixelStewardApp {
           alert('❌ จำนวนเงินถอนออกมากกว่าเสบียงคงเหลือในตลับสินทรัพย์ย่อยครับ');
           return;
         }
-        p.assets[assetIdx].value -= Number(amount);
+        const numAmt = Number(amount);
+        p.assets[assetIdx].value -= numAmt;
+        p.assets[assetIdx].costBasis = Math.max(0, (p.assets[assetIdx].costBasis || p.assets[assetIdx].value) - numAmt);
         this.saveState(); this.refreshUI();
       }
     }
@@ -648,6 +725,7 @@ class PixelStewardApp {
     }, 0);
   }
 
+  // 🔧 FEATURE 1: QUARTERLY RENDERING WITH STRICT EMPTY DATA HANDLING
   renderQuarterly(container) {
     const stockPorts = Array.isArray(this.portfolios) ? this.portfolios.filter(p => p && !['Forex', 'Option'].includes(p.category)) : [];
     const year = new Date().getFullYear();
@@ -659,13 +737,15 @@ class PixelStewardApp {
           if(!p) return '';
           const r = this.quarterlyRecords.find(x => x && x.portfolioId === p.id && x.year === year) || { q1:0, f1:0, q2:0, f2:0, q3:0, f3:0, q4:0, f4:0, notes:'' };
           
-          // 🔧 FIXED LOGIC: ป้องกันการเกิดบั๊กสลับทศนิยมติดลบล้นสเกล 100% กรณีไม่มีฐานทุนงวดก่อนหน้า
+          // Strict TWR Logic: No calculation for unrecorded or empty quarters
           const calcTWR = (cur, flow, prev) => {
-            if (cur === 0 && prev === 0) return { text: '-', cls: 'text-muted' };
-            if (!prev || prev <= 0) return { text: 'N/A', cls: 'text-muted' };
+            if (!cur || cur <= 0) return { text: '-', cls: 'text-muted' };
+            if (!prev || prev <= 0) return { text: 'Base', cls: 'text-muted' };
             const pct = ((cur - flow - prev) / prev) * 100;
             return { text: (pct >= 0 ? '+' : '') + pct.toFixed(2) + '%', cls: pct >= 0 ? 'text-success' : 'text-danger' };
           };
+
+          const formatQVal = (val) => (val && val > 0) ? `฿${val.toLocaleString()}` : '-';
           
           const g2 = calcTWR(r.q2, r.f2, r.q1); 
           const g3 = calcTWR(r.q3, r.f3, r.q2); 
@@ -682,10 +762,10 @@ class PixelStewardApp {
               </div>
    
               <div style="display:grid; grid-template-columns:repeat(4, 1fr); gap:12px; text-align:center;">
-                <div class="border-pixel-inset" style="padding:8px; background:#111625;"><b style="font-size:0.75rem; color:var(--color-accent);">Q1</b><div>฿${(r.q1||0).toLocaleString()}</div><span style="font-size:0.65rem; color:#64748b;">อัดฉีด: ฿${(r.f1||0).toLocaleString()}</span><div style="font-size:0.75rem;" class="text-muted">Base</div></div>
-                <div class="border-pixel-inset" style="padding:8px; background:#111625;"><b style="font-size:0.75rem; color:var(--color-success);">Q2</b><div>฿${(r.q2||0).toLocaleString()}</div><span style="font-size:0.65rem; color:#64748b;">อัดฉีด: ฿${(r.f2||0).toLocaleString()}</span><div style="font-size:0.75rem;" class="${g2.cls}">โต: ${g2.text}</div></div>
-                <div class="border-pixel-inset" style="padding:8px; background:#111625;"><b style="font-size:0.75rem; color:var(--color-secondary);">Q3</b><div>฿${(r.q3||0).toLocaleString()}</div><span style="font-size:0.65rem; color:#64748b;">อัดฉีด: ฿${(r.f3||0).toLocaleString()}</span><div style="font-size:0.75rem;" class="${g3.cls}">โต: ${g3.text}</div></div>
-                <div class="border-pixel-inset" style="padding:8px; background:#111625;"><b style="font-size:0.75rem; color:var(--color-accent);">Q4</b><div>฿${(r.q4||0).toLocaleString()}</div><span style="font-size:0.65rem; color:#64748b;">อัดฉีด: ฿${(r.f4||0).toLocaleString()}</span><div style="font-size:0.75rem;" class="${g4.cls}">โต: ${g4.text}</div></div>
+                <div class="border-pixel-inset" style="padding:8px; background:#111625;"><b style="font-size:0.75rem; color:var(--color-accent);">Q1</b><div>${formatQVal(r.q1)}</div><span style="font-size:0.65rem; color:#64748b;">อัดฉีด: ฿${(r.f1||0).toLocaleString()}</span><div style="font-size:0.75rem;" class="text-muted">Base</div></div>
+                <div class="border-pixel-inset" style="padding:8px; background:#111625;"><b style="font-size:0.75rem; color:var(--color-success);">Q2</b><div>${formatQVal(r.q2)}</div><span style="font-size:0.65rem; color:#64748b;">อัดฉีด: ฿${(r.f2||0).toLocaleString()}</span><div style="font-size:0.75rem;" class="${g2.cls}">โต: ${g2.text}</div></div>
+                <div class="border-pixel-inset" style="padding:8px; background:#111625;"><b style="font-size:0.75rem; color:var(--color-secondary);">Q3</b><div>${formatQVal(r.q3)}</div><span style="font-size:0.65rem; color:#64748b;">อัดฉีด: ฿${(r.f3||0).toLocaleString()}</span><div style="font-size:0.75rem;" class="${g3.cls}">โต: ${g3.text}</div></div>
+                <div class="border-pixel-inset" style="padding:8px; background:#111625;"><b style="font-size:0.75rem; color:var(--color-accent);">Q4</b><div>${formatQVal(r.q4)}</div><span style="font-size:0.65rem; color:#64748b;">อัดฉีด: ฿${(r.f4||0).toLocaleString()}</span><div style="font-size:0.75rem;" class="${g4.cls}">โต: ${g4.text}</div></div>
               </div>
             </div>`;
         }).join('')}
@@ -840,19 +920,32 @@ class PixelStewardApp {
     const select = document.getElementById('div-port-id'); if(select && Array.isArray(this.portfolios)) select.innerHTML = this.portfolios.map(p=>p?`<option value="${p.id}">${p.name}</option>`:'').join('');
   }
 
+  // 🔧 FEATURE 4: EXP PROGRESS BAR IN COMPARISON TABLE
   renderComparison(container) {
     if(!Array.isArray(this.portfolios) || this.portfolios.length===0){ container.innerHTML='<div class="border-pixel" style="padding:20px; background:#1f273e;">ไม่มีตารางเปรียบเทียบ (ตลับเซฟว่างเปล่า)</div>'; return; }
     container.innerHTML = `
       <div class="border-pixel" style="padding:15px; background:#1f273e; overflow-x:auto;">
         <table class="retro-table" style="width:100%; border-collapse:collapse; font-size:0.8rem; text-align:left;">
-          <thead><tr style="background:#111625;"><th style="padding:8px; border:2px solid #000;">ชื่อพอร์ต</th><th style="padding:8px; border:2px solid #000;">เป้าหมายรวม</th><th style="padding:8px; border:2px solid #000;">พอร์ตรวมจริง (THB)</th><th style="padding:8px; border:2px solid #000;">ส่วนต่างที่ขาด (THB)</th><th style="padding:8px; border:2px solid #000; color:var(--color-success);">เควสสเกล</th></tr></thead>
+          <thead><tr style="background:#111625;"><th style="padding:8px; border:2px solid #000;">ชื่อพอร์ต</th><th style="padding:8px; border:2px solid #000;">เป้าหมายรวม</th><th style="padding:8px; border:2px solid #000;">พอร์ตรวมจริง (THB)</th><th style="padding:8px; border:2px solid #000;">ส่วนต่างที่ขาด (THB)</th><th style="padding:8px; border:2px solid #000; color:var(--color-success); min-width:180px;">เควสสเกล (EXP Bar)</th></tr></thead>
           <tbody>
             ${this.portfolios.map(p => {
               if(!p) return '';
               const r = ['Forex', 'Option'].includes(p.category)?this.exchangeRate:1;
               const curTHB = ((p.current||0)+(p.cashBuffer||0))*r; const goalTHB = p.goalType==='numeric'?((p.goal||0)*r):0; const diff = p.goalType==='numeric'?Math.max(goalTHB-curTHB,0):0;
               const pct = p.goalType==='numeric'?(p.goal>0?(curTHB/goalTHB)*100:0):(p.dcaDoneThisMonth?100:0);
-              return `<tr><td style="padding:8px; border:2px solid #000;"><b>${p.name}</b></td><td style="padding:8px; border:2px solid #000;">${p.goalType==='numeric'?this.formatMoney(p.goal||0,p.category):p.goalSchedule}</td><td style="padding:8px; border:2px solid #000;">฿${curTHB.toLocaleString(undefined,{maximumFractionDigits:0})}</td><td style="padding:8px; border:2px solid #000; color:#ef4444;">${diff>0?'฿'+diff.toLocaleString(undefined,{maximumFractionDigits:0}):'✔️ เควสเคลียร์'}</td><td style="padding:8px; border:2px solid #000; font-family:'Press Start 2P'; font-size:0.55rem; color:var(--color-success);">${pct.toFixed(1)}%</td></tr>`;
+              const fillPct = Math.min(100, Math.max(0, pct));
+              return `<tr>
+                <td style="padding:8px; border:2px solid #000;"><b>${p.name}</b></td>
+                <td style="padding:8px; border:2px solid #000;">${p.goalType==='numeric'?this.formatMoney(p.goal||0,p.category):p.goalSchedule}</td>
+                <td style="padding:8px; border:2px solid #000;">฿${curTHB.toLocaleString(undefined,{maximumFractionDigits:0})}</td>
+                <td style="padding:8px; border:2px solid #000; color:#ef4444;">${diff>0?'฿'+diff.toLocaleString(undefined,{maximumFractionDigits:0}):'✔️ เควสเคลียร์'}</td>
+                <td style="padding:8px; border:2px solid #000;">
+                  <div style="position:relative; width:100%; height:18px; background:#111625; border:2px solid #000; display:flex; align-items:center; overflow:hidden;">
+                    <div class="progress-bar-fill-animated" style="width:${fillPct}%; background:var(--color-success); height:100%; transition:width 0.4s ease;"></div>
+                    <span style="position:absolute; width:100%; text-align:center; font-family:'Press Start 2P'!important; font-size:0.55rem!important; color:#fff; text-shadow:1px 1px 0 #000, -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000; z-index:2;">${pct.toFixed(1)}%</span>
+                  </div>
+                </td>
+              </tr>`;
             }).join('')}
           </tbody>
         </table>
