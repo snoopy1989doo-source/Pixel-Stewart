@@ -209,6 +209,7 @@ class PixelStewardApp {
     });
   }
 
+  // 🎛️ DYNAMIC MULTI-PORTFOLIO AUTO CALCULATOR
   autoCalculatePortfolios() {
     if (!Array.isArray(this.portfolios)) return;
     this.portfolios.forEach(p => {
@@ -225,8 +226,15 @@ class PixelStewardApp {
           const totalDep = accCFs.filter(c => c.type === 'Deposit').reduce((sum, c) => sum + (Number(c.amount) || 0), 0);
           const totalWit = accCFs.filter(c => c.type === 'Withdraw').reduce((sum, c) => sum + (Number(c.amount) || 0), 0);
           const cumProfit = accTrades.reduce((sum, t) => sum + (Number(t.pnl) || 0), 0);
-    
-          const baseBalance = targetName === 'Demo' ? (Number(this.retroJournalRawData.balance) || 0) : 0;
+
+          // 💡 Dynamic Start Balance Retrieval
+          let baseBalance = 0;
+          if (this.retroJournalRawData.balances && this.retroJournalRawData.balances[targetName] !== undefined) {
+            baseBalance = Number(this.retroJournalRawData.balances[targetName]) || 0;
+          } else if (targetName === 'Demo' && this.retroJournalRawData.balance !== undefined) {
+            baseBalance = Number(this.retroJournalRawData.balance) || 0;
+          }
+
           p.current = baseBalance + totalDep - totalWit + cumProfit;
           p.cashBuffer = 0;
         }
@@ -294,7 +302,7 @@ class PixelStewardApp {
   refreshUI() {
     this.autoCalculatePortfolios();
     
-    // 🔧 FEATURE 3: HEADER CONDITIONAL DISPLAY
+    // HEADER CONDITIONAL DISPLAY
     const mainHeader = document.querySelector('.main-header');
     if (mainHeader) {
       if (this.activeTab === 'dashboard') {
@@ -319,7 +327,6 @@ class PixelStewardApp {
     }
   }
 
-  // 🔧 FEATURE 5: DASHBOARD ANALYSIS MODULES
   renderDashboard(container) {
     const calc = this.getCalculations();
     const topGoals = Array.isArray(this.portfolios) ? this.portfolios.filter(p => p && p.goalType === 'numeric' && p.goal > 0).map(p => ({ name: p.name, pct: ((p.current + p.cashBuffer) / p.goal) * 100 })).sort((a, b) => b.pct - a.pct).slice(0, 3) : [];
@@ -334,7 +341,7 @@ class PixelStewardApp {
     }
     const maxQ = Math.max(q1, q2, q3, q4, 1);
 
-    // 📊 Asset Allocation Breakdown Calculation
+    // Asset Allocation Breakdown Calculation
     const categoryTotals = {};
     if (Array.isArray(this.portfolios)) {
       this.portfolios.forEach(p => {
@@ -352,11 +359,11 @@ class PixelStewardApp {
       pct: (categoryTotals[cat] / totalAssetVal) * 100
     })).sort((a, b) => b.val - a.val);
 
-    // 🥄 Dry Powder Readiness Calculation
+    // Dry Powder Readiness Calculation
     const dryPowderRatio = calc.netWorthTHB > 0 ? (calc.totalDryPowderTHB / calc.netWorthTHB) * 100 : 0;
     const isAmmoReady = dryPowderRatio >= 5;
 
-    // 🏅 Health Score Calculation (0-100 Score)
+    // Health Score Calculation
     let healthScore = 50;
     if (calc.totalDryPowderTHB > 0) healthScore += 20;
     if (topGoals.length > 0 && topGoals[0].pct >= 50) healthScore += 15;
@@ -546,7 +553,6 @@ class PixelStewardApp {
     }
   }
 
-  // 🔧 FEATURE 2: BACKWARD-COMPATIBLE COST BASIS DEPOSIT
   modularDepositAsset(portId, assetIdx) {
     const p = this.portfolios.find(x => x && x.id === portId);
     if (p && p.assets && p.assets[assetIdx]) {
@@ -725,7 +731,6 @@ class PixelStewardApp {
     }, 0);
   }
 
-  // 🔧 FEATURE 1: QUARTERLY RENDERING WITH STRICT EMPTY DATA HANDLING
   renderQuarterly(container) {
     const stockPorts = Array.isArray(this.portfolios) ? this.portfolios.filter(p => p && !['Forex', 'Option'].includes(p.category)) : [];
     const year = new Date().getFullYear();
@@ -737,7 +742,6 @@ class PixelStewardApp {
           if(!p) return '';
           const r = this.quarterlyRecords.find(x => x && x.portfolioId === p.id && x.year === year) || { q1:0, f1:0, q2:0, f2:0, q3:0, f3:0, q4:0, f4:0, notes:'' };
           
-          // Strict TWR Logic: No calculation for unrecorded or empty quarters
           const calcTWR = (cur, flow, prev) => {
             if (!cur || cur <= 0) return { text: '-', cls: 'text-muted' };
             if (!prev || prev <= 0) return { text: 'Base', cls: 'text-muted' };
@@ -920,7 +924,6 @@ class PixelStewardApp {
     const select = document.getElementById('div-port-id'); if(select && Array.isArray(this.portfolios)) select.innerHTML = this.portfolios.map(p=>p?`<option value="${p.id}">${p.name}</option>`:'').join('');
   }
 
-  // 🔧 FEATURE 4: EXP PROGRESS BAR IN COMPARISON TABLE
   renderComparison(container) {
     if(!Array.isArray(this.portfolios) || this.portfolios.length===0){ container.innerHTML='<div class="border-pixel" style="padding:20px; background:#1f273e;">ไม่มีตารางเปรียบเทียบ (ตลับเซฟว่างเปล่า)</div>'; return; }
     container.innerHTML = `
