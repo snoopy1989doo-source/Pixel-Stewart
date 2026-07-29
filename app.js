@@ -1,7 +1,54 @@
 /* ==========================================
-   PIXEL STEWARD CORE ENGINE - APP.JS (V.1.9.5 PRODUCTION RELEASE)
+   PIXEL STEWARD CORE ENGINE - APP.JS (V.1.9.5 PRODUCTION RELEASE + TIME ENGINE)
    ========================================== */
 
+// ⏰ 1. RETRO TIME SYSTEM ENGINE (AUTO SCENE & CLOCK CONTROLLER)
+class TimeSystemEngine {
+  constructor() {
+    this.imgElement = document.getElementById('time-scene-img');
+    this.badgeElement = document.getElementById('time-badge-label');
+    this.clockElement = document.getElementById('time-clock-display');
+    this.init();
+  }
+
+  init() {
+    this.updateTimeSystem();
+    setInterval(() => this.updateTimeSystem(), 1000);
+  }
+
+  getTimeState(hours) {
+    if (hours >= 6 && hours < 12) {
+      return { label: '🌅 MORNING', imgSrc: 'assets/time/morning.png' };
+    } else if (hours >= 12 && hours < 17) {
+      return { label: '☀️ AFTERNOON', imgSrc: 'assets/time/afternoon.png' };
+    } else if (hours >= 17 && hours < 20) {
+      return { label: '🌆 EVENING', imgSrc: 'assets/time/evening.png' };
+    } else {
+      return { label: '🌙 NIGHT', imgSrc: 'assets/time/night.png' };
+    }
+  }
+
+  updateTimeSystem() {
+    const now = new Date();
+    const hours = now.getHours();
+    const timeState = this.getTimeState(hours);
+
+    // อัปเดตสแนปช็อตภาพและ Badge สภาวะเวลา
+    if (this.imgElement && !this.imgElement.src.endsWith(timeState.imgSrc)) {
+      this.imgElement.src = timeState.imgSrc;
+    }
+    if (this.badgeElement && this.badgeElement.innerText !== timeState.label) {
+      this.badgeElement.innerText = timeState.label;
+    }
+
+    // อัปเดตตัวเลขนาฬิกาดิจิทัล HH:MM:SS
+    if (this.clockElement) {
+      this.clockElement.innerText = now.toLocaleTimeString('en-US', { hour12: false });
+    }
+  }
+}
+
+// 🔥 2. FIREBASE REALTIME CLOUD CONFIGURATION
 const firebaseConfig = {
   apiKey: "AIzaSyD-FLJd2vKaFX-2F8kzE87inrmGEH5pyzY",
   authDomain: "pixel-steward-db.firebaseapp.com",
@@ -52,6 +99,9 @@ class PixelStewardApp {
   }
 
   init() {
+    // ⏰ เริ่มการทำงานของ Time Engine Widget
+    this.timeEngine = new TimeSystemEngine();
+
     const storedPorts = localStorage.getItem('ps_portfolios_v4');
     const storedQuarters = localStorage.getItem('ps_quarterly_v4');
     const storedMonthlies = localStorage.getItem('ps_monthly_v4');
