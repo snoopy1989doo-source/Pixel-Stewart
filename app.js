@@ -1,5 +1,5 @@
 /* ==========================================
-   PIXEL STEWARD CORE ENGINE - APP.JS (V.2.0.0 CLEAN RELEASE)
+   PIXEL STEWARD CORE ENGINE - APP.JS (V.2.0.0 FULL PATCH RELEASE)
    ========================================== */
 
 // ⏰ 1. RETRO TIME SYSTEM ENGINE
@@ -87,11 +87,21 @@ class PixelStewardApp {
   formatMoney(val, category) {
     const isUSD = category === 'Option';
     const sym = isUSD ? '$' : '฿';
-    const numStr = Number(val).toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 2 });
+    const numStr = Number(val || 0).toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 2 });
     return `<span class="pixel-money">${sym}${numStr}</span>`;
   }
 
-  // 🎯 DYNAMIC CATEGORY ICON ENGINE
+  // 🚀 DUAL-FALLBACK TICKER LOGO ENGINE (เฉพาะสินทรัพย์ย่อย)
+  getTickerLogoHtml(assetName, category) {
+    const cleanTicker = (assetName || '').trim().toUpperCase().split(' ')[0];
+    const primaryUrl = `https://assets.parqet.com/logos/symbol/${cleanTicker}`;
+    const fallbackUrl = `https://logo.clearbit.com/${cleanTicker.toLowerCase()}.com`;
+    const defaultIconUrl = this.getCategoryIconPath(category);
+
+    return `<img src="${primaryUrl}" class="ticker-logo-img" 
+              onerror="this.onerror=null; this.src='${fallbackUrl}'; this.onerror=function(){this.src='${defaultIconUrl}';}" alt="${cleanTicker}">`;
+  }
+
   getCategoryIconPath(category) {
     const cat = (category || '').toLowerCase();
     if (cat.includes('option')) return './assets/icons/icon-daimon.png';
@@ -138,11 +148,11 @@ class PixelStewardApp {
         let active = this.portfolios.find(p => p.id === this.selectedPortId);
         if (!active && this.portfolios.length > 0) active = this.portfolios[0];
         if (!active) { alert('❌ โปรดเพิ่มตลับพอร์ตหลักก่อนจัดการสินทรัพย์ย่อยครับ'); return; }
-        const name = prompt('กรอกชื่อสินทรัพย์ย่อย:');
+        const name = prompt('กรอก Ticker/ชื่อสินทรัพย์ย่อย (เช่น NVDA, AAPL, BTC):');
         const val = Number(prompt(`ระบุมูลค่าเงินลงทุนสุทธิในตลับ:`));
         if (name && !isNaN(val) && val >= 0) {
           if (!active.assets) active.assets = [];
-          active.assets.push({ name, value: val, costBasis: val });
+          active.assets.push({ name: name.trim().toUpperCase(), value: val, costBasis: val });
           this.saveState(); this.refreshUI();
         }
         return;
@@ -308,7 +318,6 @@ class PixelStewardApp {
     return `🔮 เลเวลอัปขั้นถัดไป: ขาดอีกประมาณ ${p.category === 'Option' ? '$' : '฿'}${needed.toLocaleString(undefined,{maximumFractionDigits:0})}`;
   }
 
-  // 👾 MELO AVATAR MOOD GENERATOR
   getMeloAvatarState(score) {
     if (score >= 90) {
       return { imgSrc: './assets/avatar/avatar-excited.png', text: '🤩 พอร์ตสเกลสุดยอด มหาอัศวิน!', cls: 'color:#3b82f6;' };
@@ -406,7 +415,6 @@ class PixelStewardApp {
       </div>
 
       <div style="display:grid; grid-template-columns:1fr 1.2fr 0.8fr; gap:20px; margin-top:20px;">
-        <!-- Asset Allocation -->
         <div class="border-pixel" style="padding:15px; background:#1f273e;">
           <h4 style="font-family:'Press Start 2P'; font-size:0.6rem; color:#10b981; margin-bottom:12px; display:flex; align-items:center;">
             <img src="./assets/icons/icon-gems.png" alt="Gems" class="card-title-icon"> ASSET ALLOCATION
@@ -426,7 +434,6 @@ class PixelStewardApp {
           </div>
         </div>
 
-        <!-- Quarterly Growth Bar -->
         <div class="border-pixel" style="padding:15px; background:#1f273e;">
           <h4 style="font-family:'Press Start 2P'; font-size:0.6rem; color:#3b82f6; margin-bottom:12px; display:flex; align-items:center;">
             <img src="./assets/icons/icon-chart.png" alt="Chart" class="card-title-icon"> สรุปความเติบโตรายไตรมาส (${yr})
@@ -439,14 +446,12 @@ class PixelStewardApp {
           </div>
         </div>
 
-        <!-- Portfolio Health & Melo Avatar Box -->
         <div style="display:flex; flex-direction:column; gap:12px;">
           <div class="border-pixel" style="padding:12px; background:#1f273e; text-align:center;">
             <h5 style="font-family:'Press Start 2P'; font-size:0.55rem; color:var(--color-accent); margin-bottom:6px; display:flex; align-items:center; justify-content:center;">
               <img src="./assets/icons/icon-heart.png" alt="Heart" class="card-title-icon"> PORTFOLIO HEALTH
             </h5>
             
-            <!-- 👾 MELO AVATAR DISPLAY (ตัวเลือกที่ 2) -->
             <div style="display:flex; align-items:center; justify-content:center; gap:10px; margin:8px 0; background:#111625; padding:8px; border:2px solid #000;">
               <div style="width:48px; height:48px; border:2px solid #000; overflow:hidden; background:#000; flex-shrink:0;">
                 <img src="${meloState.imgSrc}" alt="Melo Avatar" style="width:100%; height:100%; object-fit:cover; image-rendering:pixelated;">
@@ -456,7 +461,6 @@ class PixelStewardApp {
                 <div style="font-size:0.7rem; font-weight:bold; ${meloState.cls}">${meloState.text}</div>
               </div>
             </div>
-
           </div>
 
           <div class="border-pixel" style="padding:12px; background:#1f273e;">
@@ -472,11 +476,13 @@ class PixelStewardApp {
     `;
   }
 
+  // 🖼️ TOP-TO-BOTTOM MEMORY CARD GRID RENDERER (หน้าพอร์ตลงทุน)
   renderPortfolios(container) {
     if (!Array.isArray(this.portfolios) || this.portfolios.length === 0) {
-      container.innerHTML = '<div class="border-pixel" style="padding:40px; text-align:center; background:#1f273e;">🎮 ยินดีต้อนรับสู่ระบบ Pixel Steward รุ่นแกะกล่องใหม่เอี่ยม<br><br><small class="text-muted">โปรดกดปุ่ม "➕ เพิ่มพอร์ตใหม่" ด้านบนเพื่อเริ่มจัดตั้งพอร์ตลงทุนของคุณด้วยตนเองครับ</small></div>';
+      container.innerHTML = '<div class="border-pixel" style="padding:40px; text-align:center; background:#1f273e;">🎮 ยินดีต้อนรับสู่ระบบ Pixel Steward<br><br><small class="text-muted">โปรดกดปุ่ม "➕ เพิ่มพอร์ตใหม่" ด้านบนเพื่อเริ่มจัดตั้งพอร์ตลงทุนของคุณครับ</small></div>';
       return;
     }
+
     let active = this.portfolios.find(p => p && p.id === this.selectedPortId) || this.portfolios[0];
     this.selectedPortId = active.id;
     const lvl = this.getPortfolioLevel(active);
@@ -484,89 +490,125 @@ class PixelStewardApp {
     const weight = this.getCalculations().netWorthTHB > 0 ? (((active.current+active.cashBuffer)*(isUSD?this.exchangeRate:1))/this.getCalculations().netWorthTHB)*100 : 0;
 
     container.innerHTML = `
-      <div style="display:grid; grid-template-columns: 0.7fr 1.3fr; gap:20px;">
-        <div class="border-pixel" style="padding:15px; background:#111625;">
-          <h4 style="font-family:'Press Start 2P'; font-size:0.6rem; color:#3b82f6; margin-bottom:10px; border-bottom:2px solid #000; padding-bottom:6px; display:flex; align-items:center;">
-            <img src="./assets/icons/icon-briefcase.png" alt="Rack" class="card-title-icon"> CARTRIDGE RACK
-          </h4>
-          <div class="cartridge-list-rack">
+      <div style="display:flex; flex-direction:column; gap:20px;">
+        <!-- 🎯 TOP SECTION: MEMORY CARD GRID RACK -->
+        <div class="border-pixel" style="padding:16px; background:#111625;">
+          <h3 style="font-family:'Press Start 2P'; font-size:0.75rem; color:var(--color-accent, #f59e0b); margin-bottom:14px; display:flex; align-items:center;">
+            <img src="./assets/icons/icon-briefcase.png" alt="Rack" class="card-title-icon" style="width:28px; height:28px; margin-right:8px;"> CARTRIDGE MEMORY RACK
+          </h3>
+          <div class="memory-card-grid">
             ${this.portfolios.map(p => {
-              if(!p) return '';
-              const catIcon = this.getCategoryIconPath(p.category);
+              if (!p) return '';
+              const pct = p.goal > 0 ? (((p.current + p.cashBuffer) / p.goal) * 100) : 0;
+              const tierClass = pct >= 80 ? 'tier-purple' : (pct >= 40 ? 'tier-gold' : 'tier-silver');
+              const isActive = p.id === this.selectedPortId ? 'active' : '';
+
               return `
-              <div class="pixel-cartridge-card ${p.id === this.selectedPortId?'active':''}" onclick="app.switchPortfolio('${p.id}')">
-                <button class="btn-delete-port-inline" data-id="${p.id}">✖</button>
-                <div class="cartridge-title" style="display:flex; align-items:center; gap:6px;">
-                  <img src="${catIcon}" alt="Cat Icon" class="card-title-icon" style="margin:0;">
-                  <span>${p.name}</span>
+                <div class="memory-card-wrapper ${tierClass} ${isActive}" onclick="app.switchPortfolio('${p.id}')">
+                  <img src="./assets/cards/card-folio.png" class="memory-card-bg" alt="Memory Card">
+                  <div class="memory-card-content">
+                    <div>
+                      <div class="card-title-text">${p.name}</div>
+                      <div class="card-cat-text">${p.category}</div>
+                    </div>
+                    <div>
+                      <div class="card-val-text">${this.formatMoney(p.current + p.cashBuffer, p.category)}</div>
+                      <div class="card-progress-bar">
+                        <div class="card-progress-fill" style="width:${Math.min(100, pct)}%;"></div>
+                      </div>
+                    </div>
+                  </div>
                 </div>
-                <div class="cartridge-meta"><span>${p.category}</span><b>${this.getPortfolioLevel(p).icon}</b></div>
-                <div style="display:flex; justify-content:space-between; font-size:0.75rem; margin-top:4px; font-weight:bold; color:#10b981;">
-                  <span>${this.formatMoney(p.current+p.cashBuffer, p.category)}</span>
-                  ${p.dryPowder<=0?'<span class="ammo-warning-tag">⚠️ NO AMMO</span>':''}
-                </div>
-              </div>`;
+              `;
             }).join('')}
+
+            <!-- ➕ ADD NEW DOTTED CARD -->
+            <div class="memory-card-add-new" onclick="app.openPortfolioModal()">
+              <div style="font-size:1.8rem;">➕</div>
+              <div style="font-family:'Press Start 2P'; font-size:0.6rem; margin-top:8px;">ADD NEW</div>
+            </div>
           </div>
         </div>
-        <div style="display:grid; grid-template-columns: 1.1fr 0.9fr; gap:20px;">
-          <div class="border-pixel" style="background:#1f273e; padding:15px; display:flex; flex-direction:column; gap:12px;">
-            <div style="display:flex; justify-content:space-between; border-bottom:2px solid #000; padding-bottom:6px; align-items:center;">
-              <h3 style="display:flex; align-items:center; gap:6px; margin:0;">
+
+        <!-- 🔎 BOTTOM SECTION: ACTIVE PORTFOLIO DETAIL PANEL -->
+        <div style="display:grid; grid-template-columns: 1.2fr 0.8fr; gap:20px;">
+          <!-- Left Column: Details & Asset List -->
+          <div class="border-pixel" style="background:#1f273e; padding:18px; display:flex; flex-direction:column; gap:12px;">
+            <div style="display:flex; justify-content:space-between; border-bottom:3px solid #000; padding-bottom:10px; align-items:center;">
+              <h3 style="display:flex; align-items:center; gap:8px; margin:0;">
                 <img src="${this.getCategoryIconPath(active.category)}" alt="Active Icon" class="card-title-icon">
                 <span>${active.name}</span>
               </h3>
-              <span class="port-card-cat" style="cursor:pointer; border:1px dashed #3b82f6;" onclick="app.inlineEditCategory('${active.id}')" title="คลิกเพื่อเปลี่ยนหมวดหมู่">${active.category} ✏️</span>
+              <div style="display:flex; gap:6px; align-items:center;">
+                <span class="port-card-cat" style="cursor:pointer; border:1px dashed #3b82f6;" onclick="app.inlineEditCategory('${active.id}')" title="คลิกเพื่อเปลี่ยนหมวดหมู่">${active.category} ✏️</span>
+                <button class="btn btn-danger btn-small" onclick="app.deletePortfolio('${active.id}')" style="padding:2px 6px; font-size:0.7rem;" title="ทำลายพอร์ต">✖ ลบพอร์ต</button>
+              </div>
             </div>
             
-            <div style="background:#111625; padding:10px; border:2px solid #000; font-size:0.85rem; cursor:pointer;" onclick="app.inlineEditGoal('${active.id}')" title="คลิกเพื่อแก้ไขเป้าหมายประจำตลับพอร์ต">
+            <div style="background:#111625; padding:10px; border:2px solid #000; font-size:0.85rem; cursor:pointer;" onclick="app.inlineEditGoal('${active.id}')">
               🎯 เป้าหมาย: ${active.goalType==='numeric'?this.formatMoney(active.goal, active.category):active.goalSchedule} <span style="font-size:0.7rem; color:#64748b; float:right;">✏️ แก้ไข</span>
             </div>
             
-            <div style="background:#111625; padding:10px; border:2px solid #000; font-size:0.85rem; color:#10b981; font-weight:bold;">💼 พอร์ตรวมสุทธิ: ${this.formatMoney(active.current+active.cashBuffer, active.category)}</div>
-            <div style="background:#0c1020; padding:8px; border:2px solid #000; font-size:0.75rem; color:#94a3b8;">⚖️ Weight Score: <b>${weight.toFixed(1)}% ของความมั่งคั่งรวม</b></div>
+            <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px;">
+              <div style="background:#111625; padding:10px; border:2px solid #000; font-size:0.85rem; color:#10b981; font-weight:bold;">
+                💼 สุธิตลับพอร์ต: ${this.formatMoney(active.current+active.cashBuffer, active.category)}
+              </div>
+              <div style="background:#0c1020; padding:10px; border:2px solid #000; font-size:0.8rem; color:#94a3b8;">
+                ⚖️ Weight: <b>${weight.toFixed(1)}% ของคลังรวม</b>
+              </div>
+            </div>
+
             <div>
               <div style="display:flex; justify-content:space-between; font-size:0.8rem; font-weight:bold; margin-bottom:2px;"><span>เควสโปรเกรส:</span><span>${lvl.pct.toFixed(1)}%</span></div>
               <div class="progress-container" style="height:15px; background:#111625; border:2px solid #000; position:relative;"><div style="width:${Math.min(100,lvl.pct)}%; background:var(--color-success); height:100%;"></div></div>
             </div>
+
             <div style="margin-top:5px;">
-              <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:2px solid #000; padding-bottom:4px;"><span style="font-size:0.8rem; font-weight:bold;">💎 สินทรัพย์ย่อย</span><button class="btn btn-primary btn-retro btn-small" id="btn-add-asset" style="padding:2px 6px;"><span>➕ เพิ่ม</span></button></div>
-              <div style="display:flex; flex-direction:column; gap:6px; margin-top:8px; max-height:180px; overflow-y:auto;">
-                ${(!active.assets || active.assets.length===0)?'<p class="text-muted" style="font-size:0.8rem; text-align:center;">คลังว่างเปล่า</p>':active.assets.map((a,i)=>`
-                  <div style="display:flex; justify-content:space-between; background:#111625; padding:6px; border:2px solid #000; font-size:0.8rem; align-items:center;">
-                    <span>🔸 ${a.name}</span>
-                    <div style="display:flex; gap:4px; align-items:center;">
-                      <b style="margin-right:4px;">${this.formatMoney(a.value, active.category)}</b>
-                      <button class="btn btn-success btn-small" onclick="app.modularDepositAsset('${active.id}', ${i})" style="padding:1px 5px; font-size:0.7rem; font-weight:bold;">📥 ➕</button>
-                      <button class="btn btn-warning btn-small" onclick="app.modularWithdrawAsset('${active.id}', ${i})" style="padding:1px 5px; font-size:0.7rem; font-weight:bold; color:#000;">📤 ➖</button>
-                      <button class="btn btn-danger btn-small" onclick="app.deleteAsset('${active.id}',${i})" style="padding:1px 5px; font-size:0.7rem;">✖</button>
+              <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:2px solid #000; padding-bottom:6px;">
+                <span style="font-size:0.8rem; font-weight:bold; color:var(--color-success);">💎 สินทรัพย์ย่อยในตลับ (FETCH TICKER LOGO):</span>
+                <button class="btn btn-primary btn-retro btn-small" id="btn-add-asset" style="padding:2px 6px;"><span>➕ เพิ่มสินทรัพย์</span></button>
+              </div>
+              <div style="display:flex; flex-direction:column; gap:8px; margin-top:8px; max-height:220px; overflow-y:auto;">
+                ${(!active.assets || active.assets.length===0)?'<p class="text-muted" style="font-size:0.85rem; text-align:center;">คลังว่างเปล่า กดปุ่ม ➕ ด้านบนเพื่อเพิ่ม</p>':active.assets.map((a,i)=>`
+                  <div style="display:flex; justify-content:space-between; background:#111625; padding:8px 12px; border:2px solid #000; font-size:0.85rem; align-items:center; border-radius:6px;">
+                    <div style="display:flex; align-items:center;">
+                      ${this.getTickerLogoHtml(a.name, active.category)}
+                      <b>${a.name}</b>
+                    </div>
+                    <div style="display:flex; gap:6px; align-items:center;">
+                      <b style="margin-right:6px;">${this.formatMoney(a.value, active.category)}</b>
+                      <button class="btn btn-success btn-small" onclick="app.modularDepositAsset('${active.id}', ${i})" style="padding:2px 6px; font-size:0.7rem; font-weight:bold;" title="ฝากเสบียงเพิ่ม">📥 ➕</button>
+                      <button class="btn btn-warning btn-small" onclick="app.modularWithdrawAsset('${active.id}', ${i})" style="padding:2px 6px; font-size:0.7rem; font-weight:bold; color:#000;" title="ถอนเสบียงออก">📤 ➖</button>
+                      <button class="btn btn-danger btn-small" onclick="app.deleteAsset('${active.id}',${i})" style="padding:2px 6px; font-size:0.7rem;">✖</button>
                     </div>
                   </div>`).join('')}
               </div>
             </div>
           </div>
+
+          <!-- Right Column: Rank & Dry Powder Input -->
           <div style="display:flex; flex-direction:column; gap:15px;">
-            <div class="border-pixel" style="padding:12px; background:#1f273e; text-align:center;">
+            <div class="border-pixel" style="padding:15px; background:#1f273e; text-align:center;">
               <h5 style="font-family:'Press Start 2P'; font-size:0.55rem; color:var(--color-accent); display:flex; align-items:center; justify-content:center;">
                 <img src="./assets/icons/icon-star.png" alt="Rank" class="card-title-icon"> RANK SCORE
               </h5>
-              <div style="font-size:1.8rem; margin:6px 0;">${lvl.icon}</div>
-              <b>${lvl.label}</b><p style="font-size:0.75rem; color:#94a3b8; margin:2px 0;">${lvl.desc}</p>
-              <div style="border-top:2px dashed #000; margin:6px 0;"></div>
+              <div style="font-size:2rem; margin:8px 0;">${lvl.icon}</div>
+              <b>${lvl.label}</b><p style="font-size:0.75rem; color:#94a3b8; margin:4px 0;">${lvl.desc}</p>
+              <div style="border-top:2px dashed #000; margin:8px 0;"></div>
               <div style="font-size:0.75rem; text-align:left; color:var(--color-accent); font-weight:bold;">${this.getNextRankPreview(active)}</div>
             </div>
             
-            <div class="border-pixel" style="padding:12px; background:#1f273e;">
-              <h5 style="font-family:'Press Start 2P'; font-size:0.55rem; color:var(--color-success); margin-bottom:8px; display:flex; align-items:center;">
-                <img src="./assets/icons/icon-chest.png" alt="Chest" class="card-title-icon"> ความมั่งคั่งสุทธิ
+            <div class="border-pixel" style="padding:15px; background:#1f273e;">
+              <h5 style="font-family:'Press Start 2P'; font-size:0.55rem; color:var(--color-success); margin-bottom:10px; display:flex; align-items:center;">
+                <img src="./assets/icons/icon-chest.png" alt="Chest" class="card-title-icon"> กระสุนรอช้อน (DRY POWDER)
               </h5>
-              <form id="update-balance-form" style="display:flex; flex-direction:column; gap:6px; font-size:0.8rem;">
-                <label>มูลค่ารวมอัตโนมัติ (หลังบ้าน 100%):</label>
-                <div style="background:#111625; padding:6px; border:2px solid #000; font-weight:bold; color:#10b981;">${this.formatMoney(active.current+active.cashBuffer, active.category)}</div>
+              <form id="update-balance-form" style="display:flex; flex-direction:column; gap:8px; font-size:0.8rem;">
+                <label>มูลค่าอัตโนมัติ (หลังบ้าน):</label>
+                <div style="background:#111625; padding:8px; border:2px solid #000; font-weight:bold; color:#10b981;">${this.formatMoney(active.current+active.cashBuffer, active.category)}</div>
                 
                 <label>ระบุเงินช้อน Dry Powder:</label>
                 <input type="number" id="update-dry" class="input-retro" value="${active.dryPowder||0}" required style="width:100%;">
-                <input type="submit" class="btn btn-success btn-retro" style="width:100%; padding:4px; font-weight:bold;" value="💾 บันทึกเงินช้อน">
+                <input type="submit" class="btn btn-success btn-retro" style="width:100%; padding:6px; font-weight:bold;" value="💾 บันทึกเงินช้อน">
               </form>
             </div>
           </div>
@@ -582,6 +624,16 @@ class PixelStewardApp {
         this.saveState(); this.refreshUI(); alert('🎯 อัปเดตเงินช้อนสำเร็จ!'); 
       }
     });
+  }
+
+  deletePortfolio(portId) {
+    const p = this.portfolios.find(x => x && x.id === portId);
+    if (!p) return;
+    if (confirm(`⚠️ ยืนยันการทำลายตลับพอร์ต "${p.name}"? การดำเนินการนี้ไม่สามารถย้อนกลับได้`)) {
+      this.portfolios = this.portfolios.filter(x => x.id !== portId);
+      this.selectedPortId = this.portfolios.length > 0 ? this.portfolios[0].id : '';
+      this.saveState(); this.refreshUI();
+    }
   }
 
   inlineEditCategory(id) {
