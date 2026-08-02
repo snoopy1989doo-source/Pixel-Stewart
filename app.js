@@ -1,5 +1,5 @@
 /* ==========================================
-   PIXEL STEWARD CORE ENGINE - APP.JS (V.2.0.0 FULL PATCH RELEASE)
+   PIXEL STEWARD CORE ENGINE - APP.JS (V.2.0.0 PRODUCTION)
    ========================================== */
 
 // ⏰ 1. RETRO TIME SYSTEM ENGINE
@@ -91,7 +91,7 @@ class PixelStewardApp {
     return `<span class="pixel-money">${sym}${numStr}</span>`;
   }
 
-  // 🚀 DUAL-FALLBACK TICKER LOGO ENGINE (เฉพาะสินทรัพย์ย่อย)
+  // 🚀 DUAL-FALLBACK TICKER LOGO ENGINE
   getTickerLogoHtml(assetName, category) {
     const cleanTicker = (assetName || '').trim().toUpperCase().split(' ')[0];
     const primaryUrl = `https://assets.parqet.com/logos/symbol/${cleanTicker}`;
@@ -132,7 +132,7 @@ class PixelStewardApp {
 
     this.connectCloudDatabase();
 
-    // 🎮 GLOBAL EVENT DELEGATION ENGINE
+    // 🎮 GLOBAL EVENT DELEGATION
     document.addEventListener('click', (e) => {
       const navItem = e.target.closest('.nav-menu .nav-item');
       if (navItem) {
@@ -158,19 +158,6 @@ class PixelStewardApp {
         return;
       }
 
-      const delPortBtn = e.target.closest('.btn-delete-port-inline');
-      if (delPortBtn) {
-        e.stopPropagation();
-        const portId = delPortBtn.dataset.id;
-        const port = this.portfolios.find(p => p.id === portId);
-        if (port && confirm(`⚠️ คุณต้องการสั่ง "ทำลายพอร์ต" ${port.name} หรือไม่?`)) {
-          this.portfolios = this.portfolios.filter(p => p.id !== portId);
-          this.selectedPortId = this.portfolios.length > 0 ? this.portfolios[0].id : '';
-          this.saveState(); this.refreshUI();
-        }
-        return;
-      }
-      
       if (e.target.closest('#btn-add-portfolio')) { this.openPortfolioModal(); return; }
       if (e.target.closest('#btn-quick-transfer')) { this.openTransferModal(); return; }
       if (e.target.closest('.btn-close-modal')) { this.closeModals(); return; }
@@ -193,23 +180,13 @@ class PixelStewardApp {
     }
 
     const portForm = document.getElementById('portfolio-form');
-    if(portForm) {
-      portForm.addEventListener('submit', (e) => { e.preventDefault(); this.handleSavePortfolio(); });
-    }
+    if(portForm) portForm.addEventListener('submit', (e) => { e.preventDefault(); this.handleSavePortfolio(); });
     const transForm = document.getElementById('transfer-form');
-    if(transForm) {
-      transForm.addEventListener('submit', (e) => { e.preventDefault(); this.handleExecuteTransfer(); });
-    }
-    
+    if(transForm) transForm.addEventListener('submit', (e) => { e.preventDefault(); this.handleExecuteTransfer(); });
     const quarterlyForm = document.getElementById('quarterly-form');
-    if (quarterlyForm) {
-      quarterlyForm.addEventListener('submit', (e) => { e.preventDefault(); this.handleSaveQuarterly(); });
-    }
-
+    if (quarterlyForm) quarterlyForm.addEventListener('submit', (e) => { e.preventDefault(); this.handleSaveQuarterly(); });
     const divForm = document.getElementById('dividend-form');
-    if (divForm) {
-      divForm.addEventListener('submit', (e) => { e.preventDefault(); this.handleSaveDividend(); });
-    }
+    if (divForm) divForm.addEventListener('submit', (e) => { e.preventDefault(); this.handleSaveDividend(); });
 
     this.fetchRateOnLoad();
     this.refreshUI();
@@ -319,24 +296,16 @@ class PixelStewardApp {
   }
 
   getMeloAvatarState(score) {
-    if (score >= 90) {
-      return { imgSrc: './assets/avatar/avatar-excited.png', text: '🤩 พอร์ตสเกลสุดยอด มหาอัศวิน!', cls: 'color:#3b82f6;' };
-    } else if (score >= 70) {
-      return { imgSrc: './assets/avatar/avatar-happy.png', text: '🙂 พอร์ตกำลังเติบโตสมบูรณ์ดี!', cls: 'color:#10b981;' };
-    } else if (score >= 40) {
-      return { imgSrc: './assets/avatar/avatar-normal.png', text: '😐 พอร์ตเสถียร รักษาวินัยต่อ!', cls: 'color:#eab308;' };
-    } else {
-      return { imgSrc: './assets/avatar/avatar-concerned.png', text: '😟 วิกฤต! เติมเสบียงด่วน', cls: 'color:#ef4444;' };
-    }
+    if (score >= 90) return { imgSrc: './assets/avatar/avatar-excited.png', text: '🤩 พอร์ตสเกลสุดยอด มหาอัศวิน!', cls: 'color:#3b82f6;' };
+    if (score >= 70) return { imgSrc: './assets/avatar/avatar-happy.png', text: '🙂 พอร์ตกำลังเติบโตสมบูรณ์ดี!', cls: 'color:#10b981;' };
+    if (score >= 40) return { imgSrc: './assets/avatar/avatar-normal.png', text: '😐 พอร์ตเสถียร รักษาวินัยต่อ!', cls: 'color:#eab308;' };
+    return { imgSrc: './assets/avatar/avatar-concerned.png', text: '😟 วิกฤต! เติมเสบียงด่วน', cls: 'color:#ef4444;' };
   }
 
   refreshUI() {
     this.autoCalculatePortfolios();
-    
     const mainHeader = document.querySelector('.main-header');
-    if (mainHeader) {
-      mainHeader.style.display = (this.activeTab === 'dashboard') ? 'flex' : 'none';
-    }
+    if (mainHeader) mainHeader.style.display = (this.activeTab === 'dashboard') ? 'flex' : 'none';
 
     const tabContent = document.getElementById('tab-content');
     if (!tabContent) return;
@@ -378,108 +347,67 @@ class PixelStewardApp {
     }
     const totalAssetVal = calc.netWorthTHB > 0 ? calc.netWorthTHB : 1;
     const catBreakdown = Object.keys(categoryTotals).map(cat => ({
-      name: cat,
-      val: categoryTotals[cat],
-      pct: (categoryTotals[cat] / totalAssetVal) * 100
+      name: cat, val: categoryTotals[cat], pct: (categoryTotals[cat] / totalAssetVal) * 100
     })).sort((a, b) => b.val - a.val);
 
     const dryPowderRatio = calc.netWorthTHB > 0 ? (calc.totalDryPowderTHB / calc.netWorthTHB) * 100 : 0;
-    const isAmmoReady = dryPowderRatio >= 5;
-
     let healthScore = 50;
     if (calc.totalDryPowderTHB > 0) healthScore += 20;
     if (topGoals.length > 0 && topGoals[0].pct >= 50) healthScore += 15;
     if (this.portfolios.length >= 3) healthScore += 15;
     healthScore = Math.min(100, healthScore);
-
     const meloState = this.getMeloAvatarState(healthScore);
 
     container.innerHTML = `
       <div style="display:grid; grid-template-columns:1fr 1fr; gap:20px;">
         <div class="stat-card border-pixel">
-          <div class="stat-header">
-            <span>ความมั่งคั่งสุทธิ</span>
-            <img src="./assets/icons/icon-chest.png" alt="Chest" class="card-title-icon">
-          </div>
+          <div class="stat-header"><span>ความมั่งคั่งสุทธิ</span><img src="./assets/icons/icon-chest.png" class="card-title-icon"></div>
           <div class="stat-value text-accent">฿${calc.netWorthTHB.toLocaleString(undefined,{maximumFractionDigits:2})}</div>
-          <div class="stat-desc">เงินทุน: ฿${(calc.totalTHB+(calc.totalUSD*this.exchangeRate)).toLocaleString()} | สำรอง Buffer: ฿${calc.totalCashBufferTHB.toLocaleString()}</div>
+          <div class="stat-desc">เงินทุน: ฿${(calc.totalTHB+(calc.totalUSD*this.exchangeRate)).toLocaleString()}</div>
         </div>
         <div class="stat-card border-pixel">
-          <div class="stat-header">
-            <span>Dry Powder (กระสุนรอช้อน)</span>
-            <img src="./assets/icons/icon-coin-stack.png" alt="Coins" class="card-title-icon">
-          </div>
+          <div class="stat-header"><span>Dry Powder (กระสุนรอช้อน)</span><img src="./assets/icons/icon-coin-stack.png" class="card-title-icon"></div>
           <div class="stat-value" style="color:var(--color-warning)!important;">฿${calc.totalDryPowderTHB.toLocaleString(undefined,{maximumFractionDigits:2})}</div>
-          <div class="stat-desc">สัดส่วนกระสุน: ${dryPowderRatio.toFixed(1)}% ของพอร์ตรวม (${isAmmoReady ? '🟢 พร้อมลุย' : '🔴 กระสุนต่ำ'})</div>
+          <div class="stat-desc">สัดส่วนกระสุน: ${dryPowderRatio.toFixed(1)}% ของพอร์ตรวม</div>
         </div>
       </div>
 
       <div style="display:grid; grid-template-columns:1fr 1.2fr 0.8fr; gap:20px; margin-top:20px;">
         <div class="border-pixel" style="padding:15px; background:#1f273e;">
-          <h4 style="font-family:'Press Start 2P'; font-size:0.6rem; color:#10b981; margin-bottom:12px; display:flex; align-items:center;">
-            <img src="./assets/icons/icon-gems.png" alt="Gems" class="card-title-icon"> ASSET ALLOCATION
-          </h4>
+          <h4 style="font-family:'Press Start 2P'; font-size:0.6rem; color:#10b981; margin-bottom:12px;">💎 ASSET ALLOCATION</h4>
           <div style="display:flex; flex-direction:column; gap:8px;">
-            ${catBreakdown.length === 0 ? '<p class="text-muted" style="font-size:0.8rem;">ไม่มีสินทรัพย์</p>' : catBreakdown.map(c => `
+            ${catBreakdown.map(c => `
               <div>
-                <div style="display:flex; justify-content:space-between; font-size:0.75rem; margin-bottom:2px;">
-                  <span>${c.name}</span>
-                  <b>฿${c.val.toLocaleString(undefined,{maximumFractionDigits:0})} (${c.pct.toFixed(1)}%)</b>
-                </div>
-                <div class="progress-container" style="height:8px; background:#111625; border:1px solid #000;">
-                  <div class="progress-bar-fill-animated" style="width:${Math.min(100, c.pct)}%; background:#3b82f6; height:100%;"></div>
-                </div>
-              </div>
-            `).join('')}
+                <div style="display:flex; justify-content:space-between; font-size:0.75rem;"><span>${c.name}</span><b>฿${c.val.toLocaleString(undefined,{maximumFractionDigits:0})} (${c.pct.toFixed(1)}%)</b></div>
+                <div class="progress-container" style="height:6px; background:#111625; border:1px solid #000;"><div style="width:${Math.min(100, c.pct)}%; background:#3b82f6; height:100%;"></div></div>
+              </div>`).join('')}
           </div>
         </div>
 
         <div class="border-pixel" style="padding:15px; background:#1f273e;">
-          <h4 style="font-family:'Press Start 2P'; font-size:0.6rem; color:#3b82f6; margin-bottom:12px; display:flex; align-items:center;">
-            <img src="./assets/icons/icon-chart.png" alt="Chart" class="card-title-icon"> สรุปความเติบโตรายไตรมาส (${yr})
-          </h4>
-          <div style="display:flex; justify-content:space-around; align-items:flex-end; height:130px; background:#111625; padding:12px; border:2px solid #000;">
-            <div style="width:20%; display:flex; flex-direction:column; align-items:center; height:100%; justify-content:flex-end;"><div style="font-size:0.6rem;">฿${q1.toLocaleString(undefined,{maximumFractionDigits:0})}</div><div style="width:100%; height:${(q1/maxQ)*100}%; background:var(--color-primary); border:2px solid #000;"></div><div style="font-size:0.65rem; margin-top:4px;">Q1</div></div>
-            <div style="width:20%; display:flex; flex-direction:column; align-items:center; height:100%; justify-content:flex-end;"><div style="font-size:0.6rem;">฿${q2.toLocaleString(undefined,{maximumFractionDigits:0})}</div><div style="width:100%; height:${(q2/maxQ)*100}%; background:var(--color-success); border:2px solid #000;"></div><div style="font-size:0.65rem; margin-top:4px;">Q2</div></div>
-            <div style="width:20%; display:flex; flex-direction:column; align-items:center; height:100%; justify-content:flex-end;"><div style="font-size:0.6rem;">฿${q3.toLocaleString(undefined,{maximumFractionDigits:0})}</div><div style="width:100%; height:${(q3/maxQ)*100}%; background:var(--color-secondary); border:2px solid #000;"></div><div style="font-size:0.65rem; margin-top:4px;">Q3</div></div>
-            <div style="width:20%; display:flex; flex-direction:column; align-items:center; height:100%; justify-content:flex-end;"><div style="font-size:0.6rem;">฿${q4.toLocaleString(undefined,{maximumFractionDigits:0})}</div><div style="width:100%; height:${(q4/maxQ)*100}%; background:var(--color-accent); border:2px solid #000;"></div><div style="font-size:0.65rem; margin-top:4px;">Q4</div></div>
+          <h4 style="font-family:'Press Start 2P'; font-size:0.6rem; color:#3b82f6; margin-bottom:12px;">📊 สรุปความเติบโตรายไตรมาส (${yr})</h4>
+          <div style="display:flex; justify-content:space-around; align-items:flex-end; height:120px; background:#111625; padding:10px; border:2px solid #000;">
+            <div style="width:20%; display:flex; flex-direction:column; align-items:center; height:100%; justify-content:flex-end;"><div style="font-size:0.55rem;">฿${q1.toLocaleString()}</div><div style="width:100%; height:${(q1/maxQ)*100}%; background:var(--color-primary); border:1px solid #000;"></div><div style="font-size:0.6rem;">Q1</div></div>
+            <div style="width:20%; display:flex; flex-direction:column; align-items:center; height:100%; justify-content:flex-end;"><div style="font-size:0.55rem;">฿${q2.toLocaleString()}</div><div style="width:100%; height:${(q2/maxQ)*100}%; background:var(--color-success); border:1px solid #000;"></div><div style="font-size:0.6rem;">Q2</div></div>
+            <div style="width:20%; display:flex; flex-direction:column; align-items:center; height:100%; justify-content:flex-end;"><div style="font-size:0.55rem;">฿${q3.toLocaleString()}</div><div style="width:100%; height:${(q3/maxQ)*100}%; background:var(--color-secondary); border:1px solid #000;"></div><div style="font-size:0.6rem;">Q3</div></div>
+            <div style="width:20%; display:flex; flex-direction:column; align-items:center; height:100%; justify-content:flex-end;"><div style="font-size:0.55rem;">฿${q4.toLocaleString()}</div><div style="width:100%; height:${(q4/maxQ)*100}%; background:var(--color-accent); border:1px solid #000;"></div><div style="font-size:0.6rem;">Q4</div></div>
           </div>
         </div>
 
-        <div style="display:flex; flex-direction:column; gap:12px;">
-          <div class="border-pixel" style="padding:12px; background:#1f273e; text-align:center;">
-            <h5 style="font-family:'Press Start 2P'; font-size:0.55rem; color:var(--color-accent); margin-bottom:6px; display:flex; align-items:center; justify-content:center;">
-              <img src="./assets/icons/icon-heart.png" alt="Heart" class="card-title-icon"> PORTFOLIO HEALTH
-            </h5>
-            
-            <div style="display:flex; align-items:center; justify-content:center; gap:10px; margin:8px 0; background:#111625; padding:8px; border:2px solid #000;">
-              <div style="width:48px; height:48px; border:2px solid #000; overflow:hidden; background:#000; flex-shrink:0;">
-                <img src="${meloState.imgSrc}" alt="Melo Avatar" style="width:100%; height:100%; object-fit:cover; image-rendering:pixelated;">
-              </div>
-              <div style="text-align:left;">
-                <div style="font-size:1.3rem; font-family:'Press Start 2P'; color:#10b981;">${healthScore}/100</div>
-                <div style="font-size:0.7rem; font-weight:bold; ${meloState.cls}">${meloState.text}</div>
-              </div>
-            </div>
-          </div>
-
-          <div class="border-pixel" style="padding:12px; background:#1f273e;">
-            <h4 style="font-family:'Press Start 2P'; font-size:0.55rem; color:var(--color-accent); margin-bottom:8px; display:flex; align-items:center;">
-              <img src="./assets/icons/icon-trophy.png" alt="Trophy" class="card-title-icon"> เควสใกล้บรรลุเป้าหมาย
-            </h4>
-            <div style="display:flex; flex-direction:column; gap:6px;">
-              ${this.portfolios.length===0?'<p class="text-muted" style="text-align:center;font-size:0.8rem;">คลังว่างเปล่า</p>':topGoals.map(g => `<div style="background:#111625; padding:6px; border:2px solid #000;"><div style="display:flex; justify-content:space-between; font-size:0.75rem;"><span>${g.name}</span><b style="color:var(--color-success);">${g.pct.toFixed(1)}%</b></div><div class="progress-container" style="margin-top:2px; height:5px;"><div class="progress-bar-fill" style="width:${Math.min(100,g.pct)}%; background:var(--color-accent); height:100%;"></div></div></div>`).join('')}
-            </div>
+        <div class="border-pixel" style="padding:12px; background:#1f273e; text-align:center;">
+          <h5 style="font-family:'Press Start 2P'; font-size:0.55rem; color:var(--color-accent);">❤️ PORTFOLIO HEALTH</h5>
+          <div style="display:flex; align-items:center; justify-content:center; gap:8px; margin:8px 0; background:#111625; padding:6px; border:2px solid #000;">
+            <img src="${meloState.imgSrc}" style="width:40px; height:40px; border-radius:50%;">
+            <div style="text-align:left;"><div style="font-size:1.1rem; font-family:'Press Start 2P'; color:#10b981;">${healthScore}/100</div><div style="font-size:0.65rem; font-weight:bold; ${meloState.cls}">${meloState.text}</div></div>
           </div>
         </div>
-      </div>
-    `;
+      </div>`;
   }
 
-  // 🖼️ TOP-TO-BOTTOM MEMORY CARD GRID RENDERER (หน้าพอร์ตลงทุน)
+  // 🖼️ TOP-TO-BOTTOM MEMORY CARD GRID RENDERER
   renderPortfolios(container) {
     if (!Array.isArray(this.portfolios) || this.portfolios.length === 0) {
-      container.innerHTML = '<div class="border-pixel" style="padding:40px; text-align:center; background:#1f273e;">🎮 ยินดีต้อนรับสู่ระบบ Pixel Steward<br><br><small class="text-muted">โปรดกดปุ่ม "➕ เพิ่มพอร์ตใหม่" ด้านบนเพื่อเริ่มจัดตั้งพอร์ตลงทุนของคุณครับ</small></div>';
+      container.innerHTML = '<div class="border-pixel" style="padding:40px; text-align:center; background:#1f273e;">🎮 ยินดีต้อนรับสู่ระบบ Pixel Steward<br><br><small class="text-muted">โปรดกดปุ่ม "➕ เพิ่มพอร์ตใหม่" ด้านบนเพื่อเริ่มจัดตั้งพอร์ตลงทุนครับ</small></div>';
       return;
     }
 
@@ -494,13 +422,14 @@ class PixelStewardApp {
         <!-- 🎯 TOP SECTION: MEMORY CARD GRID RACK -->
         <div class="border-pixel" style="padding:16px; background:#111625;">
           <h3 style="font-family:'Press Start 2P'; font-size:0.75rem; color:var(--color-accent, #f59e0b); margin-bottom:14px; display:flex; align-items:center;">
-            <img src="./assets/icons/icon-briefcase.png" alt="Rack" class="card-title-icon" style="width:28px; height:28px; margin-right:8px;"> CARTRIDGE MEMORY RACK
+            <img src="./assets/icons/icon-briefcase.png" alt="Rack" class="card-title-icon" style="width:24px; height:24px; margin-right:8px;"> CARTRIDGE MEMORY RACK
           </h3>
           <div class="memory-card-grid">
             ${this.portfolios.map(p => {
               if (!p) return '';
               const pct = p.goal > 0 ? (((p.current + p.cashBuffer) / p.goal) * 100) : 0;
-              const tierClass = pct >= 80 ? 'tier-purple' : (pct >= 40 ? 'tier-gold' : 'tier-silver');
+              const isPurpleTier = pct >= 80 || p.category === 'Option';
+              const tierClass = isPurpleTier ? 'tier-purple' : (pct >= 40 ? 'tier-gold' : 'tier-silver');
               const isActive = p.id === this.selectedPortId ? 'active' : '';
 
               return `
@@ -513,11 +442,15 @@ class PixelStewardApp {
                     </div>
                     <div>
                       <div class="card-val-text">${this.formatMoney(p.current + p.cashBuffer, p.category)}</div>
-                      <div class="card-progress-bar">
-                        <div class="card-progress-fill" style="width:${Math.min(100, pct)}%;"></div>
+                      <div style="display:flex; justify-content:space-between; align-items:center; font-family:'Press Start 2P'; font-size:0.5rem; color:#94a3b8; margin-top:3px;">
+                        <span>${pct.toFixed(0)}%</span>
+                        <div class="card-progress-bar" style="width:70%; margin:0;">
+                          <div class="card-progress-fill" style="width:${Math.min(100, pct)}%;"></div>
+                        </div>
                       </div>
                     </div>
                   </div>
+                  <div class="card-footer-tag">MEMORY CARD</div>
                 </div>
               `;
             }).join('')}
@@ -532,7 +465,6 @@ class PixelStewardApp {
 
         <!-- 🔎 BOTTOM SECTION: ACTIVE PORTFOLIO DETAIL PANEL -->
         <div style="display:grid; grid-template-columns: 1.2fr 0.8fr; gap:20px;">
-          <!-- Left Column: Details & Asset List -->
           <div class="border-pixel" style="background:#1f273e; padding:18px; display:flex; flex-direction:column; gap:12px;">
             <div style="display:flex; justify-content:space-between; border-bottom:3px solid #000; padding-bottom:10px; align-items:center;">
               <h3 style="display:flex; align-items:center; gap:8px; margin:0;">
@@ -540,8 +472,8 @@ class PixelStewardApp {
                 <span>${active.name}</span>
               </h3>
               <div style="display:flex; gap:6px; align-items:center;">
-                <span class="port-card-cat" style="cursor:pointer; border:1px dashed #3b82f6;" onclick="app.inlineEditCategory('${active.id}')" title="คลิกเพื่อเปลี่ยนหมวดหมู่">${active.category} ✏️</span>
-                <button class="btn btn-danger btn-small" onclick="app.deletePortfolio('${active.id}')" style="padding:2px 6px; font-size:0.7rem;" title="ทำลายพอร์ต">✖ ลบพอร์ต</button>
+                <span class="port-card-cat" style="cursor:pointer; border:1px dashed #3b82f6; padding:2px 6px; font-size:0.75rem;" onclick="app.inlineEditCategory('${active.id}')">${active.category} ✏️</span>
+                <button class="btn btn-danger btn-small" onclick="app.deletePortfolio('${active.id}')">✖ ลบพอร์ต</button>
               </div>
             </div>
             
@@ -560,13 +492,13 @@ class PixelStewardApp {
 
             <div>
               <div style="display:flex; justify-content:space-between; font-size:0.8rem; font-weight:bold; margin-bottom:2px;"><span>เควสโปรเกรส:</span><span>${lvl.pct.toFixed(1)}%</span></div>
-              <div class="progress-container" style="height:15px; background:#111625; border:2px solid #000; position:relative;"><div style="width:${Math.min(100,lvl.pct)}%; background:var(--color-success); height:100%;"></div></div>
+              <div class="progress-container" style="height:12px; background:#111625; border:2px solid #000;"><div style="width:${Math.min(100,lvl.pct)}%; background:var(--color-success); height:100%;"></div></div>
             </div>
 
             <div style="margin-top:5px;">
               <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:2px solid #000; padding-bottom:6px;">
-                <span style="font-size:0.8rem; font-weight:bold; color:var(--color-success);">💎 สินทรัพย์ย่อยในตลับ (FETCH TICKER LOGO):</span>
-                <button class="btn btn-primary btn-retro btn-small" id="btn-add-asset" style="padding:2px 6px;"><span>➕ เพิ่มสินทรัพย์</span></button>
+                <span style="font-size:0.8rem; font-weight:bold; color:var(--color-success);">💎 สินทรัพย์ย่อยในตลับ:</span>
+                <button class="btn btn-primary btn-retro btn-small" id="btn-add-asset"><span>➕ เพิ่มสินทรัพย์</span></button>
               </div>
               <div style="display:flex; flex-direction:column; gap:8px; margin-top:8px; max-height:220px; overflow-y:auto;">
                 ${(!active.assets || active.assets.length===0)?'<p class="text-muted" style="font-size:0.85rem; text-align:center;">คลังว่างเปล่า กดปุ่ม ➕ ด้านบนเพื่อเพิ่ม</p>':active.assets.map((a,i)=>`
@@ -577,8 +509,8 @@ class PixelStewardApp {
                     </div>
                     <div style="display:flex; gap:6px; align-items:center;">
                       <b style="margin-right:6px;">${this.formatMoney(a.value, active.category)}</b>
-                      <button class="btn btn-success btn-small" onclick="app.modularDepositAsset('${active.id}', ${i})" style="padding:2px 6px; font-size:0.7rem; font-weight:bold;" title="ฝากเสบียงเพิ่ม">📥 ➕</button>
-                      <button class="btn btn-warning btn-small" onclick="app.modularWithdrawAsset('${active.id}', ${i})" style="padding:2px 6px; font-size:0.7rem; font-weight:bold; color:#000;" title="ถอนเสบียงออก">📤 ➖</button>
+                      <button class="btn btn-success btn-small" onclick="app.modularDepositAsset('${active.id}', ${i})" style="padding:2px 6px; font-size:0.7rem; font-weight:bold;">📥 ➕</button>
+                      <button class="btn btn-warning btn-small" onclick="app.modularWithdrawAsset('${active.id}', ${i})" style="padding:2px 6px; font-size:0.7rem; font-weight:bold; color:#000;">📤 ➖</button>
                       <button class="btn btn-danger btn-small" onclick="app.deleteAsset('${active.id}',${i})" style="padding:2px 6px; font-size:0.7rem;">✖</button>
                     </div>
                   </div>`).join('')}
@@ -586,7 +518,6 @@ class PixelStewardApp {
             </div>
           </div>
 
-          <!-- Right Column: Rank & Dry Powder Input -->
           <div style="display:flex; flex-direction:column; gap:15px;">
             <div class="border-pixel" style="padding:15px; background:#1f273e; text-align:center;">
               <h5 style="font-family:'Press Start 2P'; font-size:0.55rem; color:var(--color-accent); display:flex; align-items:center; justify-content:center;">
@@ -897,8 +828,8 @@ class PixelStewardApp {
                         <td style="padding:8px; border:1px solid #000; color:#94a3b8;">${r.notes || '-'}</td>
                         <td style="padding:8px; border:1px solid #000; text-align:right; padding-right:10px; font-weight:bold;">${this.formatMoney(r.amount || 0, pCat)}</td>
                         <td style="padding:8px; border:1px solid #000; text-align:center;">
-                          <button class="btn btn-warning btn-small" onclick="app.inlineEditDividend('${r.id}')" style="padding:2px 6px; font-size:0.7rem; font-weight:bold; color:#000; border:1px solid #000; cursor:pointer;">✏️ แก้ไข</button>
-                          <button class="btn btn-danger btn-small" onclick="app.deleteDividend('${r.id}')" style="padding:2px 6px; font-size:0.7rem; font-weight:bold; color:#fff; border:1px solid #000; cursor:pointer; margin-left:4px;">✖ ลบ</button>
+                          <button class="btn btn-warning btn-small" onclick="app.inlineEditDividend('${r.id}')" style="padding:2px 6px; font-size:0.7rem; font-weight:bold; color:#000;">✏️ แก้ไข</button>
+                          <button class="btn btn-danger btn-small" onclick="app.deleteDividend('${r.id}')" style="padding:2px 6px; font-size:0.7rem; font-weight:bold; color:#fff; margin-left:4px;">✖ ลบ</button>
                         </td>
                       </tr>`;
                     }).join('')}
@@ -930,8 +861,8 @@ class PixelStewardApp {
                 <td style="padding:8px; border:2px solid #000; color:#ef4444;">${diff>0?'฿'+diff.toLocaleString(undefined,{maximumFractionDigits:0}):'✔️ เควสเคลียร์'}</td>
                 <td style="padding:8px; border:2px solid #000;">
                   <div style="position:relative; width:100%; height:18px; background:#111625; border:2px solid #000; display:flex; align-items:center; overflow:hidden;">
-                    <div class="progress-bar-fill-animated" style="width:${fillPct}%; background:var(--color-success); height:100%; transition:width 0.4s ease;"></div>
-                    <span style="position:absolute; width:100%; text-align:center; font-family:'Press Start 2P'!important; font-size:0.55rem!important; color:#fff; text-shadow:1px 1px 0 #000, -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000; z-index:2;">${pct.toFixed(1)}%</span>
+                    <div style="width:${fillPct}%; background:var(--color-success); height:100%; transition:width 0.4s ease;"></div>
+                    <span style="position:absolute; width:100%; text-align:center; font-family:'Press Start 2P'!important; font-size:0.55rem!important; color:#fff; text-shadow:1px 1px 0 #000; z-index:2;">${pct.toFixed(1)}%</span>
                   </div>
                 </td>
               </tr>`;
@@ -957,7 +888,7 @@ class PixelStewardApp {
 
         <div class="border-pixel" style="padding:20px; background:#1f273e; display:flex; flex-direction:column; gap:12px;">
           <h3>📤 DOWNLOAD BACKUP FOR SECOND BRAIN (ดาวน์โหลดข้อมูลออกไฟล์)</h3>
-          <p class="text-muted" style="font-size:0.8rem; color:#94a3b8;">คลิกปุ่มด้านล่างเพื่อทำการดึงข้อมูลคลังพอร์ต สถิติไตรมาส และเงินปันผลทั้งหมด โหลดออกมาเป็นไฟล์ภายนอกเพื่อป้อนเข้า Second Brain:</p>
+          <p class="text-muted" style="font-size:0.8rem; color:#94a3b8;">ดาวน์โหลดข้อมูลคลังพอร์ต สถิติไตรมาส และเงินปันผลทั้งหมดออกเป็นไฟล์ JSON:</p>
           <button class="btn btn-primary btn-retro" id="btn-execute-download" style="width:280px; padding:10px;"><span>💾 ดาวน์โหลดไฟล์ JSON สำรองข้อมูล</span></button>
         </div>
         
