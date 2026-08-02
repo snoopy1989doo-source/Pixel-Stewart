@@ -1,5 +1,5 @@
 /* ==========================================
-   PIXEL STEWARD CORE ENGINE - APP.JS (V.1.9.5 PRODUCTION RELEASE + TIME ENGINE)
+   PIXEL STEWARD CORE ENGINE - APP.JS (V.1.9.6 PRODUCTION RELEASE + DYNAMIC FOREX SYNC)
    ========================================== */
 
 // ⏰ 1. RETRO TIME SYSTEM ENGINE (AUTO SCENE & CLOCK CONTROLLER)
@@ -33,7 +33,6 @@ class TimeSystemEngine {
     const hours = now.getHours();
     const timeState = this.getTimeState(hours);
 
-    // อัปเดตสแนปช็อตภาพและ Badge สภาวะเวลา
     if (this.imgElement && !this.imgElement.src.endsWith(timeState.imgSrc)) {
       this.imgElement.src = timeState.imgSrc;
     }
@@ -41,7 +40,6 @@ class TimeSystemEngine {
       this.badgeElement.innerText = timeState.label;
     }
 
-    // อัปเดตตัวเลขนาฬิกาดิจิทัล HH:MM:SS
     if (this.clockElement) {
       this.clockElement.innerText = now.toLocaleTimeString('en-US', { hour12: false });
     }
@@ -99,7 +97,6 @@ class PixelStewardApp {
   }
 
   init() {
-    // ⏰ เริ่มการทำงานของ Time Engine Widget
     this.timeEngine = new TimeSystemEngine();
 
     const storedPorts = localStorage.getItem('ps_portfolios_v4');
@@ -247,7 +244,38 @@ class PixelStewardApp {
     });
   }
 
+  /* 🛠️ FIX: TWO-WAY DYNAMIC ACCOUNT SYNC & AUTOMATIC PORTFOLIO CREATION */
   processJournalRouting() {
+    if (!this.retroJournalRawData) return;
+    
+    let rawBalances = this.retroJournalRawData.balances || {};
+    let accountNames = Object.keys(rawBalances);
+    
+    if (accountNames.length === 0 && this.retroJournalRawData.balance !== undefined) {
+      accountNames = ['Demo'];
+    }
+
+    accountNames.forEach(accName => {
+      let existingPort = this.portfolios.find(p => p && p.name === accName && p.category === 'Forex');
+      if (!existingPort) {
+        const newForexPort = {
+          id: 'p-fx-' + accName.toLowerCase().replace(/\s+/g, '-'),
+          name: accName,
+          category: 'Forex',
+          goalType: 'numeric',
+          goal: 10000,
+          goalSchedule: '',
+          current: 0,
+          cashBuffer: 0,
+          dryPowder: 0,
+          assets: [],
+          notes: 'Auto Synchronized from Retro Trading Journal',
+          dcaDoneThisMonth: false
+        };
+        this.portfolios.push(newForexPort);
+      }
+    });
+
     this.autoCalculatePortfolios();
   }
 
@@ -277,7 +305,6 @@ class PixelStewardApp {
           const totalWit = accCFs.filter(c => c.type === 'Withdraw').reduce((sum, c) => sum + (Number(c.amount) || 0), 0);
           const cumProfit = accTrades.reduce((sum, t) => sum + (Number(t.pnl) || 0), 0);
 
-          // 💡 Dynamic Start Balance Retrieval
           let baseBalance = 0;
           if (this.retroJournalRawData.balances && this.retroJournalRawData.balances[targetName] !== undefined) {
             baseBalance = Number(this.retroJournalRawData.balances[targetName]) || 0;
@@ -343,7 +370,7 @@ class PixelStewardApp {
     if (!p) return '';
     if (p.goalType === 'schedule') return `🔮 เควส: ทำ DCA ประจำงวดให้ตรงปฏิทิน`;
     const pct = p.goal > 0 ? ((p.current + p.cashBuffer) / p.goal) * 100 : 0;
-    if (pct >= 80) return `🏆 เลเวลสูงสุดขอบทองทองแล้ว!`;
+    if (pct >= 80) return `🏆 เลเวลสูงสุดขอบทองแล้ว!`;
     const targetPct = pct < 40 ? 40 : 80;
     const needed = ((targetPct / 100) * p.goal) - (p.current + p.cashBuffer);
     return `🔮 เลเวลอัปขั้นถัดไป: ขาดอีกประมาณ ${p.category === 'Forex'||p.category === 'Option' ? '$' : '฿'}${needed.toLocaleString(undefined,{maximumFractionDigits:0})}`;
@@ -352,7 +379,6 @@ class PixelStewardApp {
   refreshUI() {
     this.autoCalculatePortfolios();
     
-    // HEADER CONDITIONAL DISPLAY
     const mainHeader = document.querySelector('.main-header');
     if (mainHeader) {
       if (this.activeTab === 'dashboard') {
@@ -391,7 +417,6 @@ class PixelStewardApp {
     }
     const maxQ = Math.max(q1, q2, q3, q4, 1);
 
-    // Asset Allocation Breakdown Calculation
     const categoryTotals = {};
     if (Array.isArray(this.portfolios)) {
       this.portfolios.forEach(p => {
@@ -409,11 +434,9 @@ class PixelStewardApp {
       pct: (categoryTotals[cat] / totalAssetVal) * 100
     })).sort((a, b) => b.val - a.val);
 
-    // Dry Powder Readiness Calculation
     const dryPowderRatio = calc.netWorthTHB > 0 ? (calc.totalDryPowderTHB / calc.netWorthTHB) * 100 : 0;
     const isAmmoReady = dryPowderRatio >= 5;
 
-    // Health Score Calculation
     let healthScore = 50;
     if (calc.totalDryPowderTHB > 0) healthScore += 20;
     if (topGoals.length > 0 && topGoals[0].pct >= 50) healthScore += 15;
@@ -427,7 +450,6 @@ class PixelStewardApp {
       </div>
 
       <div style="display:grid; grid-template-columns:1fr 1.2fr 0.8fr; gap:20px; margin-top:20px;">
-        <!-- Analysis 1: Asset Allocation -->
         <div class="border-pixel" style="padding:15px; background:#1f273e;">
           <h4 style="font-family:'Press Start 2P'; font-size:0.6rem; color:#10b981; margin-bottom:12px;">📊 ASSET ALLOCATION</h4>
           <div style="display:flex; flex-direction:column; gap:8px;">
@@ -445,7 +467,6 @@ class PixelStewardApp {
           </div>
         </div>
 
-        <!-- Quarterly Growth Bar -->
         <div class="border-pixel" style="padding:15px; background:#1f273e;">
           <h4 style="font-family:'Press Start 2P'; font-size:0.6rem; color:#3b82f6; margin-bottom:12px;">📈 สรุปความเติบโตรายไตรมาส (${yr})</h4>
           <div style="display:flex; justify-content:space-around; align-items:flex-end; height:130px; background:#111625; padding:12px; border:2px solid #000;">
@@ -456,7 +477,6 @@ class PixelStewardApp {
           </div>
         </div>
 
-        <!-- Analysis 3: Health Score & Top Goals -->
         <div style="display:flex; flex-direction:column; gap:12px;">
           <div class="border-pixel" style="padding:12px; background:#1f273e; text-align:center;">
             <h5 style="font-family:'Press Start 2P'; font-size:0.55rem; color:var(--color-accent); margin-bottom:4px;">🩺 PORTFOLIO HEALTH</h5>
@@ -645,13 +665,17 @@ class PixelStewardApp {
     } 
   }
 
+  /* 🛠️ FIX: ROBUST FOREX CLOUD STREAMING & RENDERER */
   renderForexCloud(container) {
-    if (!this.retroJournalRawData) {
-      container.innerHTML = '<div class="border-pixel" style="padding:20px; background:#1f273e; text-align:center;">📡 กำลังเชื่อมต่อและสแกนหาสัญญาณเรียลไทม์จาก Retro Trading Journal...</div>';
-      return;
+    let trades = [];
+    if (this.retroJournalRawData) {
+      if (Array.isArray(this.retroJournalRawData.trades)) {
+        trades = this.retroJournalRawData.trades;
+      } else if (typeof this.retroJournalRawData.trades === 'object') {
+        trades = Object.values(this.retroJournalRawData.trades || {});
+      }
     }
 
-    const trades = Array.isArray(this.retroJournalRawData.trades) ? this.retroJournalRawData.trades : Object.values(this.retroJournalRawData.trades || {});
     const uniqueMonths = [...new Set(trades.map(t => t && t.date ? t.date.substring(0, 7) : ''))].filter(Boolean).sort().reverse();
     const uniqueAssets = [...new Set(trades.map(t => t && t.symbol ? t.symbol : ''))].filter(Boolean).sort();
     const filteredTrades = trades.filter(t => {
@@ -660,6 +684,7 @@ class PixelStewardApp {
       const assetMatch = this.forexAssetFilter === 'all' || t.symbol === this.forexAssetFilter;
       return monthMatch && assetMatch;
     });
+
     let netPnL = 0;
     let winCount = 0;
     let grossProfit = 0;
@@ -680,6 +705,7 @@ class PixelStewardApp {
     const totalTradesCount = filteredTrades.length;
     const winRate = totalTradesCount > 0 ? (winCount / totalTradesCount) * 100 : 0;
     const profitFactor = grossLoss > 0 ? (grossProfit / grossLoss).toFixed(2) : (grossProfit > 0 ? '∞' : '1.00');
+
     container.innerHTML = `
       <div style="display:flex; flex-direction:column; gap:20px;">
         <div style="display:grid; grid-template-columns: repeat(4, 1fr); gap:15px;">
