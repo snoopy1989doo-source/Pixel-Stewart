@@ -9,187 +9,13 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Kanit:wght@300;400;500;700;900&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="style.css?v=185">
-
-  <style>
-    /* ==========================================================================
-       🎮 V.2.0.0 PIXEL ICON SYSTEM & SIDEBAR STYLING
-       ========================================================================== */
-    .brand-title {
-      font-family: 'Press Start 2P', monospace;
-      font-size: 0.85rem;
-      line-height: 1.4;
-      margin: 0;
-    }
-    .brand-title.highlight { color: #3b82f6; }
-    
-    /* 👤 SIDEBAR PLAYER PROFILE STYLING */
-    .player-profile-card {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      background: #111625;
-      border: 3px solid #000;
-      padding: 8px 10px;
-      margin-bottom: 12px;
-      box-shadow: 3px 3px 0px #000;
-    }
-    .profile-avatar-frame {
-      width: 44px;
-      height: 44px;
-      border: 2px solid #000;
-      overflow: hidden;
-      background: #000;
-      flex-shrink: 0;
-      border-radius: 50%;
-    }
-    .profile-avatar-img {
-      width: 100%;
-      height: 100%;
-      object-fit: cover;
-      image-rendering: pixelated;
-    }
-    .profile-info {
-      display: flex;
-      flex-direction: column;
-      gap: 2px;
-      overflow: hidden;
-    }
-    .player-name {
-      font-weight: bold;
-      font-size: 0.8rem;
-      color: #ffffff;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-    }
-    .player-tag {
-      font-family: 'Press Start 2P', monospace;
-      font-size: 0.5rem;
-      color: #eab308;
-    }
-
-    /* 🖼️ PIXEL ICON SYSTEM STYLING (OPTION A - 22x22px) */
-    .menu-pixel-icon {
-      width: 22px;
-      height: 22px;
-      object-fit: contain;
-      image-rendering: pixelated;
-      flex-shrink: 0;
-    }
-    .card-title-icon {
-      width: 20px;
-      height: 20px;
-      object-fit: contain;
-      image-rendering: pixelated;
-      vertical-align: middle;
-      margin-right: 6px;
-    }
-
-    .cartridge-list-rack {
-      display: flex;
-      flex-direction: column;
-      gap: 12px;
-      max-height: 520px;
-      overflow-y: auto;
-      padding-right: 4px;
-    }
-    .pixel-cartridge-card {
-      background: #1b2234;
-      border: 4px solid #000;
-      box-shadow: 4px 4px 0px #000;
-      padding: 12px;
-      text-align: left;
-      cursor: pointer;
-      transition: all 0.1s ease;
-      display: flex;
-      flex-direction: column;
-      gap: 4px;
-      position: relative;
-    }
-    .pixel-cartridge-card::after {
-      content: '';
-      position: absolute;
-      top: 0; left: 0; right: 0; height: 6px;
-      background: rgba(255,255,255,0.1);
-    }
-    .pixel-cartridge-card.active {
-      background: var(--color-primary, #3b82f6);
-      transform: translate(2px, 2px);
-      box-shadow: 2px 2px 0px #000;
-    }
-    .pixel-cartridge-card:hover:not(.active) {
-      background: #242f49;
-      transform: translateY(-2px);
-      box-shadow: 4px 6px 0px #000;
-    }
-    .cartridge-title {
-      font-weight: bold;
-      font-size: 0.9rem;
-      color: #fff;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      padding-right: 20px;
-    }
-    .cartridge-meta {
-      font-size: 0.7rem;
-      color: #94a3b8;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-    }
-    .ammo-warning-tag {
-      color: #ef4444 !important;
-      font-family: 'Press Start 2P', monospace;
-      font-size: 0.55rem;
-      animation: pixel-blink 1s infinite;
-    }
-    .btn-delete-port-inline {
-      position: absolute;
-      top: 10px;
-      right: 10px;
-      background: #ef4444;
-      color: #fff;
-      border: 2px solid #000;
-      font-size: 0.6rem;
-      cursor: pointer;
-      padding: 0px 4px;
-      z-index: 10;
-      font-weight: bold;
-    }
-    .btn-delete-port-inline:hover { background: #b91c1c; }
-    
-    .stat-value, .pixel-money, .retro-table td, .retro-table th {
-      font-family: 'Press Start 2P', monospace !important;
-      font-size: 0.72rem !important;
-      letter-spacing: -0.5px;
-      line-height: 1.5;
-    }
-    .stat-value { font-size: 1.15rem !important; }
-    .dashboard-grid { margin-top: 20px; }
-    .stat-card { background: #1f273e; padding: 20px; border: 4px solid #000; box-shadow: 4px 4px 0px #000; }
-    .stat-header { display: flex; justify-content: space-between; align-items: center; font-size: 0.85rem; font-weight: bold; color: #94a3b8; }
-    .stat-desc { font-size: 0.75rem; color: #64748b; }
-    .text-accent { color: var(--color-accent, #eab308) !important; }
-    @keyframes pixel-blink { 0%, 100% { opacity: 1; } 50% { opacity: 0; } }
-
-    .progress-bar-fill-animated {
-      height: 100%;
-      background-size: 30px 30px;
-      background-image: linear-gradient(135deg, rgba(255,255,255,.15) 25%, transparent 25%, transparent 50%, rgba(255,255,255,.15) 50%, rgba(255,255,255,.15) 75%, transparent 75%, transparent);
-      animation: arcade-bar-move 1s linear infinite;
-    }
-    @keyframes arcade-bar-move {
-      0% { background-position: 0 0; }
-      100% { background-position: 30px 0; }
-    }
-  </style>
+  <link rel="stylesheet" href="style.css?v=220">
 </head>
 <body>
   <div class="app-container">
-    <aside class="sidebar border-pixel">
-      <!-- 👤 PLAYER PROFILE (บนซ้ายสุดของ SIDEBAR) -->
+    <!-- 🚀 COLLAPSIBLE MINI DOCK SIDEBAR -->
+    <aside class="sidebar">
+      <!-- 👤 PLAYER PROFILE CARD -->
       <div class="player-profile-card">
         <div class="profile-avatar-frame">
           <img src="./assets/avatar/avatar-profile.png" alt="Player Profile" class="profile-avatar-img">
@@ -200,26 +26,26 @@
         </div>
       </div>
 
-      <div class="brand" style="margin-bottom:10px;">
+      <div class="brand">
         <div class="title-container">
           <h1 class="brand-title">PIXEL</h1>
-          <h1 class="brand-title highlight">STEWARD</h1>
-          <span class="badge-version">🔸 V.2.0.0 RELEASE</span>
+          <h1 class="brand-title highlight" style="color:#3b82f6;">STEWARD</h1>
+          <span class="badge-version" style="font-size:0.5rem; color:#94a3b8;">🔸 V.2.2.0</span>
         </div>
       </div>
       
-      <div class="nav-divider" style="height:4px; background:#000; margin:10px 0;"></div>
+      <div class="nav-divider" style="height:2px; background:#26304d; margin:10px 0;"></div>
       
-      <div class="exchange-widget border-pixel-inset" style="padding:10px; background:#111625; margin-bottom:15px;">
-        <label for="global-usd-rate" style="font-size:0.8rem; color:#94a3b8;">💱 อัตราแลกเปลี่ยนคลัง:</label>
+      <div class="exchange-widget border-pixel-inset" style="padding:8px; background:#111625; margin-bottom:15px;">
+        <label for="global-usd-rate" style="font-size:0.75rem; color:#94a3b8;">💱 เรตคลัง:</label>
         <div style="display:flex; align-items:center; gap:6px; margin-top:4px;">
-          <input type="number" id="global-usd-rate" value="36.50" step="0.01" style="width:75px; background:#0c1020; color:#fff; border:2px solid #000; padding:2px 4px; font-family:monospace;">
-          <span style="font-size:0.75rem; font-weight:bold; color:#94a3b8;">THB/USD</span>
+          <input type="number" id="global-usd-rate" value="36.50" step="0.01" style="width:70px; background:#0c1020; color:#fff; border:1px solid #334155; padding:2px 4px; font-family:monospace; font-size:0.8rem;">
+          <span style="font-size:0.65rem; font-weight:bold; color:#94a3b8;">THB/USD</span>
         </div>
       </div>
 
-      <!-- 🎮 NAVIGATION MENU WITH PIXEL ICONS -->
-      <nav class="nav-menu" style="display:flex; flex-direction:column; gap:6px;">
+      <!-- 🎮 NAVIGATION MENU WITH CLEAN ICON DOCK -->
+      <nav class="nav-menu">
         <button class="nav-item active" data-tab="dashboard">
           <img src="./assets/icons/icon-home.png" alt="Home" class="menu-pixel-icon">
           <span>แดชบอร์ดภาพรวม</span>
@@ -259,7 +85,7 @@
         </div>
 
         <!-- 🌤️ RETRO TIME SYSTEM WIDGET -->
-        <div class="time-widget-card border-pixel">
+        <div class="time-widget-card">
           <div class="time-image-frame">
             <img id="time-scene-img" src="./assets/time/morning.png" alt="Time Scene" class="pixel-art-img">
           </div>
@@ -279,14 +105,12 @@
     </main>
   </div>
 
-  <div id="toast-container" class="toast-container"></div>
-
   <!-- MODALS -->
   <div id="quarterly-modal" class="modal-overlay hidden">
     <div class="modal-card border-pixel">
       <form id="quarterly-form">
         <div class="modal-header">
-          <h3 id="q-port-label">✏️ บันทึกรายงานไตรมาส (สูตรคำนวณสากล)</h3>
+          <h3 id="q-port-label">✏️ บันทึกรายงานไตรมาส</h3>
           <button type="button" class="btn-close-modal">✖</button>
         </div>
         <div class="modal-body">
@@ -313,7 +137,7 @@
             <input type="text" id="q-notes" class="input-retro" style="width:100%;">
           </div>
         </div>
-        <div class="modal-footer">
+        <div class="modal-footer" style="display:flex; justify-content:flex-end; gap:8px; margin-top:12px;">
           <button type="button" class="btn btn-secondary btn-close-modal"><span>ยกเลิก</span></button>
           <button type="submit" class="btn btn-success" id="btn-save-quarterly"><span>💾 บันทึกข้อมูลไตรมาส</span></button>
         </div>
@@ -346,7 +170,7 @@
           <label for="div-notes">หมายเหตุ (เช่น ชื่อหุ้น):</label>
           <input type="text" id="div-notes" placeholder="เช่น หุ้น A ปันผลครึ่งปีแรก" class="input-retro" style="width:100%;">
         </div>
-        <div class="modal-footer">
+        <div class="modal-footer" style="display:flex; justify-content:flex-end; gap:8px; margin-top:12px;">
           <button type="button" class="btn btn-secondary btn-close-modal"><span>ยกเลิก</span></button>
           <button type="submit" class="btn btn-success"><span>💰 บันทึกปันผล</span></button>
         </div>
@@ -391,7 +215,7 @@
         <div class="form-group"><label>ระบุเงินช้อนเริ่มต้น (Dry Powder):</label><input type="number" id="port-dry-powder" class="input-retro" value="0"></div>
         <div class="form-group"><label>วันเริ่มต้นเปิดพอร์ต:</label><input type="date" id="port-start-date" class="input-retro"></div>
         <div class="form-group"><label>บันทึกโน้ตเพิ่มเติม:</label><input type="text" id="port-notes" class="input-retro"></div>
-        <div class="modal-footer" style="padding:10px 0 0 0;">
+        <div class="modal-footer" style="display:flex; justify-content:flex-end; gap:8px; margin-top:12px;">
           <button type="button" class="btn btn-secondary btn-close-modal"><span>ยกเลิก</span></button>
           <button type="submit" class="btn btn-success"><span>💾 บันทึกตลับพอร์ต</span></button>
         </div>
@@ -411,7 +235,7 @@
         <div class="form-group id-allocation-group"><label>จัดสรรเงินไปยังส่วนไหนของพอร์ตปลายทาง:</label><select id="tf-allocation" class="input-retro"><option value="dryPowder">เงินรอช้อน (Dry Powder)</option></select></div>
         <div class="form-group"><label>จำนวนเงินที่ต้องการโอน:</label><input type="number" id="tf-amount" required class="input-retro" placeholder="ระบุจำนวนเงิน"></div>
         <div class="form-group"><label>อัตราแลกเปลี่ยนชั่วคราว (ถ้ามีการแปลงสกุลเงิน):</label><input type="number" id="tf-rate" step="0.01" class="input-retro" value="36.50"></div>
-        <div class="modal-footer" style="padding:10px 0 0 0;">
+        <div class="modal-footer" style="display:flex; justify-content:flex-end; gap:8px; margin-top:12px;">
           <button type="button" class="btn btn-secondary btn-close-modal"><span>ยกเลิก</span></button>
           <button type="submit" class="btn btn-primary"><span>⚡ ยืนยันการโอนเสบียง</span></button>
         </div>
@@ -419,6 +243,6 @@
     </div>
   </div>
 
-  <script src="app.js"></script>
+  <script src="app.js?v=220"></script>
 </body>
 </html>

@@ -1,5 +1,5 @@
 /* ==========================================
-   PIXEL STEWARD CORE ENGINE - APP.JS (V.2.1.0 PRODUCTION)
+   PIXEL STEWARD CORE ENGINE - APP.JS (V.2.2.0 PRODUCTION)
    ========================================== */
 
 // ⏰ 1. RETRO TIME SYSTEM ENGINE
@@ -131,15 +131,13 @@ class PixelStewardApp {
 
     this.connectCloudDatabase();
 
-    // 🎮 GLOBAL EVENT DELEGATION (แก้ไขปัญหา Event Interception)
+    // 🎮 GLOBAL EVENT DELEGATION
     document.addEventListener('click', (e) => {
-      // 1. ปุ่มปิด Modal
       if (e.target.closest('.btn-close-modal')) {
         this.closeModals();
         return;
       }
 
-      // 2. Navigation Tab Click
       const navItem = e.target.closest('.nav-menu .nav-item');
       if (navItem) {
         document.querySelectorAll('.nav-menu .nav-item').forEach(n => n.classList.remove('active'));
@@ -149,7 +147,6 @@ class PixelStewardApp {
         return;
       }
 
-      // 3. ปุ่มเพิ่มสินทรัพย์ย่อย
       const addAssetBtn = e.target.closest('#btn-add-asset');
       if (addAssetBtn) {
         let active = this.portfolios.find(p => p.id === this.selectedPortId);
@@ -165,13 +162,11 @@ class PixelStewardApp {
         return;
       }
 
-      // 4. ปุ่มเปิด Modal เพิ่มพอร์ตใหม่ (จาก Header & Dotted Card)
       if (e.target.closest('#btn-add-portfolio') || e.target.closest('.memory-card-add-new')) {
         this.openPortfolioModal();
         return;
       }
 
-      // 5. ปุ่มเปิด Modal โยกย้ายเสบียง
       if (e.target.closest('#btn-quick-transfer')) {
         this.openTransferModal();
         return;
@@ -505,7 +500,7 @@ class PixelStewardApp {
                 💼 สุธิตลับพอร์ต: ${this.formatMoney(active.current+active.cashBuffer, active.category)}
               </div>
               <div style="background:#0c1020; padding:10px; border:2px solid #000; font-size:0.8rem; color:#94a3b8;">
-                秤 Weight: <b>${weight.toFixed(1)}% ของคลังรวม</b>
+                ⚖️ Weight: <b>${weight.toFixed(1)}% ของคลังรวม</b>
               </div>
             </div>
 
