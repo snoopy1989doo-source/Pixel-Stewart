@@ -1,5 +1,5 @@
 /* ==========================================================================
-   PIXEL STEWARD UNIFIED DESIGN SYSTEM - STYLE.CSS (V.2.0.0 PRODUCTION)
+   PIXEL STEWARD UNIFIED DESIGN SYSTEM - STYLE.CSS (V.2.1.0 PRODUCTION)
    ========================================================================== */
 
 /* --- 1. ROOT DESIGN TOKENS --- */
@@ -57,7 +57,7 @@ html, body {
   overflow-x: hidden;
 }
 
-/* --- 3. RETRO UTILITIES --- */
+/* --- 3. RETRO UTILITIES & MODAL FIX --- */
 .border-pixel {
   border: var(--border-thick);
   box-shadow: var(--shadow-flat);
@@ -77,6 +77,67 @@ html, body {
 .text-danger { color: var(--color-danger) !important; }
 .text-accent { color: var(--color-accent) !important; }
 .hidden { display: none !important; }
+
+/* Modal Backdrop System */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background-color: rgba(0, 0, 0, 0.82);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+  padding: 20px;
+  backdrop-filter: blur(2px);
+}
+
+.modal-card {
+  width: 100%;
+  max-width: 520px;
+  background-color: var(--color-bg-card);
+  padding: 20px;
+  border-radius: 8px;
+  box-shadow: 0 10px 25px rgba(0,0,0,0.8);
+}
+
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 3px solid #000;
+  padding-bottom: 10px;
+  margin-bottom: 15px;
+}
+
+.btn-close-modal {
+  background: var(--color-danger);
+  color: #fff;
+  border: 2px solid #000;
+  padding: 2px 8px;
+  cursor: pointer;
+  font-weight: bold;
+}
+
+.input-retro {
+  width: 100%;
+  background: #0c1020;
+  color: #fff;
+  border: 2px solid #000;
+  padding: 8px 10px;
+  border-radius: 4px;
+  font-family: var(--font-kanit);
+  outline: none;
+}
+.input-retro:focus {
+  border-color: var(--color-primary);
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-bottom: 12px;
+}
 
 /* --- 4. APP LAYOUT --- */
 .app-container {
@@ -209,7 +270,50 @@ html, body {
   min-width: 0;
 }
 
-/* --- 5. MEMORY CARD RETRO GRID (PIXEL PERFECT FIX) --- */
+/* 🌤️ TIME WIDGET CARD FIX (ป้องกันภาพขยายดัน Dashboard เบี้ยว) */
+.time-widget-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: #111625;
+  padding: 6px 12px;
+  border: 3px solid #000;
+  box-shadow: 3px 3px 0px #000;
+  border-radius: 6px;
+  height: 52px;
+}
+
+.time-image-frame {
+  width: 38px;
+  height: 38px;
+  border: 2px solid #000;
+  border-radius: 4px;
+  overflow: hidden;
+  background: #000;
+  flex-shrink: 0;
+}
+
+.pixel-art-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  image-rendering: pixelated;
+}
+
+.time-badge {
+  font-family: var(--font-press-start);
+  font-size: 0.55rem;
+  color: var(--color-accent);
+}
+
+.time-digital-clock {
+  font-family: monospace;
+  font-size: 0.85rem;
+  font-weight: bold;
+  color: #fff;
+}
+
+/* --- 5. MEMORY CARD RETRO GRID (ขยับตำแหน่งลง 22% PIXEL PERFECT) --- */
 .memory-card-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
@@ -269,18 +373,18 @@ html, body {
   border-radius: 6px;
 }
 
-/* Text Container strictly bounded within Card's Black Screen */
+/* Text Container strictly bounded within Card's Black Screen (ขยับ TOP ลงมาที่ 22% สดสวยพอดีเป๊ะ) */
 .memory-card-content {
   position: absolute;
-  top: 14%;
+  top: 22%;
   left: 14%;
   width: 72%;
-  height: 52%;
+  height: 48%;
   z-index: 2;
   display: flex;
   flex-direction: column;
   justify-content: space-between;
-  padding: 6px;
+  padding: 4px;
   color: #ffffff;
   box-sizing: border-box;
 }

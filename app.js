@@ -1,5 +1,5 @@
 /* ==========================================
-   PIXEL STEWARD CORE ENGINE - APP.JS (V.2.0.0 PRODUCTION)
+   PIXEL STEWARD CORE ENGINE - APP.JS (V.2.1.0 PRODUCTION)
    ========================================== */
 
 // ⏰ 1. RETRO TIME SYSTEM ENGINE
@@ -91,7 +91,6 @@ class PixelStewardApp {
     return `<span class="pixel-money">${sym}${numStr}</span>`;
   }
 
-  // 🚀 DUAL-FALLBACK TICKER LOGO ENGINE
   getTickerLogoHtml(assetName, category) {
     const cleanTicker = (assetName || '').trim().toUpperCase().split(' ')[0];
     const primaryUrl = `https://assets.parqet.com/logos/symbol/${cleanTicker}`;
@@ -132,8 +131,15 @@ class PixelStewardApp {
 
     this.connectCloudDatabase();
 
-    // 🎮 GLOBAL EVENT DELEGATION
+    // 🎮 GLOBAL EVENT DELEGATION (แก้ไขปัญหา Event Interception)
     document.addEventListener('click', (e) => {
+      // 1. ปุ่มปิด Modal
+      if (e.target.closest('.btn-close-modal')) {
+        this.closeModals();
+        return;
+      }
+
+      // 2. Navigation Tab Click
       const navItem = e.target.closest('.nav-menu .nav-item');
       if (navItem) {
         document.querySelectorAll('.nav-menu .nav-item').forEach(n => n.classList.remove('active'));
@@ -143,6 +149,7 @@ class PixelStewardApp {
         return;
       }
 
+      // 3. ปุ่มเพิ่มสินทรัพย์ย่อย
       const addAssetBtn = e.target.closest('#btn-add-asset');
       if (addAssetBtn) {
         let active = this.portfolios.find(p => p.id === this.selectedPortId);
@@ -158,9 +165,17 @@ class PixelStewardApp {
         return;
       }
 
-      if (e.target.closest('#btn-add-portfolio')) { this.openPortfolioModal(); return; }
-      if (e.target.closest('#btn-quick-transfer')) { this.openTransferModal(); return; }
-      if (e.target.closest('.btn-close-modal')) { this.closeModals(); return; }
+      // 4. ปุ่มเปิด Modal เพิ่มพอร์ตใหม่ (จาก Header & Dotted Card)
+      if (e.target.closest('#btn-add-portfolio') || e.target.closest('.memory-card-add-new')) {
+        this.openPortfolioModal();
+        return;
+      }
+
+      // 5. ปุ่มเปิด Modal โยกย้ายเสบียง
+      if (e.target.closest('#btn-quick-transfer')) {
+        this.openTransferModal();
+        return;
+      }
     });
 
     const goalTypeSelect = document.getElementById('port-goal-type');
@@ -305,7 +320,7 @@ class PixelStewardApp {
   refreshUI() {
     this.autoCalculatePortfolios();
     const mainHeader = document.querySelector('.main-header');
-    if (mainHeader) mainHeader.style.display = (this.activeTab === 'dashboard') ? 'flex' : 'none';
+    if (mainHeader) mainHeader.style.display = 'flex';
 
     const tabContent = document.getElementById('tab-content');
     if (!tabContent) return;
@@ -376,7 +391,7 @@ class PixelStewardApp {
         <div class="border-pixel" style="padding:15px; background:#1f273e;">
           <h4 style="font-family:'Press Start 2P'; font-size:0.6rem; color:#10b981; margin-bottom:12px;">💎 ASSET ALLOCATION</h4>
           <div style="display:flex; flex-direction:column; gap:8px;">
-            ${catBreakdown.map(c => `
+            ${catBreakdown.length === 0 ? '<p class="text-muted" style="font-size:0.8rem;">ไม่มีข้อมูลพอร์ต</p>' : catBreakdown.map(c => `
               <div>
                 <div style="display:flex; justify-content:space-between; font-size:0.75rem;"><span>${c.name}</span><b>฿${c.val.toLocaleString(undefined,{maximumFractionDigits:0})} (${c.pct.toFixed(1)}%)</b></div>
                 <div class="progress-container" style="height:6px; background:#111625; border:1px solid #000;"><div style="width:${Math.min(100, c.pct)}%; background:#3b82f6; height:100%;"></div></div>
@@ -404,10 +419,14 @@ class PixelStewardApp {
       </div>`;
   }
 
-  // 🖼️ TOP-TO-BOTTOM MEMORY CARD GRID RENDERER
+  // 🖼️ MEMORY CARD GRID RENDERER
   renderPortfolios(container) {
     if (!Array.isArray(this.portfolios) || this.portfolios.length === 0) {
-      container.innerHTML = '<div class="border-pixel" style="padding:40px; text-align:center; background:#1f273e;">🎮 ยินดีต้อนรับสู่ระบบ Pixel Steward<br><br><small class="text-muted">โปรดกดปุ่ม "➕ เพิ่มพอร์ตใหม่" ด้านบนเพื่อเริ่มจัดตั้งพอร์ตลงทุนครับ</small></div>';
+      container.innerHTML = `
+        <div class="border-pixel" style="padding:40px; text-align:center; background:#1f273e;">
+          🎮 ยินดีต้อนรับสู่ระบบ Pixel Steward<br><br>
+          <button class="btn btn-primary" onclick="app.openPortfolioModal()">➕ เริ่มจัดตั้งพอร์ตลงทุนแรก</button>
+        </div>`;
       return;
     }
 
@@ -456,7 +475,7 @@ class PixelStewardApp {
             }).join('')}
 
             <!-- ➕ ADD NEW DOTTED CARD -->
-            <div class="memory-card-add-new" onclick="app.openPortfolioModal()">
+            <div class="memory-card-add-new">
               <div style="font-size:1.8rem;">➕</div>
               <div style="font-family:'Press Start 2P'; font-size:0.6rem; margin-top:8px;">ADD NEW</div>
             </div>
@@ -486,7 +505,7 @@ class PixelStewardApp {
                 💼 สุธิตลับพอร์ต: ${this.formatMoney(active.current+active.cashBuffer, active.category)}
               </div>
               <div style="background:#0c1020; padding:10px; border:2px solid #000; font-size:0.8rem; color:#94a3b8;">
-                ⚖️ Weight: <b>${weight.toFixed(1)}% ของคลังรวม</b>
+                秤 Weight: <b>${weight.toFixed(1)}% ของคลังรวม</b>
               </div>
             </div>
 
@@ -1003,7 +1022,11 @@ class PixelStewardApp {
     }
   }
 
-  openPortfolioModal() { document.getElementById('portfolio-modal').classList.remove('hidden'); }
+  openPortfolioModal() { 
+    const m = document.getElementById('portfolio-modal');
+    if (m) m.classList.remove('hidden'); 
+  }
+  
   openTransferModal() {
     if(!Array.isArray(this.portfolios) || this.portfolios.length===0){ alert('❌ โปรดสร้างตลับพอร์ตเพื่อทำรายการโยกย้ายเสบียง'); return; }
     document.getElementById('tf-source').innerHTML = this.portfolios.map(p=>p?`<option value="${p.id}">${p.name} (Dry: ${p.dryPowder})</option>`:'').join('');
@@ -1011,7 +1034,10 @@ class PixelStewardApp {
     document.getElementById('tf-rate').value = this.exchangeRate;
     document.getElementById('transfer-modal').classList.remove('hidden');
   }
-  closeModals() { document.querySelectorAll('.modal-overlay').forEach(m => m.classList.add('hidden')); }
+  
+  closeModals() { 
+    document.querySelectorAll('.modal-overlay').forEach(m => m.classList.add('hidden')); 
+  }
 }
 
 window.app = new PixelStewardApp();
