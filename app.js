@@ -1,8 +1,8 @@
 /* ==========================================
-   PIXEL STEWARD CORE ENGINE - APP.JS (V.1.9.6 PRODUCTION RELEASE + DYNAMIC FOREX SYNC)
+   PIXEL STEWARD CORE ENGINE - APP.JS (V.2.0.0 CLEAN RELEASE)
    ========================================== */
 
-// ⏰ 1. RETRO TIME SYSTEM ENGINE (AUTO SCENE & CLOCK CONTROLLER)
+// ⏰ 1. RETRO TIME SYSTEM ENGINE
 class TimeSystemEngine {
   constructor() {
     this.imgElement = document.getElementById('time-scene-img');
@@ -18,13 +18,13 @@ class TimeSystemEngine {
 
   getTimeState(hours) {
     if (hours >= 6 && hours < 12) {
-      return { label: '🌅 MORNING', imgSrc: 'assets/time/morning.png' };
+      return { label: '🌅 MORNING', imgSrc: './assets/time/morning.png' };
     } else if (hours >= 12 && hours < 17) {
-      return { label: '☀️ AFTERNOON', imgSrc: 'assets/time/afternoon.png' };
+      return { label: '☀️ AFTERNOON', imgSrc: './assets/time/afternoon.png' };
     } else if (hours >= 17 && hours < 20) {
-      return { label: '🌆 EVENING', imgSrc: 'assets/time/evening.png' };
+      return { label: '🌆 EVENING', imgSrc: './assets/time/evening.png' };
     } else {
-      return { label: '🌙 NIGHT', imgSrc: 'assets/time/night.png' };
+      return { label: '🌙 NIGHT', imgSrc: './assets/time/night.png' };
     }
   }
 
@@ -77,20 +77,15 @@ class PixelStewardApp {
     this.quarterlyRecords = [];
     this.monthlyRecords = [];
     this.dividendRecords = [];
-    this.retroJournalRawData = null;
     this.exchangeRate = 36.5;
     this.activeTab = 'dashboard';
     this.selectedPortId = '';
-    
-    // 🎛️ PIPELINE FILTER STATES
-    this.forexMonthFilter = 'all';
-    this.forexAssetFilter = 'all';
     
     this.init();
   }
 
   formatMoney(val, category) {
-    const isUSD = ['Forex', 'Option'].includes(category);
+    const isUSD = category === 'Option';
     const sym = isUSD ? '$' : '฿';
     const numStr = Number(val).toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 2 });
     return `<span class="pixel-money">${sym}${numStr}</span>`;
@@ -219,7 +214,6 @@ class PixelStewardApp {
 
   connectCloudDatabase() {
     if (!isFirebaseActive) return;
-    console.log("📡 Pixel Steward Realtime Cloud Pipeline: WORKING");
     firebase.database().ref('pixel_steward_data_v4').on('value', (snapshot) => {
       const data = snapshot.val();
       if (data) {
@@ -228,55 +222,9 @@ class PixelStewardApp {
         if (data.monthlyRecords) this.monthlyRecords = Array.isArray(data.monthlyRecords) ? data.monthlyRecords : Object.values(data.monthlyRecords);
         if (data.dividendRecords) this.dividendRecords = Array.isArray(data.dividendRecords) ? data.dividendRecords : Object.values(data.dividendRecords);
         if (data.exchangeRate) this.exchangeRate = Number(data.exchangeRate) || this.exchangeRate;
-  
-        this.processJournalRouting();
         this.refreshUI();
       }
     });
-
-    firebase.database().ref('retro_trading_journal_data').on('value', (snapshot) => {
-      const data = snapshot.val();
-      if (data) {
-        this.retroJournalRawData = data;
-        this.processJournalRouting();
-        this.refreshUI();
-      }
-    });
-  }
-
-  /* 🛠️ FIX: TWO-WAY DYNAMIC ACCOUNT SYNC & AUTOMATIC PORTFOLIO CREATION */
-  processJournalRouting() {
-    if (!this.retroJournalRawData) return;
-    
-    let rawBalances = this.retroJournalRawData.balances || {};
-    let accountNames = Object.keys(rawBalances);
-    
-    if (accountNames.length === 0 && this.retroJournalRawData.balance !== undefined) {
-      accountNames = ['Demo'];
-    }
-
-    accountNames.forEach(accName => {
-      let existingPort = this.portfolios.find(p => p && p.name === accName && p.category === 'Forex');
-      if (!existingPort) {
-        const newForexPort = {
-          id: 'p-fx-' + accName.toLowerCase().replace(/\s+/g, '-'),
-          name: accName,
-          category: 'Forex',
-          goalType: 'numeric',
-          goal: 10000,
-          goalSchedule: '',
-          current: 0,
-          cashBuffer: 0,
-          dryPowder: 0,
-          assets: [],
-          notes: 'Auto Synchronized from Retro Trading Journal',
-          dcaDoneThisMonth: false
-        };
-        this.portfolios.push(newForexPort);
-      }
-    });
-
-    this.autoCalculatePortfolios();
   }
 
   syncStateToCloud() {
@@ -287,38 +235,12 @@ class PixelStewardApp {
     });
   }
 
-  // 🎛️ DYNAMIC MULTI-PORTFOLIO AUTO CALCULATOR
   autoCalculatePortfolios() {
     if (!Array.isArray(this.portfolios)) return;
     this.portfolios.forEach(p => {
       if (!p) return;
-      if (p.category === 'Forex') {
-        if (this.retroJournalRawData) {
-          const trades = Array.isArray(this.retroJournalRawData.trades) ? this.retroJournalRawData.trades : Object.values(this.retroJournalRawData.trades || {});
-          const cfs = Array.isArray(this.retroJournalRawData.cfs) ? this.retroJournalRawData.cfs : Object.values(this.retroJournalRawData.cfs || {});
-          const targetName = p.name || 'Demo';
-
-          const accTrades = trades.filter(t => t && (t.account || 'Demo') === targetName);
-          const accCFs = cfs.filter(c => c && (c.account || 'Demo') === targetName);
-
-          const totalDep = accCFs.filter(c => c.type === 'Deposit').reduce((sum, c) => sum + (Number(c.amount) || 0), 0);
-          const totalWit = accCFs.filter(c => c.type === 'Withdraw').reduce((sum, c) => sum + (Number(c.amount) || 0), 0);
-          const cumProfit = accTrades.reduce((sum, t) => sum + (Number(t.pnl) || 0), 0);
-
-          let baseBalance = 0;
-          if (this.retroJournalRawData.balances && this.retroJournalRawData.balances[targetName] !== undefined) {
-            baseBalance = Number(this.retroJournalRawData.balances[targetName]) || 0;
-          } else if (targetName === 'Demo' && this.retroJournalRawData.balance !== undefined) {
-            baseBalance = Number(this.retroJournalRawData.balance) || 0;
-          }
-
-          p.current = baseBalance + totalDep - totalWit + cumProfit;
-          p.cashBuffer = 0;
-        }
-      } else {
-        p.current = Array.isArray(p.assets) ? p.assets.reduce((sum, asset) => sum + (Number(asset.value) || 0), 0) : 0;
-        p.cashBuffer = 0;
-      }
+      p.current = Array.isArray(p.assets) ? p.assets.reduce((sum, asset) => sum + (Number(asset.value) || 0), 0) : 0;
+      p.cashBuffer = 0;
     });
   }
 
@@ -338,7 +260,7 @@ class PixelStewardApp {
     if (Array.isArray(this.portfolios)) {
       this.portfolios.forEach(p => {
         if (!p) return;
-        const isUSD = ['Forex', 'Option'].includes(p.category);
+        const isUSD = p.category === 'Option';
         if (isUSD) {
           totalUSD += (p.current || 0);
           totalCashBufferTHB += (p.cashBuffer || 0) * this.exchangeRate;
@@ -373,7 +295,20 @@ class PixelStewardApp {
     if (pct >= 80) return `🏆 เลเวลสูงสุดขอบทองแล้ว!`;
     const targetPct = pct < 40 ? 40 : 80;
     const needed = ((targetPct / 100) * p.goal) - (p.current + p.cashBuffer);
-    return `🔮 เลเวลอัปขั้นถัดไป: ขาดอีกประมาณ ${p.category === 'Forex'||p.category === 'Option' ? '$' : '฿'}${needed.toLocaleString(undefined,{maximumFractionDigits:0})}`;
+    return `🔮 เลเวลอัปขั้นถัดไป: ขาดอีกประมาณ ${p.category === 'Option' ? '$' : '฿'}${needed.toLocaleString(undefined,{maximumFractionDigits:0})}`;
+  }
+
+  // 👾 MELO AVATAR MOOD GENERATOR
+  getMeloAvatarState(score) {
+    if (score >= 90) {
+      return { imgSrc: './assets/avatar/avatar-excited.png', text: '🤩 พอร์ตสเกลสุดยอด มหาอัศวิน!', cls: 'color:#3b82f6;' };
+    } else if (score >= 70) {
+      return { imgSrc: './assets/avatar/avatar-happy.png', text: '🙂 พอร์ตกำลังเติบโตสมบูรณ์ดี!', cls: 'color:#10b981;' };
+    } else if (score >= 40) {
+      return { imgSrc: './assets/avatar/avatar-normal.png', text: '😐 พอร์ตเสถียร รักษาวินัยต่อ!', cls: 'color:#eab308;' };
+    } else {
+      return { imgSrc: './assets/avatar/avatar-concerned.png', text: '😟 วิกฤต! เติมเสบียงด่วน', cls: 'color:#ef4444;' };
+    }
   }
 
   refreshUI() {
@@ -381,11 +316,7 @@ class PixelStewardApp {
     
     const mainHeader = document.querySelector('.main-header');
     if (mainHeader) {
-      if (this.activeTab === 'dashboard') {
-        mainHeader.style.display = 'flex';
-      } else {
-        mainHeader.style.display = 'none';
-      }
+      mainHeader.style.display = (this.activeTab === 'dashboard') ? 'flex' : 'none';
     }
 
     const tabContent = document.getElementById('tab-content');
@@ -396,7 +327,6 @@ class PixelStewardApp {
       case 'portfolios': this.renderPortfolios(tabContent); break;
       case 'quarterly': this.renderQuarterly(tabContent); break;
       case 'dividends': this.renderDividends(tabContent); break;
-      case 'forex': this.renderForexCloud(tabContent); break;
       case 'option': this.renderOptionManual(tabContent); break;
       case 'comparison': this.renderComparison(tabContent); break;
       case 'settings': this.renderSettings(tabContent); break;
@@ -411,7 +341,7 @@ class PixelStewardApp {
     if (Array.isArray(this.quarterlyRecords)) {
       this.quarterlyRecords.filter(r => r && r.year === yr).forEach(r => {
         const p = this.portfolios.find(port => port && port.id === r.portfolioId);
-        const rate = p && ['Forex', 'Option'].includes(p.category) ? this.exchangeRate : 1;
+        const rate = p && p.category === 'Option' ? this.exchangeRate : 1;
         q1 += (r.q1||0)*rate; q2 += (r.q2||0)*rate; q3 += (r.q3||0)*rate; q4 += (r.q4||0)*rate;
       });
     }
@@ -422,7 +352,7 @@ class PixelStewardApp {
       this.portfolios.forEach(p => {
         if (!p) return;
         const cat = p.category || 'Uncategorized';
-        const rate = ['Forex', 'Option'].includes(cat) ? this.exchangeRate : 1;
+        const rate = cat === 'Option' ? this.exchangeRate : 1;
         const valTHB = ((p.current || 0) + (p.cashBuffer || 0)) * rate;
         categoryTotals[cat] = (categoryTotals[cat] || 0) + valTHB;
       });
@@ -443,6 +373,8 @@ class PixelStewardApp {
     if (this.portfolios.length >= 3) healthScore += 15;
     healthScore = Math.min(100, healthScore);
 
+    const meloState = this.getMeloAvatarState(healthScore);
+
     container.innerHTML = `
       <div style="display:grid; grid-template-columns:1fr 1fr; gap:20px;">
         <div class="stat-card border-pixel"><div class="stat-header"><span>ความมั่งคั่งสุทธิ</span><span>👑</span></div><div class="stat-value text-accent">฿${calc.netWorthTHB.toLocaleString(undefined,{maximumFractionDigits:2})}</div><div class="stat-desc">เงินทุน: ฿${(calc.totalTHB+(calc.totalUSD*this.exchangeRate)).toLocaleString()} | สำรอง Buffer: ฿${calc.totalCashBufferTHB.toLocaleString()}</div></div>
@@ -450,6 +382,7 @@ class PixelStewardApp {
       </div>
 
       <div style="display:grid; grid-template-columns:1fr 1.2fr 0.8fr; gap:20px; margin-top:20px;">
+        <!-- Asset Allocation -->
         <div class="border-pixel" style="padding:15px; background:#1f273e;">
           <h4 style="font-family:'Press Start 2P'; font-size:0.6rem; color:#10b981; margin-bottom:12px;">📊 ASSET ALLOCATION</h4>
           <div style="display:flex; flex-direction:column; gap:8px;">
@@ -467,6 +400,7 @@ class PixelStewardApp {
           </div>
         </div>
 
+        <!-- Quarterly Growth Bar -->
         <div class="border-pixel" style="padding:15px; background:#1f273e;">
           <h4 style="font-family:'Press Start 2P'; font-size:0.6rem; color:#3b82f6; margin-bottom:12px;">📈 สรุปความเติบโตรายไตรมาส (${yr})</h4>
           <div style="display:flex; justify-content:space-around; align-items:flex-end; height:130px; background:#111625; padding:12px; border:2px solid #000;">
@@ -477,11 +411,22 @@ class PixelStewardApp {
           </div>
         </div>
 
+        <!-- Portfolio Health & Melo Avatar Box -->
         <div style="display:flex; flex-direction:column; gap:12px;">
           <div class="border-pixel" style="padding:12px; background:#1f273e; text-align:center;">
-            <h5 style="font-family:'Press Start 2P'; font-size:0.55rem; color:var(--color-accent); margin-bottom:4px;">🩺 PORTFOLIO HEALTH</h5>
-            <div style="font-size:1.5rem; font-family:'Press Start 2P'; color:#10b981; margin:4px 0;">${healthScore}/100</div>
-            <div style="font-size:0.75rem; color:#94a3b8;">${healthScore >= 80 ? '🌟 พอร์ตสเกลสมบูรณ์แบบ!' : '🛡️ สภาพพอร์ตมั่นคงปลอดภัย'}</div>
+            <h5 style="font-family:'Press Start 2P'; font-size:0.55rem; color:var(--color-accent); margin-bottom:6px;">🩺 PORTFOLIO HEALTH</h5>
+            
+            <!-- 👾 MELO AVATAR DISPLAY (ตัวเลือกที่ 2) -->
+            <div style="display:flex; align-items:center; justify-content:center; gap:10px; margin:8px 0; background:#111625; padding:8px; border:2px solid #000;">
+              <div style="width:48px; height:48px; border:2px solid #000; overflow:hidden; background:#000; flex-shrink:0;">
+                <img src="${meloState.imgSrc}" alt="Melo Avatar" style="width:100%; height:100%; object-fit:cover; image-rendering:pixelated;">
+              </div>
+              <div style="text-align:left;">
+                <div style="font-size:1.3rem; font-family:'Press Start 2P'; color:#10b981;">${healthScore}/100</div>
+                <div style="font-size:0.7rem; font-weight:bold; ${meloState.cls}">${meloState.text}</div>
+              </div>
+            </div>
+
           </div>
 
           <div class="border-pixel" style="padding:12px; background:#1f273e;">
@@ -503,7 +448,7 @@ class PixelStewardApp {
     let active = this.portfolios.find(p => p && p.id === this.selectedPortId) || this.portfolios[0];
     this.selectedPortId = active.id;
     const lvl = this.getPortfolioLevel(active);
-    const isUSD = ['Forex', 'Option'].includes(active.category);
+    const isUSD = active.category === 'Option';
     const weight = this.getCalculations().netWorthTHB > 0 ? (((active.current+active.cashBuffer)*(isUSD?this.exchangeRate:1))/this.getCalculations().netWorthTHB)*100 : 0;
 
     container.innerHTML = `
@@ -546,7 +491,7 @@ class PixelStewardApp {
             <div style="margin-top:5px;">
               <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:2px solid #000; padding-bottom:4px;"><span style="font-size:0.8rem; font-weight:bold;">💎 สินทรัพย์ย่อย</span><button class="btn btn-primary btn-retro btn-small" id="btn-add-asset" style="padding:2px 6px;"><span>➕ เพิ่ม</span></button></div>
               <div style="display:flex; flex-direction:column; gap:6px; margin-top:8px; max-height:180px; overflow-y:auto;">
-                ${active.category==='Forex'?'<p style="color:#eab308; font-size:0.75rem; text-align:center; padding:10px;">⚡ ข้อมูลดึงพอร์ตเชื่อมคลาวด์ Retro Trading อัตโนมัติ</p>':(!active.assets || active.assets.length===0)?'<p class="text-muted" style="font-size:0.8rem; text-align:center;">คลังว่างเปล่า</p>':active.assets.map((a,i)=>`
+                ${(!active.assets || active.assets.length===0)?'<p class="text-muted" style="font-size:0.8rem; text-align:center;">คลังว่างเปล่า</p>':active.assets.map((a,i)=>`
                   <div style="display:flex; justify-content:space-between; background:#111625; padding:6px; border:2px solid #000; font-size:0.8rem; align-items:center;">
                     <span>🔸 ${a.name}</span>
                     <div style="display:flex; gap:4px; align-items:center;">
@@ -665,150 +610,8 @@ class PixelStewardApp {
     } 
   }
 
-  /* 🛠️ FIX: ROBUST FOREX CLOUD STREAMING & RENDERER */
-  renderForexCloud(container) {
-    let trades = [];
-    if (this.retroJournalRawData) {
-      if (Array.isArray(this.retroJournalRawData.trades)) {
-        trades = this.retroJournalRawData.trades;
-      } else if (typeof this.retroJournalRawData.trades === 'object') {
-        trades = Object.values(this.retroJournalRawData.trades || {});
-      }
-    }
-
-    const uniqueMonths = [...new Set(trades.map(t => t && t.date ? t.date.substring(0, 7) : ''))].filter(Boolean).sort().reverse();
-    const uniqueAssets = [...new Set(trades.map(t => t && t.symbol ? t.symbol : ''))].filter(Boolean).sort();
-    const filteredTrades = trades.filter(t => {
-      if (!t) return false;
-      const monthMatch = this.forexMonthFilter === 'all' || (t.date && t.date.startsWith(this.forexMonthFilter));
-      const assetMatch = this.forexAssetFilter === 'all' || t.symbol === this.forexAssetFilter;
-      return monthMatch && assetMatch;
-    });
-
-    let netPnL = 0;
-    let winCount = 0;
-    let grossProfit = 0;
-    let grossLoss = 0;
-    filteredTrades.forEach(t => {
-      const pnl = Number(t.pnl) || 0;
-      netPnL += pnl; 
-      if (pnl > 0.90) { 
-        winCount++;
-        grossProfit += pnl;
-      } else if (pnl < 0) {
-        grossLoss += Math.abs(pnl);
-      } else {
-        grossProfit += pnl;
-      }
-    });
-
-    const totalTradesCount = filteredTrades.length;
-    const winRate = totalTradesCount > 0 ? (winCount / totalTradesCount) * 100 : 0;
-    const profitFactor = grossLoss > 0 ? (grossProfit / grossLoss).toFixed(2) : (grossProfit > 0 ? '∞' : '1.00');
-
-    container.innerHTML = `
-      <div style="display:flex; flex-direction:column; gap:20px;">
-        <div style="display:grid; grid-template-columns: repeat(4, 1fr); gap:15px;">
-          <div class="border-pixel" style="background:#111625; padding:12px; text-align:center;">
-            <div style="font-size:0.65rem; color:#64748b; font-family:'Press Start 2P'; margin-bottom:6px;">NET P&L</div>
-            <div class="pixel-money" style="font-size:1.25rem!important; font-weight:bold; color:${netPnL >= 0 ? '#10b981' : '#ef4444'};">
-              ${netPnL >= 0 ? '+' : ''}$${netPnL.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}
-            </div>
-          </div>
-          <div class="border-pixel" style="background:#111625; padding:12px; text-align:center;">
-            <div style="font-size:0.65rem; color:#64748b; font-family:'Press Start 2P'; margin-bottom:6px;">WIN RATE</div>
-            <div class="pixel-money" style="font-size:1.25rem!important; font-weight:bold; color:#eab308;">
-              ${winRate.toFixed(1)}%
-            </div>
-          </div>
-          <div class="border-pixel" style="background:#111625; padding:12px; text-align:center;">
-            <div style="font-size:0.65rem; color:#64748b; font-family:'Press Start 2P'; margin-bottom:6px;">PROFIT FACTOR</div>
-            <div class="pixel-money" style="font-size:1.25rem!important; font-weight:bold; color:#3b82f6;">
-              ${profitFactor}
-            </div>
-          </div>
-          <div class="border-pixel" style="background:#111625; padding:12px; text-align:center;">
-            <div style="font-size:0.65rem; color:#64748b; font-family:'Press Start 2P'; margin-bottom:6px;">TOTAL TRADES</div>
-            <div class="pixel-money" style="font-size:1.25rem!important; font-weight:bold; color:#fff;">
-              ${totalTradesCount} ไม้
-            </div>
-          </div>
-        </div>
-
-        <div class="border-pixel" style="background:#1f273e; padding:12px; display:flex; gap:20px; align-items:center;">
-          <div style="display:flex; align-items:center; gap:8px;">
-            <label style="font-size:0.75rem; font-weight:bold; color:#94a3b8;">📅 เลือกงวดเดือน:</label>
-            <select id="fx-filter-month" class="input-retro" style="padding:4px 8px; font-size:0.75rem; background:#0c1020; color:#fff; border:2px solid #000;">
-              <option value="all" ${this.forexMonthFilter === 'all' ? 'selected' : ''}>🗓️ ทั้งหมดทุกงวด</option>
-              ${uniqueMonths.map(m => `<option value="${m}" ${this.forexMonthFilter === m ? 'selected' : ''}>📅 ${m}</option>`).join('')}
-            </select>
-          </div>
-
-          <div style="display:flex; align-items:center; gap:8px;">
-            <label style="font-size:0.75rem; font-weight:bold; color:#94a3b8;">🪙 สินทรัพย์:</label>
-            <select id="fx-filter-asset" class="input-retro" style="padding:4px 8px; font-size:0.75rem; background:#0c1020; color:#fff; border:2px solid #000;">
-              <option value="all" ${this.forexAssetFilter === 'all' ? 'selected' : ''}>🪙 สินทรัพย์ทั้งหมด</option>
-              ${uniqueAssets.map(a => `<option value="${a}" ${this.forexAssetFilter === a ? 'selected' : ''}>🔸 ${a}</option>`).join('')}
-            </select>
-          </div>
-        </div>
-
-        <div class="border-pixel" style="padding:15px; background:#1f273e;">
-          <h4 style="font-family:'Press Start 2P'; font-size:0.6rem; color:#64748b; margin-bottom:12px;">📜 LOG HISTORY</h4>
-          <div style="background:#111625; padding:8px; border:2px solid #000; max-height:360px; overflow-y:auto;">
-            <table class="retro-table" style="width:100%; font-size:0.8rem; border-collapse:collapse; text-align:left;">
-              <thead>
-                <tr style="background:#0c1020; color:#94a3b8; border-bottom:2px solid #000;">
-                  <th style="padding:8px; text-align:center;">วันเทรด</th>
-                  <th style="padding:8px; text-align:center;">สินทรัพย์</th>
-                  <th style="padding:8px; text-align:center;">คำสั่ง</th>
-                  <th style="padding:8px; text-align:right; padding-right:15px;">กำไร/ขาดทุน (USD)</th>
-                  <th style="padding:8px; text-align:center;">คลังพอร์ต</th>
-                </tr>
-              </thead>
-              <tbody>
-                ${filteredTrades.length === 0 
-                  ? '<tr><td colspan="5" style="text-align:center; padding:30px; color:#64748b;">📭 ไม่พบประวัติการเทรดตามเงื่อนไขตัวกรอง</td></tr>'
-                  : filteredTrades.map(t => {
-                      if(!t) return '';
-                      const amt = Number(t.pnl) || 0;
-                      return `
-                      <tr style="border-bottom:1px solid #222; background:#111625;">
-                        <td style="padding:8px; text-align:center; color:#94a3b8; font-family:monospace;">${t.date || ''}</td>
-                        <td style="padding:8px; text-align:center; font-weight:bold; color:#3b82f6;">${t.symbol || ''}</td>
-                        <td style="padding:8px; text-align:center;"><span style="background:${t.dir==='Buy'?'#064e3b':'#7f1d1d'}; color:${t.dir==='Buy'?'#10b981':'#f87171'}; padding:2px 6px; border:1px solid #000; font-size:0.7rem; font-weight:bold;">${(t.dir || 'BUY').toUpperCase()}</span></td>
-                        <td style="padding:8px; text-align:right; padding-right:15px; font-weight:bold; font-family:monospace; color:${amt >= 0 ? '#10b981' : '#ef4444'};">
-                          ${amt >= 0 ? '+' : ''}$${amt.toLocaleString(undefined,{minimumFractionDigits:2, maximumFractionDigits:2})}
-                        </td>
-                        <td style="padding:8px; text-align:center; color:#eab308; font-size:0.75rem;">${t.account||'Demo'}</td>
-                      </tr>`;
-                    }).join('')}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      </div>`;
-
-    setTimeout(() => {
-      const monthSelect = document.getElementById('fx-filter-month');
-      const assetSelect = document.getElementById('fx-filter-asset');
-      if (monthSelect) {
-        monthSelect.addEventListener('change', (e) => {
-          this.forexMonthFilter = e.target.value;
-          this.refreshUI();
-        });
-      }
-      if (assetSelect) {
-        assetSelect.addEventListener('change', (e) => {
-          this.forexAssetFilter = e.target.value;
-          this.refreshUI();
-        });
-      }
-    }, 0);
-  }
-
   renderQuarterly(container) {
-    const stockPorts = Array.isArray(this.portfolios) ? this.portfolios.filter(p => p && !['Forex', 'Option'].includes(p.category)) : [];
+    const stockPorts = Array.isArray(this.portfolios) ? this.portfolios.filter(p => p && p.category !== 'Option') : [];
     const year = new Date().getFullYear();
     if(stockPorts.length===0){ container.innerHTML='<div class="border-pixel" style="padding:20px; background:#1f273e;">ไม่มีรายการหุ้นรายไตรมาส (โปรดตั้งค่าเปิดตลับพอร์ตหลักก่อนครับ)</div>'; return; }
     
@@ -1009,7 +812,7 @@ class PixelStewardApp {
           <tbody>
             ${this.portfolios.map(p => {
               if(!p) return '';
-              const r = ['Forex', 'Option'].includes(p.category)?this.exchangeRate:1;
+              const r = p.category === 'Option' ? this.exchangeRate : 1;
               const curTHB = ((p.current||0)+(p.cashBuffer||0))*r; const goalTHB = p.goalType==='numeric'?((p.goal||0)*r):0; const diff = p.goalType==='numeric'?Math.max(goalTHB-curTHB,0):0;
               const pct = p.goalType==='numeric'?(p.goal>0?(curTHB/goalTHB)*100:0):(p.dcaDoneThisMonth?100:0);
               const fillPct = Math.min(100, Math.max(0, pct));
@@ -1124,7 +927,7 @@ class PixelStewardApp {
     if(destId!=='system') {
       const dest = this.portfolios.find(x=>x && x.id===destId);
       if(dest) {
-        const sUSD = ['Forex', 'Option'].includes(src.category); const tUSD = ['Forex', 'Option'].includes(dest.category);
+        const sUSD = src.category === 'Option'; const tUSD = dest.category === 'Option';
         let conv = amt; if(sUSD && !tUSD) conv = amt * r; else if(!sUSD && tUSD) conv = amt / r;
         dest.dryPowder += conv;
       }

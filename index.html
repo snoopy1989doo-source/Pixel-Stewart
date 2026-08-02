@@ -5,7 +5,7 @@
   <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-database-compat.js"></script>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>Pixel Steward - ผู้พิทักษ์พอร์ตมหาสมบัติ</title>
+  <title>Pixel Steward </title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Kanit:wght@300;400;500;700;900&display=swap" rel="stylesheet">
@@ -13,7 +13,7 @@
 
   <style>
     /* ==========================================================================
-       🎮 V.1.9.5 PIXEL STYLE EXTRA & BUTTON DELEGATION STYLING
+       🎮 V.2.0.0 PIXEL STYLE EXTRA & PROFILE AVATAR STYLING
        ========================================================================== */
     .brand-title {
       font-family: 'Press Start 2P', monospace;
@@ -22,16 +22,53 @@
       margin: 0;
     }
     .brand-title.highlight { color: #3b82f6; }
-    .app-version-tag {
-      font-family: 'Press Start 2P', monospace;
-      font-size: 0.55rem;
-      color: #10b981;
-      background: #0c1020;
-      padding: 4px 6px;
-      border: 2px solid #000;
-      display: inline-block;
-      margin-top: 6px;
+    
+    /* 👤 SIDEBAR PLAYER PROFILE STYLING */
+    .player-profile-card {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      background: #111625;
+      border: 3px solid #000;
+      padding: 8px 10px;
+      margin-bottom: 12px;
+      box-shadow: 3px 3px 0px #000;
     }
+    .profile-avatar-frame {
+      width: 44px;
+      height: 44px;
+      border: 2px solid #000;
+      overflow: hidden;
+      background: #000;
+      flex-shrink: 0;
+      border-radius: 50%;
+    }
+    .profile-avatar-img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      image-rendering: pixelated;
+    }
+    .profile-info {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+      overflow: hidden;
+    }
+    .player-name {
+      font-weight: bold;
+      font-size: 0.8rem;
+      color: #ffffff;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .player-tag {
+      font-family: 'Press Start 2P', monospace;
+      font-size: 0.5rem;
+      color: #eab308;
+    }
+
     .cartridge-list-rack {
       display: flex;
       flex-direction: column;
@@ -105,7 +142,6 @@
     }
     .btn-delete-port-inline:hover { background: #b91c1c; }
     
-    /* 🔤 FORCE PIXEL STYLE FOR FINANCIAL NUMBERS */
     .stat-value, .pixel-money, .retro-table td, .retro-table th {
       font-family: 'Press Start 2P', monospace !important;
       font-size: 0.72rem !important;
@@ -120,9 +156,6 @@
     .text-accent { color: var(--color-accent, #eab308) !important; }
     @keyframes pixel-blink { 0%, 100% { opacity: 1; } 50% { opacity: 0; } }
 
-    /* ==========================================================================
-       🕹️ ARCADE EXP BAR & GOLD SKIN OVERLAY
-       ========================================================================== */
     .progress-bar-fill-animated {
       height: 100%;
       background-size: 30px 30px;
@@ -133,30 +166,31 @@
       0% { background-position: 0 0; }
       100% { background-position: 30px 0; }
     }
-    .gold-skin-border {
-      border: 4px solid #ffcc00 !important;
-      box-shadow: 0 0 12px rgba(255, 204, 0, 0.4), 4px 4px 0px #000 !important;
-      animation: gold-glow-pulse 2s infinite alternate;
-    }
-    @keyframes gold-glow-pulse {
-      0% { border-color: #ffcc00; }
-      100% { border-color: #ffe680; box-shadow: 0 0 18px rgba(255, 204, 0, 0.7), 4px 4px 0px #000 !important; }
-    }
   </style>
 </head>
 <body>
   <div class="app-container">
     <aside class="sidebar border-pixel">
-      <div class="brand">
-        <div class="logo">🥇</div>
+      <!-- 👤 PLAYER PROFILE (บนซ้ายสุดของ SIDEBAR) -->
+      <div class="player-profile-card">
+        <div class="profile-avatar-frame">
+          <img src="./assets/avatar/avatar-profile.png" alt="Player Profile" class="profile-avatar-img">
+        </div>
+        <div class="profile-info">
+          <span class="player-name">STEWARD</span>
+          <span class="player-tag">👑 COMMANDER</span>
+        </div>
+      </div>
+
+      <div class="brand" style="margin-bottom:10px;">
         <div class="title-container">
           <h1 class="brand-title">PIXEL</h1>
           <h1 class="brand-title highlight">STEWARD</h1>
-          <span class="badge-version">🔸 V.1.9.5 RELEASE</span>
+          <span class="badge-version">🔸 V.2.0.0 RELEASE</span>
         </div>
       </div>
       
-      <div class="nav-divider" style="height:4px; background:#000; margin:15px 0;"></div>
+      <div class="nav-divider" style="height:4px; background:#000; margin:10px 0;"></div>
       
       <div class="exchange-widget border-pixel-inset" style="padding:10px; background:#111625; margin-bottom:15px;">
         <label for="global-usd-rate" style="font-size:0.8rem; color:#94a3b8;">💱 อัตราแลกเปลี่ยนคลัง:</label>
@@ -165,13 +199,11 @@
           <span style="font-size:0.75rem; font-weight:bold; color:#94a3b8;">THB/USD</span>
         </div>
       </div>
-
       <nav class="nav-menu" style="display:flex; flex-direction:column; gap:6px;">
         <button class="nav-item active" data-tab="dashboard"><span>📊 แดชบอร์ดภาพรวม</span></button>
         <button class="nav-item" data-tab="portfolios"><span>📁 พอร์ตการลงทุน</span></button>
         <button class="nav-item" data-tab="quarterly"><span>📈 หุ้นรายไตรมาส</span></button>
         <button class="nav-item" data-tab="dividends"><span>💰 เงินปันผล & YOC</span></button>
-        <button class="nav-item" data-tab="forex"><span>💵 Forex รายเดือน</span></button>
         <button class="nav-item" data-tab="option"><span>💎 Option รายเดือน</span></button>
         <button class="nav-item" data-tab="comparison"><span>⚖️ ตารางเปรียบเทียบ</span></button>
         <button class="nav-item" data-tab="settings"><span>⚙️ ตั้งค่าคลาวด์เซฟ</span></button>
@@ -297,7 +329,6 @@
             <option value="Asset">Asset (สินทรัพย์)</option>
             <option value="Retirement">Retirement (กองทุนเกษียณ)</option>
             <option value="Life Goal">Life Goal (เป้าหมายชีวิต)</option>
-            <option value="Forex">Forex (ตลาดแลกเปลี่ยน)</option>
             <option value="Option">Option (สัญญาออปชัน)</option>
           </select>
         </div>
