@@ -5,7 +5,7 @@
   <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-database-compat.js"></script>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>Pixel Steward </title>
+  <title>Pixel Steward - ผู้พิทักษ์พอร์ตมหาสมบัติ</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Kanit:wght@300;400;500;700;900&display=swap" rel="stylesheet">
@@ -13,7 +13,7 @@
 
   <style>
     /* ==========================================================================
-       🎮 V.2.0.0 PIXEL STYLE EXTRA & PROFILE AVATAR STYLING
+       🎮 V.2.0.0 PIXEL ICON SYSTEM & SIDEBAR STYLING
        ========================================================================== */
     .brand-title {
       font-family: 'Press Start 2P', monospace;
@@ -69,6 +69,23 @@
       color: #eab308;
     }
 
+    /* 🖼️ PIXEL ICON SYSTEM STYLING (OPTION A - 22x22px) */
+    .menu-pixel-icon {
+      width: 22px;
+      height: 22px;
+      object-fit: contain;
+      image-rendering: pixelated;
+      flex-shrink: 0;
+    }
+    .card-title-icon {
+      width: 20px;
+      height: 20px;
+      object-fit: contain;
+      image-rendering: pixelated;
+      vertical-align: middle;
+      margin-right: 6px;
+    }
+
     .cartridge-list-rack {
       display: flex;
       flex-direction: column;
@@ -120,6 +137,7 @@
       color: #94a3b8;
       display: flex;
       justify-content: space-between;
+      align-items: center;
     }
     .ammo-warning-tag {
       color: #ef4444 !important;
@@ -199,14 +217,37 @@
           <span style="font-size:0.75rem; font-weight:bold; color:#94a3b8;">THB/USD</span>
         </div>
       </div>
+
+      <!-- 🎮 NAVIGATION MENU WITH PIXEL ICONS -->
       <nav class="nav-menu" style="display:flex; flex-direction:column; gap:6px;">
-        <button class="nav-item active" data-tab="dashboard"><span>📊 แดชบอร์ดภาพรวม</span></button>
-        <button class="nav-item" data-tab="portfolios"><span>📁 พอร์ตการลงทุน</span></button>
-        <button class="nav-item" data-tab="quarterly"><span>📈 หุ้นรายไตรมาส</span></button>
-        <button class="nav-item" data-tab="dividends"><span>💰 เงินปันผล & YOC</span></button>
-        <button class="nav-item" data-tab="option"><span>💎 Option รายเดือน</span></button>
-        <button class="nav-item" data-tab="comparison"><span>⚖️ ตารางเปรียบเทียบ</span></button>
-        <button class="nav-item" data-tab="settings"><span>⚙️ ตั้งค่าคลาวด์เซฟ</span></button>
+        <button class="nav-item active" data-tab="dashboard">
+          <img src="./assets/icons/icon-home.png" alt="Home" class="menu-pixel-icon">
+          <span>แดชบอร์ดภาพรวม</span>
+        </button>
+        <button class="nav-item" data-tab="portfolios">
+          <img src="./assets/icons/icon-briefcase.png" alt="Portfolios" class="menu-pixel-icon">
+          <span>พอร์ตการลงทุน</span>
+        </button>
+        <button class="nav-item" data-tab="quarterly">
+          <img src="./assets/icons/icon-calendar.png" alt="Quarterly" class="menu-pixel-icon">
+          <span>หุ้นรายไตรมาส</span>
+        </button>
+        <button class="nav-item" data-tab="dividends">
+          <img src="./assets/icons/icon-coin.png" alt="Dividends" class="menu-pixel-icon">
+          <span>เงินปันผล & YOC</span>
+        </button>
+        <button class="nav-item" data-tab="option">
+          <img src="./assets/icons/icon-daimon.png" alt="Option" class="menu-pixel-icon">
+          <span>Option รายเดือน</span>
+        </button>
+        <button class="nav-item" data-tab="comparison">
+          <img src="./assets/icons/icon-gems.png" alt="Comparison" class="menu-pixel-icon">
+          <span>ตารางเปรียบเทียบ</span>
+        </button>
+        <button class="nav-item" data-tab="settings">
+          <img src="./assets/icons/icon-gear.png" alt="Settings" class="menu-pixel-icon">
+          <span>ตั้งค่าคลาวด์เซฟ</span>
+        </button>
       </nav>
     </aside>
 
@@ -216,16 +257,18 @@
           <h1 id="page-title" style="font-size:1.4rem; font-weight:bold; margin:0;">แดชบอร์ดภาพรวม</h1>
           <p id="page-subtitle" class="text-muted" style="margin:4px 0 0 0; font-size:0.85rem; color:#94a3b8;">วิเคราะห์สถานะความมั่งคั่ง กระสุนรอช้อน และแนวโน้มการเติบโตรายไตรมาส</p>
         </div>
+
         <!-- 🌤️ RETRO TIME SYSTEM WIDGET -->
-  <div class="time-widget-card border-pixel">
-    <div class="time-image-frame">
-      <img id="time-scene-img" src="assets/time/morning.png" alt="Time Scene" class="pixel-art-img">
-    </div>
-    <div class="time-info-panel">
-      <div class="time-badge" id="time-badge-label">🌅 MORNING</div>
-      <div class="time-digital-clock" id="time-clock-display">00:00:00</div>
-    </div>
-  </div>
+        <div class="time-widget-card border-pixel">
+          <div class="time-image-frame">
+            <img id="time-scene-img" src="./assets/time/morning.png" alt="Time Scene" class="pixel-art-img">
+          </div>
+          <div class="time-info-panel">
+            <div class="time-badge" id="time-badge-label">🌅 MORNING</div>
+            <div class="time-digital-clock" id="time-clock-display">00:00:00</div>
+          </div>
+        </div>
+
         <div class="header-buttons" style="display:flex; gap:10px;">
           <button class="btn btn-primary btn-retro" id="btn-add-portfolio" style="padding:8px 12px;"><span>➕ เพิ่มพอร์ตใหม่</span></button>
           <button class="btn btn-secondary btn-retro" id="btn-quick-transfer" style="padding:8px 12px;"><span>⚡ โยกย้ายเสบียง</span></button>
@@ -238,6 +281,7 @@
 
   <div id="toast-container" class="toast-container"></div>
 
+  <!-- MODALS -->
   <div id="quarterly-modal" class="modal-overlay hidden">
     <div class="modal-card border-pixel">
       <form id="quarterly-form">

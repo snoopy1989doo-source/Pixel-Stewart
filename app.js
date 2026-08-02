@@ -91,6 +91,16 @@ class PixelStewardApp {
     return `<span class="pixel-money">${sym}${numStr}</span>`;
   }
 
+  // 🎯 DYNAMIC CATEGORY ICON ENGINE
+  getCategoryIconPath(category) {
+    const cat = (category || '').toLowerCase();
+    if (cat.includes('option')) return './assets/icons/icon-daimon.png';
+    if (cat.includes('emergency') || cat.includes('ฉุกเฉิน')) return './assets/icons/icon-shield.png';
+    if (cat.includes('retirement') || cat.includes('เกษียณ') || cat.includes('dca')) return './assets/icons/icon-piggy-bank.png';
+    if (cat.includes('dividend') || cat.includes('ปันผล') || cat.includes('asset')) return './assets/icons/icon-money-bag.png';
+    return './assets/icons/icon-briefcase.png';
+  }
+
   init() {
     this.timeEngine = new TimeSystemEngine();
 
@@ -377,14 +387,30 @@ class PixelStewardApp {
 
     container.innerHTML = `
       <div style="display:grid; grid-template-columns:1fr 1fr; gap:20px;">
-        <div class="stat-card border-pixel"><div class="stat-header"><span>ความมั่งคั่งสุทธิ</span><span>👑</span></div><div class="stat-value text-accent">฿${calc.netWorthTHB.toLocaleString(undefined,{maximumFractionDigits:2})}</div><div class="stat-desc">เงินทุน: ฿${(calc.totalTHB+(calc.totalUSD*this.exchangeRate)).toLocaleString()} | สำรอง Buffer: ฿${calc.totalCashBufferTHB.toLocaleString()}</div></div>
-        <div class="stat-card border-pixel"><div class="stat-header"><span>Dry Powder (กระสุนรอช้อน)</span><span>🥄</span></div><div class="stat-value" style="color:var(--color-warning)!important;">฿${calc.totalDryPowderTHB.toLocaleString(undefined,{maximumFractionDigits:2})}</div><div class="stat-desc">สัดส่วนกระสุน: ${dryPowderRatio.toFixed(1)}% ของพอร์ตรวม (${isAmmoReady ? '🟢 พร้อมลุย' : '🔴 กระสุนต่ำ'})</div></div>
+        <div class="stat-card border-pixel">
+          <div class="stat-header">
+            <span>ความมั่งคั่งสุทธิ</span>
+            <img src="./assets/icons/icon-chest.png" alt="Chest" class="card-title-icon">
+          </div>
+          <div class="stat-value text-accent">฿${calc.netWorthTHB.toLocaleString(undefined,{maximumFractionDigits:2})}</div>
+          <div class="stat-desc">เงินทุน: ฿${(calc.totalTHB+(calc.totalUSD*this.exchangeRate)).toLocaleString()} | สำรอง Buffer: ฿${calc.totalCashBufferTHB.toLocaleString()}</div>
+        </div>
+        <div class="stat-card border-pixel">
+          <div class="stat-header">
+            <span>Dry Powder (กระสุนรอช้อน)</span>
+            <img src="./assets/icons/icon-coin-stack.png" alt="Coins" class="card-title-icon">
+          </div>
+          <div class="stat-value" style="color:var(--color-warning)!important;">฿${calc.totalDryPowderTHB.toLocaleString(undefined,{maximumFractionDigits:2})}</div>
+          <div class="stat-desc">สัดส่วนกระสุน: ${dryPowderRatio.toFixed(1)}% ของพอร์ตรวม (${isAmmoReady ? '🟢 พร้อมลุย' : '🔴 กระสุนต่ำ'})</div>
+        </div>
       </div>
 
       <div style="display:grid; grid-template-columns:1fr 1.2fr 0.8fr; gap:20px; margin-top:20px;">
         <!-- Asset Allocation -->
         <div class="border-pixel" style="padding:15px; background:#1f273e;">
-          <h4 style="font-family:'Press Start 2P'; font-size:0.6rem; color:#10b981; margin-bottom:12px;">📊 ASSET ALLOCATION</h4>
+          <h4 style="font-family:'Press Start 2P'; font-size:0.6rem; color:#10b981; margin-bottom:12px; display:flex; align-items:center;">
+            <img src="./assets/icons/icon-gems.png" alt="Gems" class="card-title-icon"> ASSET ALLOCATION
+          </h4>
           <div style="display:flex; flex-direction:column; gap:8px;">
             ${catBreakdown.length === 0 ? '<p class="text-muted" style="font-size:0.8rem;">ไม่มีสินทรัพย์</p>' : catBreakdown.map(c => `
               <div>
@@ -402,7 +428,9 @@ class PixelStewardApp {
 
         <!-- Quarterly Growth Bar -->
         <div class="border-pixel" style="padding:15px; background:#1f273e;">
-          <h4 style="font-family:'Press Start 2P'; font-size:0.6rem; color:#3b82f6; margin-bottom:12px;">📈 สรุปความเติบโตรายไตรมาส (${yr})</h4>
+          <h4 style="font-family:'Press Start 2P'; font-size:0.6rem; color:#3b82f6; margin-bottom:12px; display:flex; align-items:center;">
+            <img src="./assets/icons/icon-chart.png" alt="Chart" class="card-title-icon"> สรุปความเติบโตรายไตรมาส (${yr})
+          </h4>
           <div style="display:flex; justify-content:space-around; align-items:flex-end; height:130px; background:#111625; padding:12px; border:2px solid #000;">
             <div style="width:20%; display:flex; flex-direction:column; align-items:center; height:100%; justify-content:flex-end;"><div style="font-size:0.6rem;">฿${q1.toLocaleString(undefined,{maximumFractionDigits:0})}</div><div style="width:100%; height:${(q1/maxQ)*100}%; background:var(--color-primary); border:2px solid #000;"></div><div style="font-size:0.65rem; margin-top:4px;">Q1</div></div>
             <div style="width:20%; display:flex; flex-direction:column; align-items:center; height:100%; justify-content:flex-end;"><div style="font-size:0.6rem;">฿${q2.toLocaleString(undefined,{maximumFractionDigits:0})}</div><div style="width:100%; height:${(q2/maxQ)*100}%; background:var(--color-success); border:2px solid #000;"></div><div style="font-size:0.65rem; margin-top:4px;">Q2</div></div>
@@ -414,7 +442,9 @@ class PixelStewardApp {
         <!-- Portfolio Health & Melo Avatar Box -->
         <div style="display:flex; flex-direction:column; gap:12px;">
           <div class="border-pixel" style="padding:12px; background:#1f273e; text-align:center;">
-            <h5 style="font-family:'Press Start 2P'; font-size:0.55rem; color:var(--color-accent); margin-bottom:6px;">🩺 PORTFOLIO HEALTH</h5>
+            <h5 style="font-family:'Press Start 2P'; font-size:0.55rem; color:var(--color-accent); margin-bottom:6px; display:flex; align-items:center; justify-content:center;">
+              <img src="./assets/icons/icon-heart.png" alt="Heart" class="card-title-icon"> PORTFOLIO HEALTH
+            </h5>
             
             <!-- 👾 MELO AVATAR DISPLAY (ตัวเลือกที่ 2) -->
             <div style="display:flex; align-items:center; justify-content:center; gap:10px; margin:8px 0; background:#111625; padding:8px; border:2px solid #000;">
@@ -430,7 +460,9 @@ class PixelStewardApp {
           </div>
 
           <div class="border-pixel" style="padding:12px; background:#1f273e;">
-            <h4 style="font-family:'Press Start 2P'; font-size:0.55rem; color:var(--color-accent); margin-bottom:8px;">🚩 เควสใกล้บรรลุเป้าหมาย</h4>
+            <h4 style="font-family:'Press Start 2P'; font-size:0.55rem; color:var(--color-accent); margin-bottom:8px; display:flex; align-items:center;">
+              <img src="./assets/icons/icon-trophy.png" alt="Trophy" class="card-title-icon"> เควสใกล้บรรลุเป้าหมาย
+            </h4>
             <div style="display:flex; flex-direction:column; gap:6px;">
               ${this.portfolios.length===0?'<p class="text-muted" style="text-align:center;font-size:0.8rem;">คลังว่างเปล่า</p>':topGoals.map(g => `<div style="background:#111625; padding:6px; border:2px solid #000;"><div style="display:flex; justify-content:space-between; font-size:0.75rem;"><span>${g.name}</span><b style="color:var(--color-success);">${g.pct.toFixed(1)}%</b></div><div class="progress-container" style="margin-top:2px; height:5px;"><div class="progress-bar-fill" style="width:${Math.min(100,g.pct)}%; background:var(--color-accent); height:100%;"></div></div></div>`).join('')}
             </div>
@@ -454,14 +486,20 @@ class PixelStewardApp {
     container.innerHTML = `
       <div style="display:grid; grid-template-columns: 0.7fr 1.3fr; gap:20px;">
         <div class="border-pixel" style="padding:15px; background:#111625;">
-          <h4 style="font-family:'Press Start 2P'; font-size:0.6rem; color:#3b82f6; margin-bottom:10px; border-bottom:2px solid #000; padding-bottom:6px;">🎮 CARTRIDGE RACK</h4>
+          <h4 style="font-family:'Press Start 2P'; font-size:0.6rem; color:#3b82f6; margin-bottom:10px; border-bottom:2px solid #000; padding-bottom:6px; display:flex; align-items:center;">
+            <img src="./assets/icons/icon-briefcase.png" alt="Rack" class="card-title-icon"> CARTRIDGE RACK
+          </h4>
           <div class="cartridge-list-rack">
             ${this.portfolios.map(p => {
               if(!p) return '';
+              const catIcon = this.getCategoryIconPath(p.category);
               return `
               <div class="pixel-cartridge-card ${p.id === this.selectedPortId?'active':''}" onclick="app.switchPortfolio('${p.id}')">
                 <button class="btn-delete-port-inline" data-id="${p.id}">✖</button>
-                <div class="cartridge-title">📁 ${p.name}</div>
+                <div class="cartridge-title" style="display:flex; align-items:center; gap:6px;">
+                  <img src="${catIcon}" alt="Cat Icon" class="card-title-icon" style="margin:0;">
+                  <span>${p.name}</span>
+                </div>
                 <div class="cartridge-meta"><span>${p.category}</span><b>${this.getPortfolioLevel(p).icon}</b></div>
                 <div style="display:flex; justify-content:space-between; font-size:0.75rem; margin-top:4px; font-weight:bold; color:#10b981;">
                   <span>${this.formatMoney(p.current+p.cashBuffer, p.category)}</span>
@@ -473,8 +511,11 @@ class PixelStewardApp {
         </div>
         <div style="display:grid; grid-template-columns: 1.1fr 0.9fr; gap:20px;">
           <div class="border-pixel" style="background:#1f273e; padding:15px; display:flex; flex-direction:column; gap:12px;">
-            <div style="display:flex; justify-content:space-between; border-bottom:2px solid #000; padding-bottom:6px;">
-              <h3>📦 ${active.name}</h3>
+            <div style="display:flex; justify-content:space-between; border-bottom:2px solid #000; padding-bottom:6px; align-items:center;">
+              <h3 style="display:flex; align-items:center; gap:6px; margin:0;">
+                <img src="${this.getCategoryIconPath(active.category)}" alt="Active Icon" class="card-title-icon">
+                <span>${active.name}</span>
+              </h3>
               <span class="port-card-cat" style="cursor:pointer; border:1px dashed #3b82f6;" onclick="app.inlineEditCategory('${active.id}')" title="คลิกเพื่อเปลี่ยนหมวดหมู่">${active.category} ✏️</span>
             </div>
             
@@ -506,7 +547,9 @@ class PixelStewardApp {
           </div>
           <div style="display:flex; flex-direction:column; gap:15px;">
             <div class="border-pixel" style="padding:12px; background:#1f273e; text-align:center;">
-              <h5 style="font-family:'Press Start 2P'; font-size:0.55rem; color:var(--color-accent);">🏅 RANK SCORE</h5>
+              <h5 style="font-family:'Press Start 2P'; font-size:0.55rem; color:var(--color-accent); display:flex; align-items:center; justify-content:center;">
+                <img src="./assets/icons/icon-star.png" alt="Rank" class="card-title-icon"> RANK SCORE
+              </h5>
               <div style="font-size:1.8rem; margin:6px 0;">${lvl.icon}</div>
               <b>${lvl.label}</b><p style="font-size:0.75rem; color:#94a3b8; margin:2px 0;">${lvl.desc}</p>
               <div style="border-top:2px dashed #000; margin:6px 0;"></div>
@@ -514,7 +557,9 @@ class PixelStewardApp {
             </div>
             
             <div class="border-pixel" style="padding:12px; background:#1f273e;">
-              <h5 style="font-family:'Press Start 2P'; font-size:0.55rem; color:var(--color-success); margin-bottom:8px;">👑 ความมั่งคั่งสุทธิ</h5>
+              <h5 style="font-family:'Press Start 2P'; font-size:0.55rem; color:var(--color-success); margin-bottom:8px; display:flex; align-items:center;">
+                <img src="./assets/icons/icon-chest.png" alt="Chest" class="card-title-icon"> ความมั่งคั่งสุทธิ
+              </h5>
               <form id="update-balance-form" style="display:flex; flex-direction:column; gap:6px; font-size:0.8rem;">
                 <label>มูลค่ารวมอัตโนมัติ (หลังบ้าน 100%):</label>
                 <div style="background:#111625; padding:6px; border:2px solid #000; font-weight:bold; color:#10b981;">${this.formatMoney(active.current+active.cashBuffer, active.category)}</div>
@@ -637,7 +682,9 @@ class PixelStewardApp {
           return `
             <div class="border-pixel" style="padding:15px; background:#1f273e;">
               <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:2px solid #000; padding-bottom:6px; margin-bottom:10px;">
-                <h4 style="font-weight:bold;">📈 ${p.name} (${year})</h4>
+                <h4 style="font-weight:bold; display:flex; align-items:center; gap:6px;">
+                  <img src="./assets/icons/icon-calendar.png" alt="Cal" class="card-title-icon"> ${p.name} (${year})
+                </h4>
                 <div style="display:flex; gap:6px;">
                   <button class="btn btn-secondary btn-retro btn-small" onclick="app.openQuarterlyModal('${p.id}', ${year})">✏️ บันทึกตารางงวด</button>
                   <button class="btn btn-danger btn-retro btn-small" onclick="app.deleteQuarterlyRecord('${p.id}', ${year})" style="background:#ef4444; color:#fff;">✖ ล้างข้อมูล</button>
@@ -706,7 +753,9 @@ class PixelStewardApp {
     const records = Array.isArray(this.monthlyRecords) ? this.monthlyRecords.filter(r => r && optionPorts.map(p => p.id).includes(r.portfolioId)) : [];
     container.innerHTML = `
       <div class="border-pixel" style="padding:15px; background:#1f273e;">
-        <h4 style="font-family:'Press Start 2P'; font-size:0.65rem; color:var(--color-accent); margin-bottom:10px;">💎 บันทึกงวดสัญญา Option</h4>
+        <h4 style="font-family:'Press Start 2P'; font-size:0.65rem; color:var(--color-accent); margin-bottom:10px; display:flex; align-items:center;">
+          <img src="./assets/icons/icon-daimon.png" alt="Diamond" class="card-title-icon"> บันทึกงวดสัญญา Option
+        </h4>
         <div style="display:grid; grid-template-columns:1fr 2fr; gap:15px;">
           <div class="border-pixel-inset" style="padding:12px; background:#111625;">
             <label style="font-size:0.8rem;">เลือกพอร์ต:</label>
@@ -718,7 +767,9 @@ class PixelStewardApp {
             <button class="btn btn-success btn-retro" id="btn-save-opt-manual" style="width:100%;"><span>💾 บันทึกงวดสัญญา</span></button>
           </div>
           <div class="border-pixel-inset" style="padding:12px; background:#111625;">
-            <h5>📜 ประวัติสัญญารายเดือนย่อย</h5>
+            <h5 style="display:flex; align-items:center; gap:6px;">
+              <img src="./assets/icons/icon-document-chart.png" alt="Log" class="card-title-icon"> ประวัติสัญญารายเดือนย่อย
+            </h5>
             <div style="max-height:220px; overflow-y:auto; font-size:0.85rem; margin-top:8px;">
               ${records.length===0?'<p class="text-muted">ไม่มีประวัติคงเหลือ</p>':records.map(r=>`<div style="display:flex; justify-content:space-between; border-bottom:1px solid #333; padding:6px 0;"><span><b>${this.portfolios.find(x=>x && x.id===r.portfolioId)?.name || ''}</b> (เดือน ${r.month})</span><b class="${(r.profitLossUSD||0)>=0?'text-success':'text-danger'}">${(r.profitLossUSD||0)>=0?'+':''}$${r.profitLossUSD || 0}</b></div>`).join('')}
             </div>
@@ -739,7 +790,9 @@ class PixelStewardApp {
     container.innerHTML = `
       <div class="border-pixel" style="padding:15px; background:#1f273e; display:flex; flex-direction:column; gap:20px;">
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
-          <h4>💰 วิเคราะห์ข้อมูลปันผล & Yield on Cost (YOC)</h4>
+          <h4 style="display:flex; align-items:center; gap:6px;">
+            <img src="./assets/icons/icon-coin.png" alt="Coin" class="card-title-icon"> วิเคราะห์ข้อมูลปันผล & Yield on Cost (YOC)
+          </h4>
           <button class="btn btn-success btn-retro btn-small" onclick="document.getElementById('dividend-modal').classList.remove('hidden')">➕ บันทึกปันผล</button>
         </div>
         
@@ -763,7 +816,9 @@ class PixelStewardApp {
         </table>
 
         <div style="margin-top:5px;">
-          <h5 style="font-family:'Press Start 2P'; font-size:0.55rem; color:#64748b; margin-bottom:10px;">📜 DIVIDEND LOG HISTORY</h5>
+          <h5 style="font-family:'Press Start 2P'; font-size:0.55rem; color:#64748b; margin-bottom:10px; display:flex; align-items:center;">
+            <img src="./assets/icons/icon-document-chart.png" alt="Log" class="card-title-icon"> DIVIDEND LOG HISTORY
+          </h5>
           <div style="background:#111625; padding:8px; border:2px solid #000; max-height:280px; overflow-y:auto;">
             <table class="retro-table" style="width:100%; border-collapse:collapse; text-align:left;">
               <thead>
@@ -840,7 +895,9 @@ class PixelStewardApp {
         <div style="display:none;"><input type="number" id="global-usd-rate" value="${this.exchangeRate}"></div>
 
         <div class="border-pixel" style="padding:20px; background:#1f273e; display:flex; flex-direction:column; gap:12px;">
-          <h3>📥 IMPORT DATA (โหลดไฟล์ข้อมูลเข้าคลังบราวเซอร์)</h3>
+          <h3 style="display:flex; align-items:center; gap:6px;">
+            <img src="./assets/icons/icon-gear.png" alt="Settings" class="card-title-icon"> IMPORT DATA (โหลดไฟล์ข้อมูลเข้าคลังบราวเซอร์)
+          </h3>
           <p class="text-muted" style="font-size:0.8rem; color:#94a3b8;">เลือกไฟล์สำรองข้อมูล (.json) จากเครื่องของคุณเพื่อกู้คืนฐานข้อมูล:</p>
           <input type="file" id="import-file-input" class="input-retro" accept=".json" style="width:100%; background:#0c1020; color:#fff; border:2px solid #000; padding:8px;">
           <button class="btn btn-success btn-retro" id="btn-execute-file-import" style="width:200px; margin-top:8px;"><span>📥 โหลดฐานข้อมูล</span></button>
