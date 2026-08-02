@@ -9,7 +9,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Kanit:wght@300;400;500;700;900&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="style.css?v=220">
+  <link rel="stylesheet" href="style.css?v=230">
 </head>
 <body>
   <div class="app-container">
@@ -30,7 +30,7 @@
         <div class="title-container">
           <h1 class="brand-title">PIXEL</h1>
           <h1 class="brand-title highlight" style="color:#3b82f6;">STEWARD</h1>
-          <span class="badge-version" style="font-size:0.5rem; color:#94a3b8;">🔸 V.2.2.0</span>
+          <span class="badge-version" style="font-size:0.5rem; color:#10b981;">🔸 V.2.3.0</span>
         </div>
       </div>
       
@@ -78,7 +78,8 @@
     </aside>
 
     <main class="main-content">
-      <header class="main-header border-pixel" style="background:#1f273e; padding:16px; margin-bottom:20px; display:flex; justify-content:space-between; align-items:center;">
+      <!-- /* [V2.3.0 UPDATE] Enhanced Header Controls */ -->
+      <header class="main-header border-pixel" style="background:#1f273e; padding:16px; margin-bottom:20px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px;">
         <div class="header-titles">
           <h1 id="page-title" style="font-size:1.4rem; font-weight:bold; margin:0;">แดชบอร์ดภาพรวม</h1>
           <p id="page-subtitle" class="text-muted" style="margin:4px 0 0 0; font-size:0.85rem; color:#94a3b8;">วิเคราะห์สถานะความมั่งคั่ง กระสุนรอช้อน และแนวโน้มการเติบโตรายไตรมาส</p>
@@ -95,9 +96,11 @@
           </div>
         </div>
 
-        <div class="header-buttons" style="display:flex; gap:10px;">
-          <button class="btn btn-primary btn-retro" id="btn-add-portfolio" style="padding:8px 12px;"><span>➕ เพิ่มพอร์ตใหม่</span></button>
-          <button class="btn btn-secondary btn-retro" id="btn-quick-transfer" style="padding:8px 12px;"><span>⚡ โยกย้ายเสบียง</span></button>
+        <div class="header-buttons" style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
+          <button class="btn btn-privacy btn-retro" id="btn-toggle-privacy" style="padding:6px 10px;"><span>👁️ ซ่อนตัวเลข</span></button>
+          <button class="btn btn-secondary btn-retro" id="btn-fetch-live-prices" style="padding:6px 10px; background:#0284c7; color:#fff;"><span>🔄 ดึงราคาตลาดสด</span></button>
+          <button class="btn btn-primary btn-retro" id="btn-add-portfolio" style="padding:6px 10px;"><span>➕ เพิ่มพอร์ตใหม่</span></button>
+          <button class="btn btn-secondary btn-retro" id="btn-quick-transfer" style="padding:6px 10px;"><span>⚡ โยกย้ายเสบียง</span></button>
         </div>
       </header>
 
@@ -243,6 +246,6 @@
     </div>
   </div>
 
-  <script src="app.js?v=220"></script>
+  <script src="app.js?v=230"></script>
 </body>
 </html>

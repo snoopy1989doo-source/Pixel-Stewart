@@ -1,5 +1,7 @@
 /* ==========================================
-   PIXEL STEWARD CORE ENGINE - APP.JS (V.2.2.0 PRODUCTION)
+   PIXEL STEWARD CORE ENGINE - APP.JS (V.2.3.0)
+   Fixed: YOC Cost Basis, Net Worth + Dry Powder, Logo Fallback,
+          Privacy Mode, Live Price, CSV Export, P/L Badges
    ========================================== */
 
 // ⏰ 1. RETRO TIME SYSTEM ENGINE
@@ -80,6 +82,8 @@ class PixelStewardApp {
     this.exchangeRate = 36.5;
     this.activeTab = 'dashboard';
     this.selectedPortId = '';
+    /* [V2.3.0 NEW] Privacy Mode state */
+    this.isPrivacyMode = localStorage.getItem('ps_privacy_mode_v23') === 'true';
     
     this.init();
   }
@@ -87,18 +91,34 @@ class PixelStewardApp {
   formatMoney(val, category) {
     const isUSD = category === 'Option';
     const sym = isUSD ? '$' : '฿';
+    if (this.isPrivacyMode) {
+      return `<span class="pixel-money pixel-money-masked">${sym}***,***</span>`;
+    }
     const numStr = Number(val || 0).toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 2 });
     return `<span class="pixel-money">${sym}${numStr}</span>`;
   }
 
+  /* [V2.3.0 FIX] Enhanced Logo Fetcher & Aspect Ratio Support */
   getTickerLogoHtml(assetName, category) {
-    const cleanTicker = (assetName || '').trim().toUpperCase().split(' ')[0];
+    let rawSymbol = (assetName || '').trim().toUpperCase().split(' ')[0];
+    if (!rawSymbol) return `<span class="card-title-icon">📦</span>`;
+    
+    let cleanTicker = rawSymbol;
+    let isThai = false;
+    const thaiTickers = ['PTT', 'CPALL', 'BDMS', 'KBANK', 'SCB', 'AOT', 'ADVANC', 'DELTA', 'SCC', 'CPN', 'GULF', 'OR', 'TRUE', 'BANPU', 'MINT'];
+    if (thaiTickers.includes(cleanTicker) || cleanTicker.endsWith('.BK')) {
+      isThai = true;
+      cleanTicker = cleanTicker.replace('.BK', '');
+    }
+
     const primaryUrl = `https://assets.parqet.com/logos/symbol/${cleanTicker}`;
-    const fallbackUrl = `https://logo.clearbit.com/${cleanTicker.toLowerCase()}.com`;
+    const secondaryUrl = isThai 
+      ? `https://financialmodelingprep.com/image-stock/${cleanTicker}.BK.png`
+      : `https://financialmodelingprep.com/image-stock/${cleanTicker}.png`;
     const defaultIconUrl = this.getCategoryIconPath(category);
 
     return `<img src="${primaryUrl}" class="ticker-logo-img" 
-              onerror="this.onerror=null; this.src='${fallbackUrl}'; this.onerror=function(){this.src='${defaultIconUrl}';}" alt="${cleanTicker}">`;
+              onerror="this.onerror=null; this.src='${secondaryUrl}'; this.onerror=function(){this.src='${defaultIconUrl}';}" alt="${cleanTicker}">`;
   }
 
   getCategoryIconPath(category) {
@@ -130,11 +150,27 @@ class PixelStewardApp {
     }
 
     this.connectCloudDatabase();
+    this.updatePrivacyBtnState();
 
     // 🎮 GLOBAL EVENT DELEGATION
     document.addEventListener('click', (e) => {
       if (e.target.closest('.btn-close-modal')) {
         this.closeModals();
+        return;
+      }
+
+      const privacyBtn = e.target.closest('#btn-toggle-privacy');
+      if (privacyBtn) {
+        this.isPrivacyMode = !this.isPrivacyMode;
+        localStorage.setItem('ps_privacy_mode_v23', this.isPrivacyMode ? 'true' : 'false');
+        this.updatePrivacyBtnState();
+        this.refreshUI();
+        return;
+      }
+
+      const livePriceBtn = e.target.closest('#btn-fetch-live-prices');
+      if (livePriceBtn) {
+        this.fetchLivePrices();
         return;
       }
 
@@ -147,18 +183,37 @@ class PixelStewardApp {
         return;
       }
 
+      /* [V2.3.0 UPDATE] Enhanced Asset Input Modal & Breakdown */
       const addAssetBtn = e.target.closest('#btn-add-asset');
       if (addAssetBtn) {
         let active = this.portfolios.find(p => p.id === this.selectedPortId);
         if (!active && this.portfolios.length > 0) active = this.portfolios[0];
         if (!active) { alert('❌ โปรดเพิ่มตลับพอร์ตหลักก่อนจัดการสินทรัพย์ย่อยครับ'); return; }
-        const name = prompt('กรอก Ticker/ชื่อสินทรัพย์ย่อย (เช่น NVDA, AAPL, BTC):');
-        const val = Number(prompt(`ระบุมูลค่าเงินลงทุนสุทธิในตลับ:`));
-        if (name && !isNaN(val) && val >= 0) {
-          if (!active.assets) active.assets = [];
-          active.assets.push({ name: name.trim().toUpperCase(), value: val, costBasis: val });
-          this.saveState(); this.refreshUI();
-        }
+        
+        const rawName = prompt('กรอก Ticker/ชื่อสินทรัพย์ย่อย (เช่น NVDA, PTT, AAPL, BTC):');
+        if (!rawName) return;
+        const name = rawName.trim().toUpperCase();
+        
+        const sharesStr = prompt(`ระบุจำนวนหุ้น/หน่วย (ถ้าไม่ต้องการระบุ ให้เว้นว่างหรือพิมพ์ 1):`, '1');
+        const shares = Number(sharesStr) || 1;
+
+        const valStr = prompt(`ระบุมูลค่าปัจจุบันรวม (Market Value) ในสกุลเงินพอร์ต:`);
+        const val = Number(valStr);
+        if (isNaN(val) || val < 0) { alert('❌ โปรดกรอกตัวเลขมูลค่าให้ถูกต้อง'); return; }
+
+        const costStr = prompt(`ระบุราคาทุนรวมทั้งหมด (Total Cost Basis) (ถ้าเท่ากับมูลค่าปัจจุบัน ให้พิมพ์ ${val}):`, val.toString());
+        const costBasis = Number(costStr) >= 0 ? Number(costStr) : val;
+
+        if (!active.assets) active.assets = [];
+        active.assets.push({
+          name: name,
+          shares: shares,
+          costPrice: shares > 0 ? costBasis / shares : costBasis,
+          costBasis: costBasis,
+          currentPrice: shares > 0 ? val / shares : val,
+          value: val
+        });
+        this.saveState(); this.refreshUI();
         return;
       }
 
@@ -243,11 +298,14 @@ class PixelStewardApp {
   }
 
   autoCalculatePortfolios() {
+    /* [V2.3.0 FIX] Recalculate current from assets; do NOT zero out cashBuffer or dryPowder
+       cashBuffer is a legacy field kept for backwards compatibility (always 0 now)
+       dryPowder is the user-set "waiting cash" field stored on each portfolio */
     if (!Array.isArray(this.portfolios)) return;
     this.portfolios.forEach(p => {
       if (!p) return;
       p.current = Array.isArray(p.assets) ? p.assets.reduce((sum, asset) => sum + (Number(asset.value) || 0), 0) : 0;
-      p.cashBuffer = 0;
+      if (typeof p.cashBuffer !== 'number') p.cashBuffer = 0;
     });
   }
 
@@ -262,6 +320,8 @@ class PixelStewardApp {
   }
 
   getCalculations() {
+    /* [V2.3.0 FIX] Net Worth = Invested Assets + Cash Buffer + Dry Powder
+       Dry Powder is the user's uninvested "waiting cash" and IS part of net worth */
     this.autoCalculatePortfolios();
     let totalTHB = 0, totalUSD = 0, totalCashBufferTHB = 0, totalDryPowderTHB = 0;
     if (Array.isArray(this.portfolios)) {
@@ -279,7 +339,8 @@ class PixelStewardApp {
         }
       });
     }
-    const netWorthTHB = totalTHB + (totalUSD * this.exchangeRate) + totalCashBufferTHB;
+    /* Net Worth includes: all invested assets (THB + USD converted) + cash buffer + dry powder */
+    const netWorthTHB = totalTHB + (totalUSD * this.exchangeRate) + totalCashBufferTHB + totalDryPowderTHB;
     return { netWorthTHB, netWorthUSD: netWorthTHB / this.exchangeRate, totalTHB, totalUSD, totalCashBufferTHB, totalDryPowderTHB };
   }
 
@@ -368,12 +429,18 @@ class PixelStewardApp {
     healthScore = Math.min(100, healthScore);
     const meloState = this.getMeloAvatarState(healthScore);
 
+    /* [V2.3.0 FIX] Net Worth = Invested + DryPowder (both are YOUR money); privacy mode supported */
+    const investedTHB = calc.totalTHB + (calc.totalUSD * this.exchangeRate);
+    const netWorthDisplay = this.isPrivacyMode ? '฿***,***' : `฿${calc.netWorthTHB.toLocaleString(undefined,{maximumFractionDigits:0})}`;
+    const investedDisplay = this.isPrivacyMode ? '฿***,***' : `฿${investedTHB.toLocaleString(undefined,{maximumFractionDigits:0})}`;
+    const dryDisplay = this.isPrivacyMode ? '฿***,***' : `฿${calc.totalDryPowderTHB.toLocaleString(undefined,{maximumFractionDigits:0})}`;
+
     container.innerHTML = `
       <div style="display:grid; grid-template-columns:1fr 1fr; gap:20px;">
         <div class="stat-card border-pixel">
-          <div class="stat-header"><span>ความมั่งคั่งสุทธิ</span><img src="./assets/icons/icon-chest.png" class="card-title-icon"></div>
-          <div class="stat-value text-accent">฿${calc.netWorthTHB.toLocaleString(undefined,{maximumFractionDigits:2})}</div>
-          <div class="stat-desc">เงินทุน: ฿${(calc.totalTHB+(calc.totalUSD*this.exchangeRate)).toLocaleString()}</div>
+          <div class="stat-header"><span>💰 Net Worth (ความมั่งคั่งสุทธิรวม)</span><img src="./assets/icons/icon-chest.png" class="card-title-icon"></div>
+          <div class="stat-value text-accent">${netWorthDisplay}</div>
+          <div class="stat-desc">📈 ลงทุนแล้ว: ${investedDisplay} + 💵 รอช้อน: ${dryDisplay}</div>
         </div>
         <div class="stat-card border-pixel">
           <div class="stat-header"><span>Dry Powder (กระสุนรอช้อน)</span><img src="./assets/icons/icon-coin-stack.png" class="card-title-icon"></div>
@@ -515,19 +582,37 @@ class PixelStewardApp {
                 <button class="btn btn-primary btn-retro btn-small" id="btn-add-asset"><span>➕ เพิ่มสินทรัพย์</span></button>
               </div>
               <div style="display:flex; flex-direction:column; gap:8px; margin-top:8px; max-height:220px; overflow-y:auto;">
-                ${(!active.assets || active.assets.length===0)?'<p class="text-muted" style="font-size:0.85rem; text-align:center;">คลังว่างเปล่า กดปุ่ม ➕ ด้านบนเพื่อเพิ่ม</p>':active.assets.map((a,i)=>`
-                  <div style="display:flex; justify-content:space-between; background:#111625; padding:8px 12px; border:2px solid #000; font-size:0.85rem; align-items:center; border-radius:6px;">
+                ${(!active.assets || active.assets.length===0)?'<p class="text-muted" style="font-size:0.85rem; text-align:center;">คลังว่างเปล่า กดปุ่ม ➕ ด้านบนเพื่อเพิ่ม</p>':active.assets.map((a,i)=>{
+                  const cost = Number(a.costBasis) || Number(a.value) || 0;
+                  const val = Number(a.value) || 0;
+                  const diff = val - cost;
+                  const pct = cost > 0 ? (diff / cost) * 100 : 0;
+                  const isProfit = diff >= 0;
+                  const isUSD = active.category === 'Option';
+                  const sym = isUSD ? '$' : '฿';
+                  const plBadgeClass = isProfit ? 'badge-pl-profit' : 'badge-pl-loss';
+                  const sign = isProfit ? '+' : '';
+                  
+                  return `
+                  <div style="display:flex; justify-content:space-between; background:#111625; padding:8px 12px; border:2px solid #000; font-size:0.85rem; align-items:center; border-radius:6px; flex-wrap:wrap; gap:6px;">
                     <div style="display:flex; align-items:center;">
                       ${this.getTickerLogoHtml(a.name, active.category)}
-                      <b>${a.name}</b>
+                      <div>
+                        <b>${a.name}</b> ${a.shares ? `<span style="font-size:0.7rem; color:#94a3b8;">(${a.shares} หุ้น)</span>` : ''}
+                        <div style="font-size:0.7rem; color:#64748b;">ทุน: ${this.formatMoney(cost, active.category)}</div>
+                      </div>
                     </div>
                     <div style="display:flex; gap:6px; align-items:center;">
-                      <b style="margin-right:6px;">${this.formatMoney(a.value, active.category)}</b>
-                      <button class="btn btn-success btn-small" onclick="app.modularDepositAsset('${active.id}', ${i})" style="padding:2px 6px; font-size:0.7rem; font-weight:bold;">📥 ➕</button>
-                      <button class="btn btn-warning btn-small" onclick="app.modularWithdrawAsset('${active.id}', ${i})" style="padding:2px 6px; font-size:0.7rem; font-weight:bold; color:#000;">📤 ➖</button>
+                      <div style="text-align:right;">
+                        <div><b>${this.formatMoney(val, active.category)}</b></div>
+                        <span class="badge-pl ${plBadgeClass}">${sign}${this.isPrivacyMode ? '***' : sym + Math.abs(diff).toLocaleString(undefined,{maximumFractionDigits:0})} (${sign}${pct.toFixed(1)}%)</span>
+                      </div>
+                      <button class="btn btn-success btn-small" onclick="app.modularDepositAsset('${active.id}', ${i})" style="padding:2px 6px; font-size:0.7rem; font-weight:bold;" title="ฝากเพิ่ม">📥 ➕</button>
+                      <button class="btn btn-warning btn-small" onclick="app.modularWithdrawAsset('${active.id}', ${i})" style="padding:2px 6px; font-size:0.7rem; font-weight:bold; color:#000;" title="ถอนออก">📤 ➖</button>
                       <button class="btn btn-danger btn-small" onclick="app.deleteAsset('${active.id}',${i})" style="padding:2px 6px; font-size:0.7rem;">✖</button>
                     </div>
-                  </div>`).join('')}
+                  </div>`;
+                }).join('')}
               </div>
             </div>
           </div>
@@ -786,18 +871,21 @@ class PixelStewardApp {
   renderDividends(container) {
     container.innerHTML = `
       <div class="border-pixel" style="padding:15px; background:#1f273e; display:flex; flex-direction:column; gap:20px;">
-        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px; flex-wrap:wrap; gap:8px;">
           <h4 style="display:flex; align-items:center; gap:6px;">
             <img src="./assets/icons/icon-coin.png" alt="Coin" class="card-title-icon"> วิเคราะห์ข้อมูลปันผล & Yield on Cost (YOC)
           </h4>
-          <button class="btn btn-success btn-retro btn-small" onclick="document.getElementById('dividend-modal').classList.remove('hidden')">➕ บันทึกปันผล</button>
+          <div style="display:flex; gap:8px;">
+            <button class="btn btn-secondary btn-retro btn-small" onclick="app.exportDividendsToCSV()" style="background:#0284c7; color:#fff;"><span>📊 ส่งออก CSV</span></button>
+            <button class="btn btn-success btn-retro btn-small" onclick="document.getElementById('dividend-modal').classList.remove('hidden')">➕ บันทึกปันผล</button>
+          </div>
         </div>
         
         <table class="retro-table" style="width:100%; border-collapse:collapse; font-size:0.85rem;">
           <thead>
             <tr style="background:#111625;">
               <th style="padding:8px; border:2px solid #000;">ชื่อพอร์ต</th>
-              <th style="padding:8px; border:2px solid #000;">ต้นทุนสินทรัพย์ย่อย</th>
+              <th style="padding:8px; border:2px solid #000;">ต้นทุนเงินลงทุนสะสม</th>
               <th style="padding:8px; border:2px solid #000;">รวมรับปันผล</th>
               <th style="padding:8px; border:2px solid #000; color:var(--color-accent);">YOC Score</th>
             </tr>
@@ -806,8 +894,10 @@ class PixelStewardApp {
             ${(!Array.isArray(this.portfolios) || this.portfolios.length===0)?'<tr><td colspan="4" style="text-align:center;padding:15px;" class="text-muted">ไม่มีพอร์ตลงทุนในคลังคลาวด์</td></tr>':this.portfolios.map(p => {
               if(!p) return '';
               const divs = Array.isArray(this.dividendRecords) ? this.dividendRecords.filter(x=>x && x.portfolioId===p.id).reduce((s,x)=>s+Number(x.amount||0),0) : 0;
-              const yoc = p.current>0?((divs/p.current)*100).toFixed(2)+'%':'0.00%';
-              return `<tr><td style="padding:8px; border:2px solid #000;"><b>${p.name}</b></td><td style="padding:8px; border:2px solid #000;">${this.formatMoney(p.current||0,p.category)}</td><td style="padding:8px; border:2px solid #000; color:var(--color-success);">${this.formatMoney(divs,p.category)}</td><td style="padding:8px; border:2px solid #000; font-weight:bold; color:var(--color-accent); font-family:'Press Start 2P'!important; font-size:0.75rem!important;">${yoc}</td></tr>`;
+              /* [V2.3.0 FINANCIAL FIX] YOC = Total Dividends Received / Total Cost Basis (ไม่ใช่ Market Value) */
+              const totalCostBasis = Array.isArray(p.assets) ? p.assets.reduce((sum, a) => sum + (Number(a.costBasis) || Number(a.value) || 0), 0) : (p.current || 0);
+              const yoc = totalCostBasis > 0 ? ((divs / totalCostBasis) * 100).toFixed(2) + '%' : 'N/A';
+              return `<tr><td style="padding:8px; border:2px solid #000;"><b>${p.name}</b></td><td style="padding:8px; border:2px solid #000;">${this.formatMoney(totalCostBasis, p.category)}</td><td style="padding:8px; border:2px solid #000; color:var(--color-success);">${this.formatMoney(divs,p.category)}</td><td style="padding:8px; border:2px solid #000; font-weight:bold; color:var(--color-accent); font-family:'Press Start 2P'!important; font-size:0.75rem!important;">${yoc}</td></tr>`;
             }).join('')}
           </tbody>
         </table>
@@ -1032,6 +1122,128 @@ class PixelStewardApp {
   
   closeModals() { 
     document.querySelectorAll('.modal-overlay').forEach(m => m.classList.add('hidden')); 
+  }
+
+  /* [V2.3.0 NEW] Privacy Mode Button Handler */
+  updatePrivacyBtnState() {
+    const privacyBtn = document.getElementById('btn-toggle-privacy');
+    if (privacyBtn) {
+      if (this.isPrivacyMode) {
+        privacyBtn.classList.add('active');
+        privacyBtn.innerHTML = '<span>👁️‍🗨️ แสดงตัวเลข</span>';
+      } else {
+        privacyBtn.classList.remove('active');
+        privacyBtn.innerHTML = '<span>👁️ ซ่อนตัวเลข</span>';
+      }
+    }
+  }
+
+  /* [V2.3.0 NEW] Live Market Price Fetcher Engine */
+  async fetchLivePrices() {
+    if (!Array.isArray(this.portfolios) || this.portfolios.length === 0) {
+      alert('❌ ไม่พบสินทรัพย์ย่อยในพอร์ตเพื่อดึงราคา');
+      return;
+    }
+
+    const liveBtn = document.getElementById('btn-fetch-live-prices');
+    if (liveBtn) liveBtn.innerText = '⏳ กำลังดึงราคา...';
+
+    let updatedCount = 0;
+    try {
+      for (const p of this.portfolios) {
+        if (p && Array.isArray(p.assets)) {
+          for (const a of p.assets) {
+            let symbol = (a.name || '').trim().toUpperCase();
+            if (!symbol) continue;
+            
+            let querySymbol = symbol;
+            const thaiTickers = ['PTT', 'CPALL', 'BDMS', 'KBANK', 'SCB', 'AOT', 'ADVANC', 'DELTA', 'SCC', 'CPN', 'GULF', 'OR', 'TRUE', 'BANPU', 'MINT'];
+            if (thaiTickers.includes(querySymbol) && !querySymbol.endsWith('.BK')) {
+              querySymbol += '.BK';
+            }
+
+            try {
+              const res = await fetch(`https://query1.finance.yahoo.com/v8/finance/chart/${querySymbol}?interval=1d&range=1d`);
+              if (res.ok) {
+                const data = await res.json();
+                const meta = data?.chart?.result?.[0]?.meta;
+                const price = meta?.regularMarketPrice;
+                if (price && price > 0) {
+                  a.currentPrice = price;
+                  a.value = (a.shares || 1) * price;
+                  updatedCount++;
+                }
+              }
+            } catch (err) {
+              console.warn(`Price fetch skipped for ${querySymbol}:`, err);
+            }
+          }
+        }
+      }
+
+      this.saveState();
+      this.refreshUI();
+      alert(`🎯 อัปเดตราคาตลาดสดสำเร็จ! (ปรับปรุงไปแล้ว ${updatedCount} รายการ)`);
+    } catch (e) {
+      alert('⚠️ ดึงราคาตลาดสดบางรายการไม่สำเร็จ: ระบบใช้ราคาเดิมล่าสุด');
+    } finally {
+      if (liveBtn) liveBtn.innerHTML = '<span>🔄 ดึงราคาตลาดสด</span>';
+    }
+  }
+
+  /* [V2.3.0 NEW] CSV Export Engine for Dividends */
+  exportDividendsToCSV() {
+    if (!Array.isArray(this.dividendRecords) || this.dividendRecords.length === 0) {
+      alert('❌ ไม่มีประวัติเงินปันผลสำหรับการส่งออก');
+      return;
+    }
+
+    let csvContent = "\uFEFFวันที่,พอร์ตลงทุน,ชื่อหุ้น/หมายเหตุ,จำนวนเงินปันผล,สกุลเงิน\n";
+    this.dividendRecords.forEach(r => {
+      if (!r) return;
+      const p = this.portfolios.find(x => x && x.id === r.portfolioId);
+      const pName = p ? p.name : 'Unassigned';
+      const cat = p ? p.category : 'Thai Stock';
+      const curr = cat === 'Option' ? 'USD' : 'THB';
+      const cleanNotes = (r.notes || '').replace(/,/g, ' ');
+      csvContent += `"${r.date || ''}","${pName}","${cleanNotes}",${r.amount || 0},"${curr}"\n`;
+    });
+
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = `pixel_steward_dividends_${new Date().toISOString().split('T')[0]}.csv`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  }
+
+  /* [V2.3.0 NEW] CSV Export Engine for Portfolios */
+  exportPortfoliosToCSV() {
+    if (!Array.isArray(this.portfolios) || this.portfolios.length === 0) {
+      alert('❌ ไม่มีข้อมูลพอร์ตสำหรับการส่งออก');
+      return;
+    }
+
+    let csvContent = "\uFEFFชื่อพอร์ต,หมวดหมู่,ประเภทเป้าหมาย,เป้าหมายสะสม,มูลค่าปัจจุบัน,เงินสดช้อน (Dry Powder),ต้นทุนสะสม,กำไร/ขาดทุนสะสม,YOC Score\n";
+    this.portfolios.forEach(p => {
+      if (!p) return;
+      const divs = Array.isArray(this.dividendRecords) ? this.dividendRecords.filter(x=>x && x.portfolioId===p.id).reduce((s,x)=>s+Number(x.amount||0),0) : 0;
+      const totalCost = Array.isArray(p.assets) ? p.assets.reduce((sum, a) => sum + (Number(a.costBasis) || Number(a.value) || 0), 0) : 0;
+      const curVal = p.current || 0;
+      const pl = curVal - totalCost;
+      const yoc = totalCost > 0 ? ((divs / totalCost) * 100).toFixed(2) + '%' : '0.00%';
+
+      csvContent += `"${p.name}","${p.category}","${p.goalType}",${p.goal || 0},${curVal},${p.dryPowder || 0},${totalCost},${pl},"${yoc}"\n`;
+    });
+
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = `pixel_steward_portfolios_${new Date().toISOString().split('T')[0]}.csv`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
   }
 }
 
