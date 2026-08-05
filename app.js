@@ -1,7 +1,7 @@
 /* ==========================================
-   PIXEL STEWARD CORE ENGINE - APP.JS (V.3.2.0)
-   Fixed: TDZ ReferenceError, USD Base Currency + THB Dashboard Sub-text,
-          Option Edit/Delete Management System
+   PIXEL STEWARD CORE ENGINE - APP.JS (V.3.3.0)
+   Updated: Auto Quarterly Snapshot 100%, Sub-Asset Inline Editor (Dime Sync),
+            USD Base Currency + Secondary THB, Fix TDZ ReferenceError
    ========================================== */
 
 // ⏰ 1. RETRO TIME SYSTEM ENGINE
@@ -223,6 +223,20 @@ class PixelStewardApp {
     this.init();
   }
 
+  showRetroToast(message, type = 'success') {
+    const container = document.getElementById('toast-container');
+    if (!container) return;
+    const toast = document.createElement('div');
+    toast.className = `pixel-toast toast-${type}`;
+    toast.innerHTML = `<span>${type === 'success' ? '🎯' : '⚠️'}</span> <div>${message}</div>`;
+    container.appendChild(toast);
+    setTimeout(() => {
+      toast.style.opacity = '0';
+      toast.style.transition = 'opacity 0.3s ease';
+      setTimeout(() => toast.remove(), 300);
+    }, 4000);
+  }
+
   getForexAccountEquity(accountName) {
     if (typeof rtjState === 'undefined' || !rtjState) return 0;
     const safeBalances = rtjState.balances || rtjDEFAULT_BALANCES;
@@ -248,7 +262,6 @@ class PixelStewardApp {
     return accStartBal + netDeposit + netPnl;
   }
 
-  /* 💲 BASE CURRENCY FORMATTER ($ USD PRIMARY + OPTIONAL SECONDARY THB) */
   formatMoney(valUSD, category, showBoth = false) {
     if (this.isPrivacyMode) {
       return `<span class="pixel-money pixel-money-masked">$***,***</span>` +
@@ -418,9 +431,61 @@ class PixelStewardApp {
     if (quarterlyForm) quarterlyForm.addEventListener('submit', (e) => { e.preventDefault(); this.handleSaveQuarterly(); });
     const divForm = document.getElementById('dividend-form');
     if (divForm) divForm.addEventListener('submit', (e) => { e.preventDefault(); this.handleSaveDividend(); });
+    const assetEditForm = document.getElementById('asset-edit-form');
+    if (assetEditForm) assetEditForm.addEventListener('submit', (e) => { e.preventDefault(); this.handleSaveAssetEdit(); });
 
     this.fetchRateOnLoad();
+    this.autoSnapshotQuarterly();
     this.refreshUI();
+  }
+
+  /* 🤖 AUTO QUARTERLY SNAPSHOT ENGINE 100% (คำนวณและบันทึกสแนปชอตอัตโนมัติเมื่อเข้าสู่งวดใหม่) */
+  autoSnapshotQuarterly() {
+    if (!Array.isArray(this.portfolios) || this.portfolios.length === 0) return;
+    
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = now.getMonth() + 1; // 1 - 12
+    
+    // กำหนดไตรมาสที่เพิ่งผ่านมาที่ต้องมีการบันทึก
+    let targetQuarterField = '';
+    let targetYear = year;
+    
+    if (month >= 1 && month <= 3) {
+      targetQuarterField = 'q4';
+      targetYear = year - 1; // บันทึก Q4 ของปีที่แล้ว
+    } else if (month >= 4 && month <= 6) {
+      targetQuarterField = 'q1';
+    } else if (month >= 7 && month <= 9) {
+      targetQuarterField = 'q2';
+    } else if (month >= 10 && month <= 12) {
+      targetQuarterField = 'q3';
+    }
+
+    let autoSnapCount = 0;
+    const stockPorts = this.portfolios.filter(p => p && (p.category || '').toLowerCase() !== 'option' && (p.category || '').toLowerCase() !== 'forex');
+
+    stockPorts.forEach(p => {
+      let rec = this.quarterlyRecords.find(r => r && r.portfolioId === p.id && r.year === targetYear);
+      if (!rec) {
+        rec = { id: 'q-' + Date.now() + '-' + Math.random().toString(36).slice(2, 5), portfolioId: p.id, year: targetYear, q1: 0, f1: 0, q2: 0, f2: 0, q3: 0, f3: 0, q4: 0, f4: 0, notes: 'Auto-Snapshot' };
+        this.quarterlyRecords.push(rec);
+      }
+
+      // หากงวดไตรมาสเป้าหมายยังไม่มีข้อมูล (เป็น 0) ให้ดึงมูลค่าสินทรัพย์ปัจจุบัน ($ USD) ไปสแนปชอตลงให้อัตโนมัติ
+      if (!rec[targetQuarterField] || rec[targetQuarterField] === 0) {
+        const currentValUSD = (p.current || 0) + (p.cashBuffer || 0);
+        if (currentValUSD > 0) {
+          rec[targetQuarterField] = currentValUSD;
+          autoSnapCount++;
+        }
+      }
+    });
+
+    if (autoSnapCount > 0) {
+      this.saveState();
+      this.showRetroToast(`🤖 [AUTO SNAPSHOT] บันทึกสรุปไตรมาส (${targetQuarterField.toUpperCase()} / ${targetYear}) ให้อัตโนมัติแล้ว ${autoSnapCount} พอร์ต!`, 'success');
+    }
   }
 
   async fetchRateOnLoad() {
@@ -533,14 +598,6 @@ class PixelStewardApp {
     return `🔮 เลเวลอัปขั้นถัดไป: ขาดอีกประมาณ $${needed.toLocaleString(undefined,{maximumFractionDigits:0})}`;
   }
 
-  getMeloAvatarState(score) {
-    if (score >= 90) return { imgSrc: './assets/avatar/avatar-excited.png', text: '🤩 พอร์ตสเกลสุดยอด มหาอัศวิน!', cls: 'color:#3b82f6;' };
-    if (score >= 70) return { imgSrc: './assets/avatar/avatar-happy.png', text: '🙂 พอร์ตกำลังเติบโตสมบูรณ์ดี!', cls: 'color:#10b981;' };
-    if (score >= 40) return { imgSrc: './assets/avatar/avatar-normal.png', text: '😐 พอร์ตเสถียร รักษาวินัยต่อ!', cls: 'color:#eab308;' };
-    return { imgSrc: './assets/avatar/avatar-concerned.png', text: '😟 วิกฤต! เติมเสบียงด่วน', cls: 'color:#ef4444;' };
-  }
-
-  /* 📊 DASHBOARD RENDERER (USD PRIMARY WITH SECONDARY THB BRACKETS) */
   renderDashboard(container) {
     const calc = this.getCalculations();
     const topGoals = Array.isArray(this.portfolios) ? this.portfolios.filter(p => p && p.goalType === 'numeric' && p.goal > 0).map(p => ({ name: p.name, pct: ((p.current + p.cashBuffer) / p.goal) * 100 })).sort((a, b) => b.pct - a.pct).slice(0, 3) : [];
@@ -857,6 +914,7 @@ class PixelStewardApp {
                         <div><b>${this.formatMoney(val, active.category, false)}</b></div>
                         <span class="badge-pl ${plBadgeClass}">${sign}${this.isPrivacyMode ? '***' : '$' + Math.abs(diff).toLocaleString(undefined,{maximumFractionDigits:2})} (${sign}${pct.toFixed(1)}%)</span>
                       </div>
+                      <button class="btn btn-warning btn-small" onclick="app.openAssetEditModal('${active.id}', ${i})" style="padding:2px 6px; font-size:0.7rem; font-weight:bold; color:#000;" title="แก้ไขสินทรัพย์ (Dime Sync)">✏️</button>
                       <button class="btn btn-success btn-small" onclick="app.modularDepositAsset('${active.id}', ${i})" style="padding:2px 6px; font-size:0.7rem; font-weight:bold;" title="ฝากเพิ่ม">📥 ➕</button>
                       <button class="btn btn-warning btn-small" onclick="app.modularWithdrawAsset('${active.id}', ${i})" style="padding:2px 6px; font-size:0.7rem; font-weight:bold; color:#000;" title="ถอนออก">📤 ➖</button>
                       <button class="btn btn-danger btn-small" onclick="app.deleteAsset('${active.id}',${i})" style="padding:2px 6px; font-size:0.7rem;">✖</button>
@@ -904,6 +962,80 @@ class PixelStewardApp {
         this.saveState(); this.refreshUI(); alert('🎯 อัปเดตเงินช้อนสำเร็จ!'); 
       }
     });
+  }
+
+  /* ✏️ OPEN SUB-ASSET EDIT MODAL (DIME SYNC SYSTEM) */
+  openAssetEditModal(portId, assetIdx) {
+    const p = this.portfolios.find(x => x && x.id === portId);
+    if (!p || !p.assets || !p.assets[assetIdx]) return;
+    const a = p.assets[assetIdx];
+
+    document.getElementById('asset-edit-port-id').value = portId;
+    document.getElementById('asset-edit-index').value = assetIdx;
+    document.getElementById('asset-edit-name').value = a.name || '';
+    document.getElementById('asset-edit-shares').value = a.shares !== undefined ? a.shares : 1;
+    document.getElementById('asset-edit-cost-price').value = a.costPrice !== undefined ? a.costPrice : (a.costBasis / (a.shares || 1));
+    document.getElementById('asset-edit-market-val').value = a.value !== undefined ? a.value : 0;
+
+    const modal = document.getElementById('asset-edit-modal');
+    if (modal) modal.classList.remove('hidden');
+
+    // Live Calculate Auto-Previewใน Modal
+    const updatePreview = () => {
+      const shares = Number(document.getElementById('asset-edit-shares').value) || 0;
+      const costPrice = Number(document.getElementById('asset-edit-cost-price').value) || 0;
+      const marketVal = Number(document.getElementById('asset-edit-market-val').value) || 0;
+
+      const totalCost = shares * costPrice;
+      const totalPL = marketVal - totalCost;
+      const pctPL = totalCost > 0 ? (totalPL / totalCost) * 100 : 0;
+      const isProfit = totalPL >= 0;
+
+      const costEl = document.getElementById('preview-total-cost');
+      const plEl = document.getElementById('preview-total-pl');
+
+      if (costEl) costEl.textContent = `$${totalCost.toFixed(2)}`;
+      if (plEl) {
+        plEl.textContent = `${isProfit ? '+' : ''}$${totalPL.toFixed(2)} (${isProfit ? '+' : ''}${pctPL.toFixed(1)}%)`;
+        plEl.style.color = isProfit ? '#10b981' : '#ef4444';
+      }
+    };
+
+    ['asset-edit-shares', 'asset-edit-cost-price', 'asset-edit-market-val'].forEach(id => {
+      const input = document.getElementById(id);
+      if (input) input.oninput = updatePreview;
+    });
+
+    updatePreview();
+  }
+
+  /* 💾 SAVE SUB-ASSET EDIT DATA */
+  handleSaveAssetEdit() {
+    const portId = document.getElementById('asset-edit-port-id').value;
+    const idx = Number(document.getElementById('asset-edit-index').value);
+    const p = this.portfolios.find(x => x && x.id === portId);
+    if (!p || !p.assets || !p.assets[idx]) return;
+
+    const name = document.getElementById('asset-edit-name').value.trim().toUpperCase();
+    const shares = Number(document.getElementById('asset-edit-shares').value) || 1;
+    const costPrice = Number(document.getElementById('asset-edit-cost-price').value) || 0;
+    const marketVal = Number(document.getElementById('asset-edit-market-val').value) || 0;
+
+    if (!name) { alert('❌ โปรดระบุชื่อ Ticker สินทรัพย์!'); return; }
+
+    p.assets[idx] = {
+      name: name,
+      shares: shares,
+      costPrice: costPrice,
+      costBasis: shares * costPrice,
+      currentPrice: shares > 0 ? marketVal / shares : marketVal,
+      value: marketVal
+    };
+
+    this.saveState();
+    this.closeModals();
+    this.refreshUI();
+    this.showRetroToast(`🎯 แก้ไขสินทรัพย์ย่อย "${name}" สำเร็จ!`, 'success');
   }
 
   deletePortfolio(portId) {
@@ -1029,7 +1161,7 @@ class PixelStewardApp {
       <div class="border-pixel" style="padding:14px 16px; background:#1f273e; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
         <div>
           <h3 style="font-family:'Press Start 2P'; font-size:0.8rem; margin:0;">🗓️ หุ้นรายไตรมาส ($ USD)</h3>
-          <p class="text-muted" style="font-size:0.78rem; margin:4px 0 0 0;">ติดตามประวัติการเติบโตของพอร์ตการลงทุนรายไตรมาส</p>
+          <p class="text-muted" style="font-size:0.78rem; margin:4px 0 0 0;">ติดตามประวัติการเติบโตของพอร์ตการลงทุนรายไตรมาส (ระบบบันทึกไตรมาสให้อัตโนมัติ 100%)</p>
         </div>
         <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
           <select id="quarterly-year-select" class="input-retro" style="width:auto; padding:6px 8px;">
@@ -2336,7 +2468,7 @@ function rtjBuildStats() {
 function rtjBuildEquityCurve(trades) {
   const safeTrades = Array.isArray(trades) ? trades : [];
   if (safeTrades.length < 2) return `<div class="empty" style="margin-top:12px">เพิ่มประวัติการเทรดเพื่อสร้างสายกราฟพอร์ต</div>`;
-  const sorted = [...safeTrades].sort((a,b) => (a && b && a.date && b.date) ? a.date.localeCompare(a.date) : 0); 
+  const sorted = [...safeTrades].sort((a,b) => (a && b && a.date && b.date) ? a.date.localeCompare(b.date) : 0); 
   let cum = 0; const points = sorted.map(t => { cum += Number(t.pnl) || 0; return cum; }); 
   const maxV = Math.max(...points, 0); const minV = Math.min(...points, 0); const range = maxV - minV || 1; 
   const W = 300, H = 110, PL = 4, PR = 4, PT = 8, PB = 20; const IW = W - PL - PR, IH = H - PT - PB;
