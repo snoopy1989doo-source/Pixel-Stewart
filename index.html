@@ -9,7 +9,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Kanit:wght@300;400;500;700;900&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="style.css?v=250">
+  <link rel="stylesheet" href="style.css?v=300">
 </head>
 <body>
   <div class="app-container">
@@ -30,7 +30,7 @@
         <div class="title-container">
           <h1 class="brand-title">PIXEL</h1>
           <h1 class="brand-title highlight" style="color:#3b82f6;">STEWARD</h1>
-          <span class="badge-version" style="font-size:0.5rem; color:#10b981;">🔸 V.2.5.0</span>
+          <span class="badge-version" style="font-size:0.5rem; color:#10b981;">🔸 V.3.0.0</span>
         </div>
       </div>
       
@@ -44,7 +44,7 @@
         </div>
       </div>
 
-      <!-- 🎮 NAVIGATION MENU -->
+      <!-- 🎮 NAVIGATION MENU WITH CLEAN ICON DOCK -->
       <nav class="nav-menu">
         <button class="nav-item active" data-tab="dashboard">
           <img src="./assets/icons/icon-home.png" alt="Home" class="menu-pixel-icon">
@@ -78,6 +78,7 @@
     </aside>
 
     <main class="main-content">
+      <!-- /* [V2.3.0 UPDATE] Enhanced Header Controls */ -->
       <header class="main-header border-pixel" style="background:#1f273e; padding:16px; margin-bottom:20px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px;">
         <div class="header-titles">
           <h1 id="page-title" style="font-size:1.4rem; font-weight:bold; margin:0;">แดชบอร์ดภาพรวม</h1>
@@ -147,21 +148,37 @@
     </div>
   </div>
 
-  <!-- 🔒 [V2.5.0 UPDATE] ENHANCED 2-STEP CONFIRMATION DELETE MODAL WITH VERIFICATION INPUT -->
-  <div id="delete-confirm-modal" class="modal-overlay hidden">
-    <div class="modal-card border-pixel" style="max-width:440px;">
-      <div class="modal-header" style="border-bottom-color:#ef4444;">
-        <h3 style="color:#ef4444; display:flex; align-items:center; gap:8px;">💀 ยืนยันการล้างข้อมูลไตรมาส</h3>
-        <button type="button" class="btn-close-modal">✖</button>
+  <!-- 🗑️ [V3.0.0 NEW] 2-STEP DANGEROUS ACTION MODAL: ล้างข้อมูลรายไตรมาส -->
+  <div id="quarterly-clear-modal" class="modal-overlay hidden">
+    <div class="modal-card border-pixel" style="max-width:380px;">
+      <div id="clear-quarterly-step1">
+        <div class="modal-header">
+          <h3>⚠️ ล้างข้อมูลรายไตรมาส</h3>
+          <button type="button" class="btn-close-modal">✖</button>
+        </div>
+        <div class="modal-body">
+          <p style="margin-bottom:8px;">คุณต้องการล้างข้อมูลหุ้นรายไตรมาสของ:</p>
+          <p id="clear-quarterly-port-label" style="font-weight:bold; color:var(--color-accent);"></p>
+          <p style="margin-top:10px; color:var(--color-danger); font-size:0.8rem;">ใช่หรือไม่? ข้อมูลจะไม่สามารถกู้คืนได้!</p>
+        </div>
+        <div class="modal-footer" style="display:flex; justify-content:flex-end; gap:8px; margin-top:12px;">
+          <button type="button" class="btn btn-secondary btn-close-modal"><span>ยกเลิก</span></button>
+          <button type="button" class="btn btn-danger" style="background:#ef4444; color:#fff;" onclick="app.goToClearQuarterlyStep2()"><span>ต่อไป</span></button>
+        </div>
       </div>
-      <div class="modal-body" style="text-align:center; padding:10px 0;">
-        <p style="font-size:0.95rem; margin-bottom:12px;" id="confirm-delete-msg">คุณต้องการล้างข้อมูลรายงานไตรมาสทั้งหมดใช่หรือไม่?</p>
-        <p class="text-muted" style="font-size:0.75rem; color:#ef4444; margin-bottom:12px;">พิมพ์คำว่า <b>DELETE</b> เพื่อยืนยันการล้างข้อมูล:</p>
-        <input type="text" id="delete-verify-input" class="input-retro" placeholder="พิมพ์ DELETE ที่นี่" style="text-align:center; font-weight:bold; letter-spacing:2px; color:#ef4444;">
-      </div>
-      <div class="modal-footer" style="display:flex; justify-content:center; gap:12px; margin-top:16px;">
-        <button type="button" class="btn btn-secondary btn-close-modal"><span>ยกเลิก</span></button>
-        <button type="button" class="btn btn-danger" id="btn-execute-confirmed-delete"><span>✖ ล้างข้อมูล</span></button>
+      <div id="clear-quarterly-step2" class="hidden">
+        <div class="modal-header">
+          <h3>💀 ยืนยันการล้างข้อมูล</h3>
+          <button type="button" class="btn-close-modal">✖</button>
+        </div>
+        <div class="modal-body">
+          <p style="margin-bottom:8px;">พิมพ์คำว่า <b style="color:var(--color-danger);">DELETE</b> เพื่อยืนยันการล้างข้อมูล</p>
+          <input type="text" id="clear-quarterly-confirm-input" class="input-retro" placeholder="DELETE" style="width:100%;">
+        </div>
+        <div class="modal-footer" style="display:flex; justify-content:flex-end; gap:8px; margin-top:12px;">
+          <button type="button" class="btn btn-secondary btn-close-modal"><span>ยกเลิก</span></button>
+          <button type="button" class="btn btn-danger" style="background:#ef4444; color:#fff;" onclick="app.executeClearQuarterly()"><span>ล้างข้อมูล</span></button>
+        </div>
       </div>
     </div>
   </div>
@@ -264,6 +281,6 @@
     </div>
   </div>
 
-  <script src="app.js?v=250"></script>
+  <script src="app.js?v=300"></script>
 </body>
 </html>

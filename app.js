@@ -1,7 +1,7 @@
 /* ==========================================
-   PIXEL STEWARD CORE ENGINE - APP.JS (V.2.5.0 PRODUCTION)
-   Fixed: Dashboard Square Avatar Frame, Folio Logo Mapping,
-          Dynamic Year Switcher, Hybrid Card/Table View, 2-Step Safe Delete
+   PIXEL STEWARD CORE ENGINE - APP.JS (V.3.0.0)
+   Fixed: YOC Cost Basis, Net Worth + Dry Powder, Logo Fallback,
+          Privacy Mode, Live Price, CSV Export, P/L Badges
    ========================================== */
 
 // ⏰ 1. RETRO TIME SYSTEM ENGINE
@@ -82,29 +82,17 @@ class PixelStewardApp {
     this.exchangeRate = 36.5;
     this.activeTab = 'dashboard';
     this.selectedPortId = '';
+    /* [V2.3.0 NEW] Privacy Mode state */
     this.isPrivacyMode = localStorage.getItem('ps_privacy_mode_v23') === 'true';
-    
-    this.selectedQuarterYear = new Date().getFullYear();
-    this.quarterlyViewMode = 'card'; // 'card' or 'table'
-    this.pendingDeleteRecord = null;
+    /* [V3.0.0 NEW] Debt Snowball tracking — used by the debt-aware Portfolio Health score */
+    this.debtStartTHB = 0;
+    this.debtRemainingTHB = 0;
+    /* [V3.0.0 NEW] Quarterly page view state */
+    this.quarterlyViewYear = new Date().getFullYear();
+    this.quarterlyViewMode = localStorage.getItem('ps_quarterly_view_mode_v4') || 'card';
+    this.pendingClearQuarterly = null;
     
     this.init();
-  }
-
-  /* 📦 [V2.5.0 NEW] PORTFOLIO FOLIO LOGO MAPPER */
-  getFolioLogoPath(portName) {
-    const name = (portName || '').toLowerCase().trim();
-    if (name.includes('red wing') || name.includes('redwing')) return './assets/foliologo/redwing.png';
-    if (name.includes('zero 1') || name.includes('zero1')) return './assets/foliologo/zero1.png';
-    if (name.includes('zero 2') || name.includes('zero2')) return './assets/foliologo/zero2.png';
-    if (name.includes('zero 3') || name.includes('zero3')) return './assets/foliologo/zero3.png';
-    if (name.includes('zero 4') || name.includes('zero4')) return './assets/foliologo/zero4.png';
-    if (name.includes('zero 5') || name.includes('zero5')) return './assets/foliologo/zero5.png';
-    if (name.includes('us dividend') || name.includes('usdiv')) return './assets/foliologo/usdividentyield.png';
-    if (name.includes('thai dividend') || name.includes('thaidiv')) return './assets/foliologo/thaidivident.png';
-    if (name.includes('next gen') || name.includes('nextgen')) return './assets/foliologo/nextgen.png';
-    if (name.includes('crypto') || name.includes('btc')) return './assets/foliologo/crypto.png';
-    return './assets/icons/icon-briefcase.png';
   }
 
   formatMoney(val, category) {
@@ -117,6 +105,7 @@ class PixelStewardApp {
     return `<span class="pixel-money">${sym}${numStr}</span>`;
   }
 
+  /* [V2.3.0 FIX] Enhanced Logo Fetcher & Aspect Ratio Support */
   getTickerLogoHtml(assetName, category) {
     let rawSymbol = (assetName || '').trim().toUpperCase().split(' ')[0];
     if (!rawSymbol) return `<span class="card-title-icon">📦</span>`;
@@ -156,12 +145,16 @@ class PixelStewardApp {
     const storedMonthlies = localStorage.getItem('ps_monthly_v4');
     const storedDividends = localStorage.getItem('ps_dividends_v4');
     const storedRate = localStorage.getItem('ps_ex_rate_v4');
+    const storedDebtStart = localStorage.getItem('ps_debt_start_v4');
+    const storedDebtRemaining = localStorage.getItem('ps_debt_remaining_v4');
 
     this.portfolios = storedPorts ? JSON.parse(storedPorts) : INITIAL_PORTFOLIOS;
     this.quarterlyRecords = storedQuarters ? JSON.parse(storedQuarters) : INITIAL_QUARTERLY_RECORDS;
     this.monthlyRecords = storedMonthlies ? JSON.parse(storedMonthlies) : INITIAL_MONTHLY_RECORDS;
     this.dividendRecords = storedDividends ? JSON.parse(storedDividends) : [];
     this.exchangeRate = storedRate ? Number(storedRate) : 36.5;
+    this.debtStartTHB = storedDebtStart ? Number(storedDebtStart) : 0;
+    this.debtRemainingTHB = storedDebtRemaining ? Number(storedDebtRemaining) : 0;
 
     if (Array.isArray(this.portfolios) && this.portfolios.length > 0 && !this.selectedPortId) {
       this.selectedPortId = this.portfolios[0].id;
@@ -170,6 +163,7 @@ class PixelStewardApp {
     this.connectCloudDatabase();
     this.updatePrivacyBtnState();
 
+    // 🎮 GLOBAL EVENT DELEGATION
     document.addEventListener('click', (e) => {
       if (e.target.closest('.btn-close-modal')) {
         this.closeModals();
@@ -200,6 +194,7 @@ class PixelStewardApp {
         return;
       }
 
+      /* [V2.3.0 UPDATE] Enhanced Asset Input Modal & Breakdown */
       const addAssetBtn = e.target.closest('#btn-add-asset');
       if (addAssetBtn) {
         let active = this.portfolios.find(p => p.id === this.selectedPortId);
@@ -241,24 +236,6 @@ class PixelStewardApp {
       if (e.target.closest('#btn-quick-transfer')) {
         this.openTransferModal();
         return;
-      }
-
-      /* 🔒 2-STEP DELETE CONFIRMATION HANDLER WITH INPUT VERIFICATION */
-      const confirmDeleteBtn = e.target.closest('#btn-execute-confirmed-delete');
-      if (confirmDeleteBtn && this.pendingDeleteRecord) {
-        const verifyInput = document.getElementById('delete-verify-input');
-        if (!verifyInput || verifyInput.value.trim().toUpperCase() !== 'DELETE') {
-          alert('❌ โปรดพิมพ์คำว่า "DELETE" เพื่อยืนยันการล้างข้อมูลครับ');
-          return;
-        }
-
-        const { portfolioId, year } = this.pendingDeleteRecord;
-        this.quarterlyRecords = this.quarterlyRecords.filter(r => !(r && r.portfolioId === portfolioId && r.year === year));
-        this.pendingDeleteRecord = null;
-        this.saveState();
-        this.closeModals();
-        this.refreshUI();
-        alert('🗑️ ล้างข้อมูลรายงานไตรมาสเรียบร้อย!');
       }
     });
 
@@ -318,6 +295,8 @@ class PixelStewardApp {
         if (data.monthlyRecords) this.monthlyRecords = Array.isArray(data.monthlyRecords) ? data.monthlyRecords : Object.values(data.monthlyRecords);
         if (data.dividendRecords) this.dividendRecords = Array.isArray(data.dividendRecords) ? data.dividendRecords : Object.values(data.dividendRecords);
         if (data.exchangeRate) this.exchangeRate = Number(data.exchangeRate) || this.exchangeRate;
+        if (typeof data.debtStartTHB === 'number') this.debtStartTHB = data.debtStartTHB;
+        if (typeof data.debtRemainingTHB === 'number') this.debtRemainingTHB = data.debtRemainingTHB;
         this.refreshUI();
       }
     });
@@ -327,11 +306,15 @@ class PixelStewardApp {
     if (!isFirebaseActive) return;
     firebase.database().ref('pixel_steward_data_v4').set({
       portfolios: this.portfolios, quarterlyRecords: this.quarterlyRecords,
-      monthlyRecords: this.monthlyRecords, dividendRecords: this.dividendRecords, exchangeRate: this.exchangeRate
+      monthlyRecords: this.monthlyRecords, dividendRecords: this.dividendRecords, exchangeRate: this.exchangeRate,
+      debtStartTHB: this.debtStartTHB, debtRemainingTHB: this.debtRemainingTHB
     });
   }
 
   autoCalculatePortfolios() {
+    /* [V2.3.0 FIX] Recalculate current from assets; do NOT zero out cashBuffer or dryPowder
+       cashBuffer is a legacy field kept for backwards compatibility (always 0 now)
+       dryPowder is the user-set "waiting cash" field stored on each portfolio */
     if (!Array.isArray(this.portfolios)) return;
     this.portfolios.forEach(p => {
       if (!p) return;
@@ -347,10 +330,14 @@ class PixelStewardApp {
     localStorage.setItem('ps_monthly_v4', JSON.stringify(this.monthlyRecords));
     localStorage.setItem('ps_dividends_v4', JSON.stringify(this.dividendRecords));
     localStorage.setItem('ps_ex_rate_v4', this.exchangeRate.toString());
+    localStorage.setItem('ps_debt_start_v4', this.debtStartTHB.toString());
+    localStorage.setItem('ps_debt_remaining_v4', this.debtRemainingTHB.toString());
     this.syncStateToCloud();
   }
 
   getCalculations() {
+    /* [V2.3.0 FIX] Net Worth = Invested Assets + Cash Buffer + Dry Powder
+       Dry Powder is the user's uninvested "waiting cash" and IS part of net worth */
     this.autoCalculatePortfolios();
     let totalTHB = 0, totalUSD = 0, totalCashBufferTHB = 0, totalDryPowderTHB = 0;
     if (Array.isArray(this.portfolios)) {
@@ -368,6 +355,7 @@ class PixelStewardApp {
         }
       });
     }
+    /* Net Worth includes: all invested assets (THB + USD converted) + cash buffer + dry powder */
     const netWorthTHB = totalTHB + (totalUSD * this.exchangeRate) + totalCashBufferTHB + totalDryPowderTHB;
     return { netWorthTHB, netWorthUSD: netWorthTHB / this.exchangeRate, totalTHB, totalUSD, totalCashBufferTHB, totalDryPowderTHB };
   }
@@ -420,7 +408,6 @@ class PixelStewardApp {
     }
   }
 
-  /* 🖼️ [V2.5.0 UPDATE] DASHBOARD WITH SQUARE RETRO AVATAR FRAME */
   renderDashboard(container) {
     const calc = this.getCalculations();
     const topGoals = Array.isArray(this.portfolios) ? this.portfolios.filter(p => p && p.goalType === 'numeric' && p.goal > 0).map(p => ({ name: p.name, pct: ((p.current + p.cashBuffer) / p.goal) * 100 })).sort((a, b) => b.pct - a.pct).slice(0, 3) : [];
@@ -451,13 +438,33 @@ class PixelStewardApp {
     })).sort((a, b) => b.val - a.val);
 
     const dryPowderRatio = calc.netWorthTHB > 0 ? (calc.totalDryPowderTHB / calc.netWorthTHB) * 100 : 0;
-    let healthScore = 50;
-    if (calc.totalDryPowderTHB > 0) healthScore += 20;
-    if (topGoals.length > 0 && topGoals[0].pct >= 50) healthScore += 15;
-    if (this.portfolios.length >= 3) healthScore += 15;
-    healthScore = Math.min(100, healthScore);
+    /* [V3.0.0 NEW] Debt-aware weighted Portfolio Health formula (max 100):
+       - 25 pts: Debt-to-Net-Worth ratio (lower debt burden vs assets = more points, graded not binary)
+       - 20 pts: Dry Powder ratio (graded 0-15%+ of net worth, instead of old all-or-nothing)
+       - 20 pts: Debt Snowball progress = (debtStart - debtRemaining) / debtStart
+       - 20 pts: Top goal progress (graded 0-100%, instead of old binary >=50% cliff)
+       - 15 pts: Diversification (graded by number of portfolios, capped at 3+) */
+    const debtRemaining = Math.max(0, this.debtRemainingTHB || 0);
+    const debtStart = Math.max(0, this.debtStartTHB || 0);
+
+    const debtToNetWorthRatio = calc.netWorthTHB > 0 ? debtRemaining / calc.netWorthTHB : (debtRemaining > 0 ? 1 : 0);
+    const debtScore = 25 * Math.max(0, 1 - Math.min(1, debtToNetWorthRatio));
+
+    const dryPowderScore = 20 * Math.min(1, dryPowderRatio / 15); // full points once dry powder >= 15% of net worth
+
+    const snowballProgressPct = debtStart > 0 ? Math.max(0, Math.min(1, (debtStart - debtRemaining) / debtStart)) : (debtRemaining === 0 ? 1 : 0);
+    const snowballScore = 20 * snowballProgressPct;
+
+    const topGoalPct = topGoals.length > 0 ? Math.min(100, topGoals[0].pct) : 0;
+    const goalScore = 20 * (topGoalPct / 100);
+
+    const diversificationScore = 15 * Math.min(1, this.portfolios.length / 3);
+
+    let healthScore = Math.round(debtScore + dryPowderScore + snowballScore + goalScore + diversificationScore);
+    healthScore = Math.max(0, Math.min(100, healthScore));
     const meloState = this.getMeloAvatarState(healthScore);
 
+    /* [V2.3.0 FIX] Net Worth = Invested + DryPowder (both are YOUR money); privacy mode supported */
     const investedTHB = calc.totalTHB + (calc.totalUSD * this.exchangeRate);
     const netWorthDisplay = this.isPrivacyMode ? '฿***,***' : `฿${calc.netWorthTHB.toLocaleString(undefined,{maximumFractionDigits:0})}`;
     const investedDisplay = this.isPrivacyMode ? '฿***,***' : `฿${investedTHB.toLocaleString(undefined,{maximumFractionDigits:0})}`;
@@ -501,20 +508,22 @@ class PixelStewardApp {
 
         <div class="border-pixel" style="padding:12px; background:#1f273e; text-align:center;">
           <h5 style="font-family:'Press Start 2P'; font-size:0.55rem; color:var(--color-accent);">❤️ PORTFOLIO HEALTH</h5>
-          <div style="display:flex; align-items:center; justify-content:center; gap:12px; margin:8px 0; background:#111625; padding:8px; border:2px solid #000;">
-            <!-- 🎨 RETRO SQUARE FRAME WITH LARGER AVATAR -->
-            <div class="health-avatar-square-frame">
-              <img src="${meloState.imgSrc}" class="health-avatar-square-img">
-            </div>
-            <div style="text-align:left;">
-              <div style="font-size:1.2rem; font-family:'Press Start 2P'; color:#10b981;">${healthScore}/100</div>
-              <div style="font-size:0.7rem; font-weight:bold; ${meloState.cls}">${meloState.text}</div>
-            </div>
+          <div style="display:flex; align-items:center; justify-content:center; gap:10px; margin:8px 0; background:#111625; padding:8px; border:2px solid #000;">
+            <img src="${meloState.imgSrc}" class="health-avatar-square-img">
+            <div style="text-align:left;"><div style="font-size:1.1rem; font-family:'Press Start 2P'; color:#10b981;">${healthScore}/100</div><div style="font-size:0.65rem; font-weight:bold; ${meloState.cls}">${meloState.text}</div></div>
+          </div>
+          <div class="health-score-breakdown">
+            <span>💳 หนี้ ${debtScore.toFixed(0)}/25</span>
+            <span>💵 เงินสด ${dryPowderScore.toFixed(0)}/20</span>
+            <span>❄️ Snowball ${snowballScore.toFixed(0)}/20</span>
+            <span>🎯 เป้าหมาย ${goalScore.toFixed(0)}/20</span>
+            <span>💎 กระจายพอร์ต ${diversificationScore.toFixed(0)}/15</span>
           </div>
         </div>
       </div>`;
   }
 
+  // 🖼️ MEMORY CARD GRID RENDERER
   renderPortfolios(container) {
     if (!Array.isArray(this.portfolios) || this.portfolios.length === 0) {
       container.innerHTML = `
@@ -533,6 +542,7 @@ class PixelStewardApp {
 
     container.innerHTML = `
       <div style="display:flex; flex-direction:column; gap:20px;">
+        <!-- 🎯 TOP SECTION: MEMORY CARD GRID RACK -->
         <div class="border-pixel" style="padding:16px; background:#111625;">
           <h3 style="font-family:'Press Start 2P'; font-size:0.75rem; color:var(--color-accent, #f59e0b); margin-bottom:14px; display:flex; align-items:center;">
             <img src="./assets/icons/icon-briefcase.png" alt="Rack" class="card-title-icon" style="width:24px; height:24px; margin-right:8px;"> CARTRIDGE MEMORY RACK
@@ -568,6 +578,7 @@ class PixelStewardApp {
               `;
             }).join('')}
 
+            <!-- ➕ ADD NEW DOTTED CARD -->
             <div class="memory-card-add-new">
               <div style="font-size:1.8rem;">➕</div>
               <div style="font-family:'Press Start 2P'; font-size:0.6rem; margin-top:8px;">ADD NEW</div>
@@ -575,6 +586,7 @@ class PixelStewardApp {
           </div>
         </div>
 
+        <!-- 🔎 BOTTOM SECTION: ACTIVE PORTFOLIO DETAIL PANEL -->
         <div style="display:grid; grid-template-columns: 1.2fr 0.8fr; gap:20px;">
           <div class="border-pixel" style="background:#1f273e; padding:18px; display:flex; flex-direction:column; gap:12px;">
             <div style="display:flex; justify-content:space-between; border-bottom:3px solid #000; padding-bottom:10px; align-items:center;">
@@ -767,220 +779,204 @@ class PixelStewardApp {
     } 
   }
 
-  /* 📊 [V2.5.0 UPDATE] QUARTERLY PERFORMANCE HUB WITH CUSTOM LOGO MAPPING */
-  renderQuarterly(container) {
-    const stockPorts = Array.isArray(this.portfolios) ? this.portfolios.filter(p => p && p.category !== 'Option') : [];
-    const year = this.selectedQuarterYear;
-
-    if (stockPorts.length === 0) {
-      container.innerHTML = '<div class="border-pixel" style="padding:20px; background:#1f273e; text-align:center;">ไม่มีรายการหุ้นรายไตรมาส (โปรดสร้างตลับพอร์ตหลักก่อนครับ)</div>';
-      return;
+  // 🗓️ [V3.0.0 NEW] Helpers for the redesigned Quarterly page
+  getQuarterlyYearsList() {
+    const years = new Set([new Date().getFullYear()]);
+    if (Array.isArray(this.quarterlyRecords)) {
+      this.quarterlyRecords.forEach(r => { if (r && r.year) years.add(r.year); });
     }
-
-    let globalQ = { q1: 0, f1: 0, q2: 0, f2: 0, q3: 0, f3: 0, q4: 0, f4: 0 };
-    let hasQ1 = false, hasQ2 = false, hasQ3 = false, hasQ4 = false;
-
-    stockPorts.forEach(p => {
-      const r = this.quarterlyRecords.find(x => x && x.portfolioId === p.id && x.year === year);
-      if (r) {
-        if (r.q1 && r.q1 > 0) { globalQ.q1 += r.q1; globalQ.f1 += (r.f1 || 0); hasQ1 = true; }
-        if (r.q2 && r.q2 > 0) { globalQ.q2 += r.q2; globalQ.f2 += (r.f2 || 0); hasQ2 = true; }
-        if (r.q3 && r.q3 > 0) { globalQ.q3 += r.q3; globalQ.f3 += (r.f3 || 0); hasQ3 = true; }
-        if (r.q4 && r.q4 > 0) { globalQ.q4 += r.q4; globalQ.f4 += (r.f4 || 0); hasQ4 = true; }
-      }
-    });
-
-    const calcTWR = (cur, flow, prev) => {
-      if (!cur || cur <= 0) return { text: '-', cls: 'text-muted', num: 0, icon: '' };
-      if (!prev || prev <= 0) return { text: 'Base', cls: 'text-muted', num: 0, icon: '📊' };
-      const pct = ((cur - flow - prev) / prev) * 100;
-      const isPos = pct >= 0;
-      return {
-        text: (isPos ? '+' : '') + pct.toFixed(2) + '%',
-        cls: isPos ? 'text-success' : 'text-danger',
-        num: pct,
-        icon: isPos ? '▲' : '▼'
-      };
-    };
-
-    const gGrowth2 = hasQ2 ? calcTWR(globalQ.q2, globalQ.f2, globalQ.q1) : { text: '-', cls: 'text-muted', icon: '' };
-    const gGrowth3 = hasQ3 ? calcTWR(globalQ.q3, globalQ.f3, globalQ.q2) : { text: '-', cls: 'text-muted', icon: '' };
-    const gGrowth4 = hasQ4 ? calcTWR(globalQ.q4, globalQ.f4, globalQ.q3) : { text: '-', cls: 'text-muted', icon: '' };
-
-    const formatQDisplay = (val) => {
-      if (!val || val <= 0) return `<div style="font-size:0.7rem; color:#64748b; font-family:'Press Start 2P'; margin-top:4px;">🔒 AWAITING</div>`;
-      return `<div style="font-weight:bold; font-size:0.95rem; color:#fff;">${this.formatMoney(val, 'THB')}</div>`;
-    };
-
-    container.innerHTML = `
-      <div style="display:flex; flex-direction:column; gap:16px;">
-        <div class="quarterly-controls-bar border-pixel">
-          <div style="display:flex; align-items:center; gap:10px;">
-            <label style="font-weight:bold; font-size:0.85rem; color:var(--color-accent);">🗓️ ปีงบประมาณ:</label>
-            <select id="quarter-year-select" class="input-retro" style="width:110px; padding:4px 8px; font-weight:bold;">
-              <option value="2024" ${year === 2024 ? 'selected' : ''}>2024</option>
-              <option value="2025" ${year === 2025 ? 'selected' : ''}>2025</option>
-              <option value="2026" ${year === 2026 ? 'selected' : ''}>2026</option>
-              <option value="2027" ${year === 2027 ? 'selected' : ''}>2027</option>
-            </select>
-          </div>
-
-          <div style="display:flex; align-items:center; gap:8px;">
-            <span style="font-size:0.8rem; color:#94a3b8;">มุมมอง:</span>
-            <div class="view-mode-btn-group">
-              <button class="btn-view-mode ${this.quarterlyViewMode === 'card' ? 'active' : ''}" id="btn-mode-card">🖼️ Card View</button>
-              <button class="btn-view-mode ${this.quarterlyViewMode === 'table' ? 'active' : ''}" id="btn-mode-table">📊 Table View</button>
-            </div>
-          </div>
-        </div>
-
-        <!-- GLOBAL SUMMARY BANNER -->
-        <div class="border-pixel" style="padding:16px; background:#111625;">
-          <h4 style="font-family:'Press Start 2P'; font-size:0.65rem; color:var(--color-accent); margin-bottom:12px; display:flex; align-items:center; gap:8px;">
-            <img src="./assets/icons/icon-gems.png" alt="Summary" class="card-title-icon"> GLOBAL QUARTER SUMMARY (${year})
-          </h4>
-          <div style="display:grid; grid-template-columns:repeat(4, 1fr); gap:12px; text-align:center;">
-            <div class="border-pixel-inset" style="padding:10px; background:#0c1020;">
-              <b style="font-size:0.75rem; color:var(--color-primary-light);">🟢 Q1 SUMMARY</b>
-              ${formatQDisplay(globalQ.q1)}
-              <div style="font-size:0.68rem; color:#64748b; margin-top:2px;">อัดฉีดรวม: ${this.formatMoney(globalQ.f1, 'THB')}</div>
-              <div style="font-size:0.75rem; font-weight:bold; margin-top:2px;" class="text-muted">Base</div>
-            </div>
-            <div class="border-pixel-inset ${!hasQ2 ? 'quarter-locked-box' : ''}" style="padding:10px; background:#0c1020;">
-              <b style="font-size:0.75rem; color:var(--color-success);">🔵 Q2 SUMMARY</b>
-              ${formatQDisplay(globalQ.q2)}
-              <div style="font-size:0.68rem; color:#64748b; margin-top:2px;">อัดฉีดรวม: ${this.formatMoney(globalQ.f2, 'THB')}</div>
-              <div style="font-size:0.75rem; font-weight:bold; margin-top:2px;" class="${gGrowth2.cls}">โตรวม: ${gGrowth2.text} ${gGrowth2.icon}</div>
-            </div>
-            <div class="border-pixel-inset ${!hasQ3 ? 'quarter-locked-box' : ''}" style="padding:10px; background:#0c1020;">
-              <b style="font-size:0.75rem; color:var(--color-secondary);">🔒 Q3 SUMMARY</b>
-              ${formatQDisplay(globalQ.q3)}
-              <div style="font-size:0.68rem; color:#64748b; margin-top:2px;">อัดฉีดรวม: ${hasQ3 ? this.formatMoney(globalQ.f3, 'THB') : '-'}</div>
-              <div style="font-size:0.75rem; font-weight:bold; margin-top:2px;" class="${gGrowth3.cls}">โตรวม: ${gGrowth3.text} ${gGrowth3.icon}</div>
-            </div>
-            <div class="border-pixel-inset ${!hasQ4 ? 'quarter-locked-box' : ''}" style="padding:10px; background:#0c1020;">
-              <b style="font-size:0.75rem; color:var(--color-accent);">🔒 Q4 SUMMARY</b>
-              ${formatQDisplay(globalQ.q4)}
-              <div style="font-size:0.68rem; color:#64748b; margin-top:2px;">อัดฉีดรวม: ${hasQ4 ? this.formatMoney(globalQ.f4, 'THB') : '-'}</div>
-              <div style="font-size:0.75rem; font-weight:bold; margin-top:2px;" class="${gGrowth4.cls}">โตรวม: ${gGrowth4.text} ${gGrowth4.icon}</div>
-            </div>
-          </div>
-        </div>
-
-        ${this.quarterlyViewMode === 'card' ? `
-          <!-- 🖼️ CARD VIEW MODE WITH RETRO FOLIO LOGO -->
-          <div class="quarterly-card-grid">
-            ${stockPorts.map(p => {
-              if (!p) return '';
-              const r = this.quarterlyRecords.find(x => x && x.portfolioId === p.id && x.year === year) || { q1: 0, f1: 0, q2: 0, f2: 0, q3: 0, f3: 0, q4: 0, f4: 0 };
-              const g2 = calcTWR(r.q2, r.f2, r.q1);
-              const g3 = calcTWR(r.q3, r.f3, r.q2);
-              const g4 = calcTWR(r.q4, r.f4, r.q3);
-              const folioLogoSrc = this.getFolioLogoPath(p.name);
-
-              return `
-                <div class="quarterly-folio-card border-pixel">
-                  <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:2px solid #000; padding-bottom:6px;">
-                    <b style="font-size:0.8rem; color:#facc15;">${p.name}</b>
-                    <button class="btn btn-danger btn-small" onclick="app.triggerSafeDeleteQuarterly('${p.id}', ${year})" style="padding:1px 4px; font-size:0.65rem;">✖</button>
-                  </div>
-
-                  <!-- 📦 PIXEL FOLIO LOGO -->
-                  <img src="${folioLogoSrc}" class="quarterly-folio-logo" alt="${p.name}">
-
-                  <div style="display:grid; grid-template-columns:1fr 1fr; gap:6px; font-size:0.75rem; margin-top:8px;">
-                    <div class="border-pixel-inset" style="padding:4px;"><span style="color:#94a3b8; font-size:0.65rem;">Q1:</span> <b>${r.q1 > 0 ? '฿'+r.q1.toLocaleString() : '-'}</b></div>
-                    <div class="border-pixel-inset" style="padding:4px;"><span style="color:#94a3b8; font-size:0.65rem;">Q2:</span> <b>${r.q2 > 0 ? '฿'+r.q2.toLocaleString() : '-'}</b></div>
-                    <div class="border-pixel-inset" style="padding:4px;"><span style="color:#94a3b8; font-size:0.65rem;">Q3:</span> <b>${r.q3 > 0 ? '฿'+r.q3.toLocaleString() : '-'}</b></div>
-                    <div class="border-pixel-inset" style="padding:4px;"><span style="color:#94a3b8; font-size:0.65rem;">Q4:</span> <b>${r.q4 > 0 ? '฿'+r.q4.toLocaleString() : '-'}</b></div>
-                  </div>
-
-                  <div style="margin-top:8px; display:flex; justify-content:space-between; align-items:center;">
-                    <button class="btn btn-secondary btn-small" onclick="app.openQuarterlyModal('${p.id}', ${year})" style="width:100%;">✏️ บันทึกตารางงวด</button>
-                  </div>
-                </div>`;
-            }).join('')}
-          </div>
-        ` : `
-          <!-- 📊 HYBRID TABLE VIEW MODE -->
-          <div class="border-pixel" style="padding:15px; background:#1f273e; overflow-x:auto;">
-            <table class="retro-table" style="width:100%; border-collapse:collapse; font-size:0.85rem; text-align:left;">
-              <thead>
-                <tr style="background:#111625; border-bottom:2px solid #000;">
-                  <th style="padding:10px; border:1px solid #000;">ชื่อพอร์ต</th>
-                  <th style="padding:10px; border:1px solid #000; text-align:right;">Q1 (THB)</th>
-                  <th style="padding:10px; border:1px solid #000; text-align:right;">Q2 (THB)</th>
-                  <th style="padding:10px; border:1px solid #000; text-align:right;">Q3 (THB)</th>
-                  <th style="padding:10px; border:1px solid #000; text-align:right;">Q4 (THB)</th>
-                  <th style="padding:10px; border:1px solid #000; text-align:center; color:var(--color-accent);">🏆 โตรวมปีนี้</th>
-                </tr>
-              </thead>
-              <tbody>
-                ${stockPorts.map(p => {
-                  if (!p) return '';
-                  const r = this.quarterlyRecords.find(x => x && x.portfolioId === p.id && x.year === year) || { q1: 0, f1: 0, q2: 0, f2: 0, q3: 0, f3: 0, q4: 0, f4: 0 };
-                  const validVals = [r.q1, r.q2, r.q3, r.q4].filter(v => v && v > 0);
-                  const firstVal = validVals[0] || 0;
-                  const lastVal = validVals[validVals.length - 1] || 0;
-                  const totalFlows = (r.f2 || 0) + (r.f3 || 0) + (r.f4 || 0);
-                  const yearGrowth = firstVal > 0 ? calcTWR(lastVal, totalFlows, firstVal) : { text: '-', cls: 'text-muted', icon: '' };
-
-                  return `
-                    <tr style="border-bottom:1px solid #222;">
-                      <td style="padding:10px; border:1px solid #000;">
-                        <img src="${this.getFolioLogoPath(p.name)}" class="card-title-icon" style="width:20px; height:20px;">
-                        <b>${p.name}</b>
-                      </td>
-                      <td style="padding:10px; border:1px solid #000; text-align:right;">${r.q1 > 0 ? this.formatMoney(r.q1, 'THB') : '<span style="color:#64748b;">🔒 AWAIT</span>'}</td>
-                      <td style="padding:10px; border:1px solid #000; text-align:right;">${r.q2 > 0 ? this.formatMoney(r.q2, 'THB') : '<span style="color:#64748b;">🔒 AWAIT</span>'}</td>
-                      <td style="padding:10px; border:1px solid #000; text-align:right;">${r.q3 > 0 ? this.formatMoney(r.q3, 'THB') : '<span style="color:#64748b;">🔒 AWAIT</span>'}</td>
-                      <td style="padding:10px; border:1px solid #000; text-align:right;">${r.q4 > 0 ? this.formatMoney(r.q4, 'THB') : '<span style="color:#64748b;">🔒 AWAIT</span>'}</td>
-                      <td style="padding:10px; border:1px solid #000; text-align:center; font-weight:bold;" class="${yearGrowth.cls}">
-                        ${yearGrowth.text} ${yearGrowth.icon}
-                      </td>
-                    </tr>`;
-                }).join('')}
-              </tbody>
-            </table>
-          </div>
-        `}
-      </div>`;
-
-    const yearSelect = document.getElementById('quarter-year-select');
-    if (yearSelect) {
-      yearSelect.addEventListener('change', (e) => {
-        this.selectedQuarterYear = Number(e.target.value);
-        this.refreshUI();
-      });
-    }
-
-    const modeCardBtn = document.getElementById('btn-mode-card');
-    const modeTableBtn = document.getElementById('btn-mode-table');
-    if (modeCardBtn && modeTableBtn) {
-      modeCardBtn.addEventListener('click', () => {
-        this.quarterlyViewMode = 'card';
-        this.refreshUI();
-      });
-      modeTableBtn.addEventListener('click', () => {
-        this.quarterlyViewMode = 'table';
-        this.refreshUI();
-      });
-    }
+    years.add(this.quarterlyViewYear);
+    return Array.from(years).sort((a, b) => b - a);
   }
 
-  triggerSafeDeleteQuarterly(portfolioId, year) {
-    const port = this.portfolios.find(p => p && p.id === portfolioId);
-    if (!port) return;
-    this.pendingDeleteRecord = { portfolioId, year };
-    
-    const msg = document.getElementById('confirm-delete-msg');
-    if (msg) msg.innerText = `คุณต้องการล้างข้อมูลรายงานไตรมาสปี ${year} ของพอร์ต "${port.name}" ใช่หรือไม่?`;
-    
-    const verifyInput = document.getElementById('delete-verify-input');
-    if (verifyInput) verifyInput.value = '';
+  getQuarterGrowth(cur, flow, prev) {
+    if (!cur || cur <= 0) return { text: '-', cls: 'text-muted', pct: null };
+    if (!prev || prev <= 0) return { text: 'Base', cls: 'text-muted', pct: null };
+    const pct = ((cur - flow - prev) / prev) * 100;
+    return { text: (pct >= 0 ? '+' : '') + pct.toFixed(2) + '%', cls: pct >= 0 ? 'text-success' : 'text-danger', pct };
+  }
 
-    const modal = document.getElementById('delete-confirm-modal');
-    if (modal) modal.classList.remove('hidden');
+  getGlobalQuarterSummary(stockPorts, year) {
+    const sums = { q1: 0, q2: 0, q3: 0, q4: 0 };
+    stockPorts.forEach(p => {
+      if (!p) return;
+      const r = this.quarterlyRecords.find(x => x && x.portfolioId === p.id && x.year === year);
+      if (!r) return;
+      const rate = p.category === 'Option' ? this.exchangeRate : 1;
+      sums.q1 += (r.q1 || 0) * rate; sums.q2 += (r.q2 || 0) * rate;
+      sums.q3 += (r.q3 || 0) * rate; sums.q4 += (r.q4 || 0) * rate;
+    });
+    const growth = this.getQuarterGrowth(sums.q2, 0, sums.q1);
+    return { ...sums, growth };
+  }
+
+  renderQuarterly(container) {
+    const stockPorts = Array.isArray(this.portfolios) ? this.portfolios.filter(p => p && p.category !== 'Option') : [];
+    if (stockPorts.length === 0) { container.innerHTML = '<div class="border-pixel" style="padding:20px; background:#1f273e;">ไม่มีรายการหุ้นรายไตรมาส (โปรดตั้งค่าเปิดตลับพอร์ตหลักก่อนครับ)</div>'; return; }
+
+    const year = this.quarterlyViewYear;
+    const years = this.getQuarterlyYearsList();
+    const summary = this.getGlobalQuarterSummary(stockPorts, year);
+    const fmtQ = (v) => v > 0 ? `฿${v.toLocaleString(undefined, { maximumFractionDigits: 2 })}` : '฿0.00';
+
+    const headerHtml = `
+      <div class="border-pixel" style="padding:14px 16px; background:#1f273e; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
+        <div>
+          <h3 style="font-family:'Press Start 2P'; font-size:0.8rem; margin:0;">🗓️ หุ้นรายไตรมาส</h3>
+          <p class="text-muted" style="font-size:0.78rem; margin:4px 0 0 0;">ติดตามประวัติการเติบโตของพอร์ตการลงทุนรายไตรมาส</p>
+        </div>
+        <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
+          <select id="quarterly-year-select" class="input-retro" style="width:auto; padding:6px 8px;">
+            ${years.map(y => `<option value="${y}" ${y === year ? 'selected' : ''}>ปี ${y}</option>`).join('')}
+          </select>
+          <button class="btn btn-retro ${this.quarterlyViewMode === 'card' ? 'btn-primary' : 'btn-secondary'}" id="btn-quarterly-view-card" style="padding:6px 10px;">🖼️ Card View</button>
+          <button class="btn btn-retro ${this.quarterlyViewMode === 'table' ? 'btn-primary' : 'btn-secondary'}" id="btn-quarterly-view-table" style="padding:6px 10px;">📊 Table View</button>
+        </div>
+      </div>
+
+      <div class="border-pixel" style="padding:14px 16px; background:#111625; margin-top:14px;">
+        <h5 style="font-family:'Press Start 2P'; font-size:0.6rem; color:var(--color-accent); margin-bottom:10px;">🌍 GLOBAL QUARTER SUMMARY (รวมทุกพอร์ต)</h5>
+        <div style="display:grid; grid-template-columns:repeat(4, 1fr) auto; gap:10px; align-items:center;">
+          <div class="border-pixel-inset" style="padding:8px; text-align:center; background:#1f273e;"><b style="color:var(--color-accent); font-size:0.7rem;">Q1 รวม</b><div style="font-size:0.9rem; font-weight:bold;">${fmtQ(summary.q1)}</div></div>
+          <div class="border-pixel-inset" style="padding:8px; text-align:center; background:#1f273e;"><b style="color:var(--color-success); font-size:0.7rem;">Q2 รวม</b><div style="font-size:0.9rem; font-weight:bold;">${fmtQ(summary.q2)}</div></div>
+          <div class="border-pixel-inset" style="padding:8px; text-align:center; background:#1f273e;"><b style="color:var(--color-secondary); font-size:0.7rem;">Q3 รวม</b><div style="font-size:0.9rem; font-weight:bold;">${fmtQ(summary.q3)}</div></div>
+          <div class="border-pixel-inset" style="padding:8px; text-align:center; background:#1f273e;"><b style="color:var(--color-accent); font-size:0.7rem;">Q4 รวม</b><div style="font-size:0.9rem; font-weight:bold;">${fmtQ(summary.q4)}</div></div>
+          <div class="border-pixel-inset" style="padding:8px 14px; text-align:center; background:#1f273e;"><b style="font-size:0.65rem;">GROWTH (Q2 vs Q1)</b><div style="font-size:1rem; font-weight:bold;" class="${summary.growth.cls}">${summary.growth.text}</div></div>
+        </div>
+      </div>`;
+
+    const bodyHtml = this.quarterlyViewMode === 'table'
+      ? this.renderQuarterlyTable(stockPorts, year)
+      : this.renderQuarterlyCards(stockPorts, year);
+
+    container.innerHTML = `<div style="display:flex; flex-direction:column; gap:0;">${headerHtml}<div style="margin-top:16px;">${bodyHtml}</div></div>`;
+
+    const yearSelect = document.getElementById('quarterly-year-select');
+    if (yearSelect) yearSelect.addEventListener('change', (e) => { this.quarterlyViewYear = Number(e.target.value); this.refreshUI(); });
+    const btnCard = document.getElementById('btn-quarterly-view-card');
+    if (btnCard) btnCard.addEventListener('click', () => { this.quarterlyViewMode = 'card'; localStorage.setItem('ps_quarterly_view_mode_v4', 'card'); this.refreshUI(); });
+    const btnTable = document.getElementById('btn-quarterly-view-table');
+    if (btnTable) btnTable.addEventListener('click', () => { this.quarterlyViewMode = 'table'; localStorage.setItem('ps_quarterly_view_mode_v4', 'table'); this.refreshUI(); });
+  }
+
+  // 🖼️ Card View for Quarterly page — mini pixel bar chart + awaiting-data empty state per portfolio
+  renderQuarterlyCards(stockPorts, year) {
+    return `<div class="quarterly-card-grid">
+      ${stockPorts.map((p, idx) => {
+        if (!p) return '';
+        const r = this.quarterlyRecords.find(x => x && x.portfolioId === p.id && x.year === year);
+        const hasAnyData = r && (r.q1 || r.q2 || r.q3 || r.q4);
+        const rec = r || { q1: 0, f1: 0, q2: 0, f2: 0, q3: 0, f3: 0, q4: 0, f4: 0, notes: '' };
+        const g2 = this.getQuarterGrowth(rec.q2, rec.f2, rec.q1);
+        const g3 = this.getQuarterGrowth(rec.q3, rec.f3, rec.q2);
+        const g4 = this.getQuarterGrowth(rec.q4, rec.f4, rec.q3);
+        const overallGrowth = rec.q1 > 0 && rec.q4 > 0 ? g4 : (rec.q1 > 0 && rec.q3 > 0 ? g3 : (rec.q1 > 0 && rec.q2 > 0 ? g2 : null));
+        const maxQ = Math.max(rec.q1 || 0, rec.q2 || 0, rec.q3 || 0, rec.q4 || 0, 1);
+        const logoSrc = this.getFolioLogoPath(p, idx);
+
+        const miniBar = (val, color) => `<div class="quarterly-mini-bar-col"><div class="quarterly-mini-bar-fill" style="height:${val > 0 ? Math.max(6, (val / maxQ) * 100) : 2}%; background:${color};"></div></div>`;
+
+        return `
+          <div class="border-pixel quarterly-card">
+            <div class="quarterly-card-header">
+              <span class="quarterly-card-badge">${idx + 1}</span>
+              <img src="${logoSrc}" class="quarterly-card-logo" alt="${p.name}" onerror="this.style.display='none';">
+              <div>
+                <div class="quarterly-card-title">${p.name}</div>
+                <div class="quarterly-card-cat text-muted">${p.category}</div>
+              </div>
+            </div>
+
+            ${hasAnyData ? `
+              <div class="quarterly-mini-chart">
+                ${miniBar(rec.q1, '#3b82f6')}${miniBar(rec.q2, '#10b981')}${miniBar(rec.q3, '#8b5cf6')}${miniBar(rec.q4, '#f59e0b')}
+              </div>
+              <div class="quarterly-mini-chart-labels"><span>${(rec.q1 || 0) > 0 ? '฿' + rec.q1.toLocaleString() : '-'}</span><span>Q1</span><span>Q2</span><span>Q3</span><span>Q4</span></div>
+              <div style="display:flex; justify-content:space-between; font-size:0.6rem; color:#64748b; padding:0 2px;">
+                <span>-</span><span>${(rec.q2 || 0) > 0 ? '฿' + rec.q2.toLocaleString() : '-'}</span><span>${(rec.q3 || 0) > 0 ? '฿' + rec.q3.toLocaleString() : '-'}</span><span>${(rec.q4 || 0) > 0 ? '฿' + rec.q4.toLocaleString() : '-'}</span>
+              </div>
+            ` : `
+              <div class="quarterly-empty-state">
+                <img src="./assets/icons/icon-hourglass.png" alt="⏳" class="quarterly-empty-icon" onerror="this.outerHTML='⏳';">
+                <div class="quarterly-empty-title">AWAITING DATA</div>
+                <div class="quarterly-empty-sub">รอข้อมูลไตรมาสนี้</div>
+              </div>
+            `}
+
+            <div class="quarterly-card-growth ${overallGrowth ? overallGrowth.cls : 'text-muted'}">${overallGrowth ? overallGrowth.text : '- -'}</div>
+
+            <div style="display:flex; gap:6px; margin-top:10px;">
+              <button class="btn btn-secondary btn-retro btn-small" style="flex:1;" onclick="app.openQuarterlyModal('${p.id}', ${year})">✏️ บันทึกตาราง</button>
+              <button class="btn btn-danger btn-retro btn-small" style="background:#ef4444; color:#fff;" onclick="app.openClearQuarterlyModal('${p.id}', ${year})">✖</button>
+            </div>
+          </div>`;
+      }).join('')}
+    </div>`;
+  }
+
+  // 📊 Table View for Quarterly page
+  renderQuarterlyTable(stockPorts, year) {
+    const rows = stockPorts.map((p, idx) => {
+      if (!p) return '';
+      const r = this.quarterlyRecords.find(x => x && x.portfolioId === p.id && x.year === year) || { q1: 0, f1: 0, q2: 0, f2: 0, q3: 0, f3: 0, q4: 0, f4: 0 };
+      const g2 = this.getQuarterGrowth(r.q2, r.f2, r.q1);
+      const g3 = this.getQuarterGrowth(r.q3, r.f3, r.q2);
+      const g4 = this.getQuarterGrowth(r.q4, r.f4, r.q3);
+      const cell = (v, g) => `${v > 0 ? '฿' + v.toLocaleString() : '<span class="text-muted">⏳ รอข้อมูล</span>'}${g ? `<div style="font-size:0.65rem;" class="${g.cls}">${g.text}</div>` : ''}`;
+      return `
+        <tr>
+          <td style="padding:8px; border:2px solid #000;">${idx + 1}. ${p.name}</td>
+          <td style="padding:8px; border:2px solid #000; text-align:center;">${cell(r.q1 || 0, null)}</td>
+          <td style="padding:8px; border:2px solid #000; text-align:center;">${cell(r.q2 || 0, g2)}</td>
+          <td style="padding:8px; border:2px solid #000; text-align:center;">${cell(r.q3 || 0, g3)}</td>
+          <td style="padding:8px; border:2px solid #000; text-align:center;">${cell(r.q4 || 0, g4)}</td>
+          <td style="padding:8px; border:2px solid #000; text-align:center;">
+            <button class="btn btn-secondary btn-retro btn-small" onclick="app.openQuarterlyModal('${p.id}', ${year})">✏️</button>
+            <button class="btn btn-danger btn-retro btn-small" style="background:#ef4444; color:#fff;" onclick="app.openClearQuarterlyModal('${p.id}', ${year})">✖</button>
+          </td>
+        </tr>`;
+    }).join('');
+
+    return `
+      <div class="border-pixel" style="padding:12px; background:#1f273e; overflow-x:auto;">
+        <table class="retro-table" style="width:100%; border-collapse:collapse; font-size:0.8rem;">
+          <thead><tr style="background:#111625;">
+            <th style="padding:8px; border:2px solid #000; text-align:left;">พอร์ต</th>
+            <th style="padding:8px; border:2px solid #000;">Q1</th><th style="padding:8px; border:2px solid #000;">Q2</th>
+            <th style="padding:8px; border:2px solid #000;">Q3</th><th style="padding:8px; border:2px solid #000;">Q4</th>
+            <th style="padding:8px; border:2px solid #000;">จัดการ</th>
+          </tr></thead>
+          <tbody>${rows}</tbody>
+        </table>
+      </div>`;
+  }
+
+  // 🖼️ [V3.0.0 NEW] Map a portfolio to its assets/foliologo/*.png icon by name/category keyword
+  getFolioLogoPath(portfolio, indexFallback) {
+    const name = (portfolio.name || '').toLowerCase();
+    const cat = (portfolio.category || '').toLowerCase();
+    const table = [
+      { keys: ['red wing', 'redwing'], file: 'redwing.png' },
+      { keys: ['zero 1', 'zero1'], file: 'zero1.png' },
+      { keys: ['zero 2', 'zero2'], file: 'zero2.png' },
+      { keys: ['zero 3', 'zero3'], file: 'zero3.png' },
+      { keys: ['zero 4', 'zero4'], file: 'zero4.png' },
+      { keys: ['zero 5', 'zero5'], file: 'zero5.png' },
+      { keys: ['us dividend', 'dividend yield', 'usdividend'], file: 'usdividentyield.png' },
+      { keys: ['thai dividend', 'thaidividend'], file: 'thaidivident.png' },
+      { keys: ['next gen', 'nextgen'], file: 'nextgen.png' },
+      { keys: ['crypto'], file: 'crypto.png' }
+    ];
+    const byName = table.find(t => t.keys.some(k => name.includes(k)));
+    if (byName) return `./assets/foliologo/${byName.file}`;
+
+    if (cat.includes('emergency')) return './assets/foliologo/zero1.png';
+    if (cat.includes('retirement')) return './assets/foliologo/zero3.png';
+    if (cat.includes('life goal')) return './assets/foliologo/redwing.png';
+
+    const fallbackOrder = ['redwing', 'zero1', 'zero2', 'zero3', 'zero4', 'zero5', 'usdividentyield', 'thaidivident', 'nextgen', 'crypto'];
+    const fallback = fallbackOrder[(indexFallback || 0) % fallbackOrder.length];
+    return `./assets/foliologo/${fallback}.png`;
   }
 
   openQuarterlyModal(portfolioId, year) {
@@ -1015,6 +1011,34 @@ class PixelStewardApp {
     }
     rec.notes = document.getElementById('q-notes').value || '';
 
+    this.saveState();
+    this.closeModals();
+    this.refreshUI();
+  }
+
+  // 🗑️ [V3.0.0 NEW] 2-step "ล้างข้อมูล" dangerous-action flow (step1 = are you sure, step2 = type DELETE)
+  openClearQuarterlyModal(portfolioId, year) {
+    const port = this.portfolios.find(p => p && p.id === portfolioId); if (!port) return;
+    this.pendingClearQuarterly = { portfolioId, year };
+    document.getElementById('clear-quarterly-port-label').innerText = `${port.name} — ปี ${year}`;
+    document.getElementById('clear-quarterly-step1').classList.remove('hidden');
+    document.getElementById('clear-quarterly-step2').classList.add('hidden');
+    document.getElementById('clear-quarterly-confirm-input').value = '';
+    document.getElementById('quarterly-clear-modal').classList.remove('hidden');
+  }
+
+  goToClearQuarterlyStep2() {
+    document.getElementById('clear-quarterly-step1').classList.add('hidden');
+    document.getElementById('clear-quarterly-step2').classList.remove('hidden');
+  }
+
+  executeClearQuarterly() {
+    const typed = (document.getElementById('clear-quarterly-confirm-input').value || '').trim();
+    if (typed !== 'DELETE') { alert('❌ กรุณาพิมพ์คำว่า DELETE ให้ตรงตัวอักษรพิมพ์ใหญ่เพื่อยืนยัน'); return; }
+    if (!this.pendingClearQuarterly) return;
+    const { portfolioId, year } = this.pendingClearQuarterly;
+    this.quarterlyRecords = this.quarterlyRecords.filter(r => !(r && r.portfolioId === portfolioId && r.year === year));
+    this.pendingClearQuarterly = null;
     this.saveState();
     this.closeModals();
     this.refreshUI();
@@ -1084,6 +1108,7 @@ class PixelStewardApp {
             ${(!Array.isArray(this.portfolios) || this.portfolios.length===0)?'<tr><td colspan="4" style="text-align:center;padding:15px;" class="text-muted">ไม่มีพอร์ตลงทุนในคลังคลาวด์</td></tr>':this.portfolios.map(p => {
               if(!p) return '';
               const divs = Array.isArray(this.dividendRecords) ? this.dividendRecords.filter(x=>x && x.portfolioId===p.id).reduce((s,x)=>s+Number(x.amount||0),0) : 0;
+              /* [V2.3.0 FINANCIAL FIX] YOC = Total Dividends Received / Total Cost Basis (ไม่ใช่ Market Value) */
               const totalCostBasis = Array.isArray(p.assets) ? p.assets.reduce((sum, a) => sum + (Number(a.costBasis) || Number(a.value) || 0), 0) : (p.current || 0);
               const yoc = totalCostBasis > 0 ? ((divs / totalCostBasis) * 100).toFixed(2) + '%' : 'N/A';
               return `<tr><td style="padding:8px; border:2px solid #000;"><b>${p.name}</b></td><td style="padding:8px; border:2px solid #000;">${this.formatMoney(totalCostBasis, p.category)}</td><td style="padding:8px; border:2px solid #000; color:var(--color-success);">${this.formatMoney(divs,p.category)}</td><td style="padding:8px; border:2px solid #000; font-weight:bold; color:var(--color-accent); font-family:'Press Start 2P'!important; font-size:0.75rem!important;">${yoc}</td></tr>`;
@@ -1171,6 +1196,22 @@ class PixelStewardApp {
         <div style="display:none;"><input type="number" id="global-usd-rate" value="${this.exchangeRate}"></div>
 
         <div class="border-pixel" style="padding:20px; background:#1f273e; display:flex; flex-direction:column; gap:12px;">
+          <h3 style="display:flex; align-items:center; gap:6px;">❄️ DEBT SNOWBALL (ใช้คำนวณ Portfolio Health)</h3>
+          <p class="text-muted" style="font-size:0.8rem; color:#94a3b8;">กรอก "ยอดหนี้เริ่มต้น" แค่ครั้งเดียวตอนเริ่มแผน แล้วอัปเดต "ยอดหนี้คงเหลือ" เรื่อยๆ ระบบจะคำนวณ % ความคืบหน้าปลดหนี้ให้อัตโนมัติ</p>
+          <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
+            <div class="form-group">
+              <label for="settings-debt-start">ยอดหนี้เริ่มต้น (THB):</label>
+              <input type="number" id="settings-debt-start" class="input-retro" step="any" min="0" value="${this.debtStartTHB || 0}">
+            </div>
+            <div class="form-group">
+              <label for="settings-debt-remaining">ยอดหนี้คงเหลือ (THB):</label>
+              <input type="number" id="settings-debt-remaining" class="input-retro" step="any" min="0" value="${this.debtRemainingTHB || 0}">
+            </div>
+          </div>
+          <button class="btn btn-success btn-retro" id="btn-save-debt" style="width:200px;"><span>💾 บันทึกยอดหนี้</span></button>
+        </div>
+
+        <div class="border-pixel" style="padding:20px; background:#1f273e; display:flex; flex-direction:column; gap:12px;">
           <h3 style="display:flex; align-items:center; gap:6px;">
             <img src="./assets/icons/icon-gear.png" alt="Settings" class="card-title-icon"> IMPORT DATA (โหลดไฟล์ข้อมูลเข้าคลังบราวเซอร์)
           </h3>
@@ -1194,6 +1235,19 @@ class PixelStewardApp {
       </div>
     `;
 
+    document.getElementById('btn-save-debt').addEventListener('click', () => {
+      const startVal = Number(document.getElementById('settings-debt-start').value) || 0;
+      const remainingVal = Number(document.getElementById('settings-debt-remaining').value) || 0;
+      if (remainingVal > startVal && startVal > 0) {
+        if (!confirm('⚠️ ยอดหนี้คงเหลือมากกว่ายอดเริ่มต้น ต้องการบันทึกต่อหรือไม่?')) return;
+      }
+      this.debtStartTHB = startVal;
+      this.debtRemainingTHB = remainingVal;
+      this.saveState();
+      this.refreshUI();
+      alert('❄️ บันทึกยอดหนี้เรียบร้อย! Portfolio Health จะอัปเดตให้อัตโนมัติ');
+    });
+
     document.getElementById('btn-execute-file-import').addEventListener('click', () => {
       const fileInput = document.getElementById('import-file-input');
       if (!fileInput.files || fileInput.files.length === 0) {
@@ -1211,6 +1265,8 @@ class PixelStewardApp {
             this.monthlyRecords = Array.isArray(p.monthlyRecords) ? p.monthlyRecords : Object.values(p.monthlyRecords || {});
             this.dividendRecords = Array.isArray(p.dividendRecords) ? p.dividendRecords : Object.values(p.dividendRecords || {});
             this.exchangeRate = Number(p.exchangeRate) || 36.5;
+            this.debtStartTHB = Number(p.debtStartTHB) || 0;
+            this.debtRemainingTHB = Number(p.debtRemainingTHB) || 0;
             this.selectedPortId = this.portfolios.length > 0 ? this.portfolios[0].id : '';
             this.saveState();
             this.refreshUI();
@@ -1229,7 +1285,9 @@ class PixelStewardApp {
         quarterlyRecords: this.quarterlyRecords,
         monthlyRecords: this.monthlyRecords,
         dividendRecords: this.dividendRecords,
-        exchangeRate: this.exchangeRate
+        exchangeRate: this.exchangeRate,
+        debtStartTHB: this.debtStartTHB,
+        debtRemainingTHB: this.debtRemainingTHB
       };
       const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(currentDataState, null, 2));
       const downloadAnchor = document.createElement('a');
@@ -1313,6 +1371,7 @@ class PixelStewardApp {
     document.querySelectorAll('.modal-overlay').forEach(m => m.classList.add('hidden')); 
   }
 
+  /* [V2.3.0 NEW] Privacy Mode Button Handler */
   updatePrivacyBtnState() {
     const privacyBtn = document.getElementById('btn-toggle-privacy');
     if (privacyBtn) {
@@ -1326,6 +1385,7 @@ class PixelStewardApp {
     }
   }
 
+  /* [V2.3.0 NEW] Live Market Price Fetcher Engine */
   async fetchLivePrices() {
     if (!Array.isArray(this.portfolios) || this.portfolios.length === 0) {
       alert('❌ ไม่พบสินทรัพย์ย่อยในพอร์ตเพื่อดึงราคา');
@@ -1378,6 +1438,7 @@ class PixelStewardApp {
     }
   }
 
+  /* [V2.3.0 NEW] CSV Export Engine for Dividends */
   exportDividendsToCSV() {
     if (!Array.isArray(this.dividendRecords) || this.dividendRecords.length === 0) {
       alert('❌ ไม่มีประวัติเงินปันผลสำหรับการส่งออก');
@@ -1404,6 +1465,7 @@ class PixelStewardApp {
     document.body.removeChild(link);
   }
 
+  /* [V2.3.0 NEW] CSV Export Engine for Portfolios */
   exportPortfoliosToCSV() {
     if (!Array.isArray(this.portfolios) || this.portfolios.length === 0) {
       alert('❌ ไม่มีข้อมูลพอร์ตสำหรับการส่งออก');
