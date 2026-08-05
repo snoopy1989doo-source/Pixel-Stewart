@@ -1494,4 +1494,4 @@ class PixelStewardApp {
   }
 }
 
-window.app = new PixelStewardApp();
+window.app = new PixelStewardApp(); 

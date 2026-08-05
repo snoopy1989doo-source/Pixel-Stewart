@@ -735,4 +735,4 @@ html, body {
 
 @media (max-width: 768px) {
   .quarterly-card-grid { grid-template-columns: repeat(2, 1fr); }
-}
+} 
