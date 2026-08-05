@@ -25,12 +25,12 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Setup Pages
-        uses: actions/pages-config@v3
+        uses: actions/configure-pages@v5
 
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          path: '.' # อัปโหลดไฟล์ทั้งหมดจาก Root directory
+          path: '.'
 
       - name: Deploy to GitHub Pages
         id: deployment
