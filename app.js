@@ -536,6 +536,16 @@ class PixelStewardApp {
           if (data.exchangeRate) this.exchangeRate = Number(data.exchangeRate) || this.exchangeRate;
           if (typeof data.debtStartTHB === 'number') this.debtStartTHB = data.debtStartTHB;
           if (typeof data.debtRemainingTHB === 'number') this.debtRemainingTHB = data.debtRemainingTHB;
+
+          // Sync consolidated Forex journal database
+          if (typeof rtjState !== 'undefined' && rtjState) {
+            if (data.rtjTrades) { rtjState.trades = Array.isArray(data.rtjTrades) ? data.rtjTrades : Object.values(data.rtjTrades); rtjSave(rtjKEY.TRADES, rtjState.trades); }
+            if (data.rtjCfs) { rtjState.cfs = Array.isArray(data.rtjCfs) ? data.rtjCfs : Object.values(data.rtjCfs); rtjSave(rtjKEY.CFS, rtjState.cfs); }
+            if (data.rtjBalances) { rtjState.balances = { ...rtjDEFAULT_BALANCES, ...data.rtjBalances }; rtjSave(rtjKEY.BALANCES, rtjState.balances); }
+            rtjSyncCrtView();
+            if (this.activeTab === 'journal') rtjRender();
+          }
+
           this.refreshUI();
         }
       }, (error) => {
@@ -549,11 +559,23 @@ class PixelStewardApp {
   syncStateToCloud() {
     if (!isFirebaseActive) return;
     try {
-      firebase.database().ref('pixel_steward_data_v4').set({
-        portfolios: this.portfolios, quarterlyRecords: this.quarterlyRecords,
-        monthlyRecords: this.monthlyRecords, dividendRecords: this.dividendRecords, exchangeRate: this.exchangeRate,
-        debtStartTHB: this.debtStartTHB, debtRemainingTHB: this.debtRemainingTHB
-      }).catch(err => {
+      const payload = {
+        portfolios: this.portfolios, 
+        quarterlyRecords: this.quarterlyRecords,
+        monthlyRecords: this.monthlyRecords, 
+        dividendRecords: this.dividendRecords, 
+        exchangeRate: this.exchangeRate,
+        debtStartTHB: this.debtStartTHB, 
+        debtRemainingTHB: this.debtRemainingTHB
+      };
+
+      if (typeof rtjState !== 'undefined' && rtjState) {
+        payload.rtjTrades = rtjState.trades || [];
+        payload.rtjCfs = rtjState.cfs || [];
+        payload.rtjBalances = rtjState.balances || {};
+      }
+
+      firebase.database().ref('pixel_steward_data_v4').set(payload).catch(err => {
         console.warn("⚠️ Firebase sync write permission denied:", err);
       });
     } catch (e) {
@@ -2084,6 +2106,93 @@ class PixelStewardApp {
 // 🚀 INITIALIZATION INSTANTIATION
 window.app = new PixelStewardApp();
 
+function rtjComputeStats(trades, startBal) {
+  const safeTrades = Array.isArray(trades) ? trades : [];
+  const total = safeTrades.length;
+  const wins = safeTrades.filter(t => t && t.status === 'TP').length;
+  const loses = safeTrades.filter(t => t && t.status === 'SL').length;
+  const bes = safeTrades.filter(t => t && t.status === 'BE').length;
+  const wr = total > 0 ? (wins / total * 100).toFixed(1) : 0;
+  const netPnl = safeTrades.reduce((s, t) => s + (Number(t.pnl) || 0), 0);
+
+  function calcRR(t) {
+    if (!t) return null;
+    const entryExitDist = Math.abs((Number(t.entry) || 0) - (Number(t.exit) || 0)); 
+    const entrySLDist = Math.abs((Number(t.entry) || 0) - (Number(t.sl) || 0));
+    if (entryExitDist === 0 || entrySLDist === 0 || (Number(t.lot) || 0) === 0) return null;
+    const pipVal = Math.abs(Number(t.pnl) || 0) / (entryExitDist * Number(t.lot));
+    const riskUSD = entrySLDist * Number(t.lot) * pipVal; 
+    const rewardUSD = Math.abs(Number(t.pnl) || 0);
+    return riskUSD > 0 ? rewardUSD / riskUSD : null;
+  }
+
+  const rrs = safeTrades.map(calcRR).filter(r => r !== null && r > 0);
+  const avgRR = rrs.length > 0 ? (rrs.reduce((a, b) => a + b, 0) / rrs.length).toFixed(2) + 'R' : '-';
+
+  const grossProfit = safeTrades.filter(t => t && Number(t.pnl) > 0).reduce((s, t) => s + Number(t.pnl), 0);
+  const grossLoss = Math.abs(safeTrades.filter(t => t && Number(t.pnl) < 0).reduce((s, t) => s + Number(t.pnl), 0));
+  const profitFactor = grossLoss > 0 ? (grossProfit / grossLoss).toFixed(2) : (grossProfit > 0 ? '∞' : '0.00');
+  const expectancy = total > 0 ? (netPnl / total).toFixed(2) : '0.00';
+
+  const lossTrades = safeTrades.filter(t => t && Number(t.pnl) < 0);
+  const greedCost = Math.abs(lossTrades.filter(t => t.psychology && t.psychology.greed).reduce((s, t) => s + Number(t.pnl), 0));
+  const fearCost = Math.abs(lossTrades.filter(t => t.psychology && t.psychology.fear).reduce((s, t) => s + Number(t.pnl), 0));
+
+  let maxWinStreak = 0, maxLossStreak = 0;
+  let currentWinStreak = 0, currentLossStreak = 0;
+  
+  const streakTrades = safeTrades.filter(t => t && (t.status === 'TP' || t.status === 'SL'));
+  for (let t of streakTrades) {
+    if (t.status === 'TP') {
+      currentWinStreak++; currentLossStreak = 0;
+      if (currentWinStreak > maxWinStreak) maxWinStreak = currentWinStreak;
+    } else if (t.status === 'SL') {
+      currentLossStreak++; currentWinStreak = 0;
+      if (currentLossStreak > maxLossStreak) maxLossStreak = currentLossStreak;
+    }
+  }
+
+  return { total, wins, loses, bes, wr, netPnl, avgRR, profitFactor, expectancy, greedCost, fearCost, maxWinStreak, maxLossStreak };
+}
+
+function rtjGetAccountAge(account) {
+  const allDates = [];
+  if (rtjState && Array.isArray(rtjState.trades)) {
+    rtjState.trades.forEach(t => { if(t && (account === 'ALL' || (t.account || 'Demo') === account)) allDates.push(new Date(t.date)); });
+  }
+  if (rtjState && Array.isArray(rtjState.cfs)) {
+    rtjState.cfs.forEach(c => { if(c && (account === 'ALL' || (c.account || 'Demo') === account)) allDates.push(new Date(c.date)); });
+  }
+  
+  if (allDates.length === 0) return "0Y 0M 0D";
+  
+  const minDate = new Date(Math.min(...allDates));
+  const now = new Date();
+  
+  let years = now.getFullYear() - minDate.getFullYear();
+  let months = now.getMonth() - minDate.getMonth();
+  let days = now.getDate() - minDate.getDate();
+  
+  if (days < 0) {
+    months--;
+    const prevMonthDays = new Date(now.getFullYear(), now.getMonth(), 0).getDate();
+    days += prevMonthDays;
+  }
+  if (months < 0) {
+    years--;
+    months += 12;
+  }
+  return `${years}Y ${months}M ${days}D`;
+}
+
+function rtjGetAccountList() {
+  const safeBalances = (rtjState && rtjState.balances) ? rtjState.balances : rtjDEFAULT_BALANCES;
+  const defaultAccs = Object.keys(safeBalances);
+  const tradeAccs = (rtjState && Array.isArray(rtjState.trades)) ? rtjState.trades.map(t => t ? (t.account || 'Demo') : 'Demo') : [];
+  const cfAccs = (rtjState && Array.isArray(rtjState.cfs)) ? rtjState.cfs.map(c => c ? (c.account || 'Demo') : 'Demo') : [];
+  return [...new Set([...defaultAccs, ...tradeAccs, ...cfAccs])].filter(Boolean);
+}
+
 /* ==========================================================================
    🕹️ RETRO TRADER JOURNAL FUNCTIONS & EVENT ATTACHMENTS
    ========================================================================== */
@@ -2094,42 +2203,26 @@ function rtjGetTodayLosses() {
 function rtjShouldShowAlert() { return rtjGetTodayLosses() >= 2; }
 
 function rtjSyncToCloud() {
-  if (!isFirebaseActive) return;
   try {
-    const legacyBalance = (rtjState.balances && rtjState.balances['Demo']) ? rtjState.balances['Demo'] : 10000;
-    firebase.database().ref('retro_trading_journal_data').set({
-      trades: rtjState.trades, cfs: rtjState.cfs, balance: legacyBalance, balances: rtjState.balances
-    }).catch(err => {
-      console.warn("⚠️ Firebase rtj sync write permission denied:", err);
-    });
+    rtjSave(rtjKEY.TRADES, rtjState.trades);
+    rtjSave(rtjKEY.CFS, rtjState.cfs);
+    rtjSave(rtjKEY.BALANCES, rtjState.balances);
+    if (window.app) {
+      window.app.syncStateToCloud();
+    }
   } catch (e) {
-    console.error("Firebase rtj sync write failed:", e);
+    console.error("Local save / sync trigger failed:", e);
   }
 }
 
 function rtjInitCloudDatabase() {
-  if (!isFirebaseActive) return;
-  try {
-    firebase.database().ref('retro_trading_journal_data').once('value', (snapshot) => {
-      const data = snapshot.val();
-      if (data) {
-        if (data.trades) rtjState.trades = Array.isArray(data.trades) ? data.trades : Object.values(data.trades);
-        if (data.cfs) rtjState.cfs = Array.isArray(data.cfs) ? data.cfs : Object.values(data.cfs);
-        if (data.balances) {
-          rtjState.balances = { ...rtjDEFAULT_BALANCES, ...data.balances };
-        } else if (data.balance) {
-          rtjState.balances = { ...rtjDEFAULT_BALANCES, Demo: parseFloat(data.balance) || 10000 };
-        }
-        rtjSave(rtjKEY.TRADES, rtjState.trades); rtjSave(rtjKEY.CFS, rtjState.cfs); rtjSave(rtjKEY.BALANCES, rtjState.balances);
-        rtjSyncCrtView();
-        if (app && app.activeTab === 'journal') rtjRender();
-      } else { rtjSyncToCloud(); }
-    }, (error) => {
-      console.warn("⚠️ Firebase rtj read permission denied or offline:", error);
-    });
-  } catch (e) {
-    console.error("Firebase rtj read failed:", e);
-  }
+  // Main app's connectCloudDatabase handles the unified cloud sync.
+  // Locally load data on startup
+  rtjState.trades = rtjLoad(rtjKEY.TRADES, []);
+  rtjState.cfs = rtjLoad(rtjKEY.CFS, []);
+  rtjState.balances = rtjLoad(rtjKEY.BALANCES, rtjDEFAULT_BALANCES);
+  rtjSyncCrtView();
+  if (window.app && window.app.activeTab === 'journal') rtjRender();
 }
 
 function rtjSyncCrtView() {
