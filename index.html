@@ -9,7 +9,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Kanit:wght@300;400;500;700;900&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="style.css?v=220">
+  <link rel="stylesheet" href="style.css?v=250">
 </head>
 <body>
   <div class="app-container">
@@ -30,7 +30,7 @@
         <div class="title-container">
           <h1 class="brand-title">PIXEL</h1>
           <h1 class="brand-title highlight" style="color:#3b82f6;">STEWARD</h1>
-          <span class="badge-version" style="font-size:0.5rem; color:#94a3b8;">🔸 V.2.2.0</span>
+          <span class="badge-version" style="font-size:0.5rem; color:#10b981;">🔸 V.2.5.0</span>
         </div>
       </div>
       
@@ -44,7 +44,7 @@
         </div>
       </div>
 
-      <!-- 🎮 NAVIGATION MENU WITH CLEAN ICON DOCK -->
+      <!-- 🎮 NAVIGATION MENU -->
       <nav class="nav-menu">
         <button class="nav-item active" data-tab="dashboard">
           <img src="./assets/icons/icon-home.png" alt="Home" class="menu-pixel-icon">
@@ -78,7 +78,7 @@
     </aside>
 
     <main class="main-content">
-      <header class="main-header border-pixel" style="background:#1f273e; padding:16px; margin-bottom:20px; display:flex; justify-content:space-between; align-items:center;">
+      <header class="main-header border-pixel" style="background:#1f273e; padding:16px; margin-bottom:20px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px;">
         <div class="header-titles">
           <h1 id="page-title" style="font-size:1.4rem; font-weight:bold; margin:0;">แดชบอร์ดภาพรวม</h1>
           <p id="page-subtitle" class="text-muted" style="margin:4px 0 0 0; font-size:0.85rem; color:#94a3b8;">วิเคราะห์สถานะความมั่งคั่ง กระสุนรอช้อน และแนวโน้มการเติบโตรายไตรมาส</p>
@@ -95,9 +95,11 @@
           </div>
         </div>
 
-        <div class="header-buttons" style="display:flex; gap:10px;">
-          <button class="btn btn-primary btn-retro" id="btn-add-portfolio" style="padding:8px 12px;"><span>➕ เพิ่มพอร์ตใหม่</span></button>
-          <button class="btn btn-secondary btn-retro" id="btn-quick-transfer" style="padding:8px 12px;"><span>⚡ โยกย้ายเสบียง</span></button>
+        <div class="header-buttons" style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
+          <button class="btn btn-privacy btn-retro" id="btn-toggle-privacy" style="padding:6px 10px;"><span>👁️ ซ่อนตัวเลข</span></button>
+          <button class="btn btn-secondary btn-retro" id="btn-fetch-live-prices" style="padding:6px 10px; background:#0284c7; color:#fff;"><span>🔄 ดึงราคาตลาดสด</span></button>
+          <button class="btn btn-primary btn-retro" id="btn-add-portfolio" style="padding:6px 10px;"><span>➕ เพิ่มพอร์ตใหม่</span></button>
+          <button class="btn btn-secondary btn-retro" id="btn-quick-transfer" style="padding:6px 10px;"><span>⚡ โยกย้ายเสบียง</span></button>
         </div>
       </header>
 
@@ -142,6 +144,25 @@
           <button type="submit" class="btn btn-success" id="btn-save-quarterly"><span>💾 บันทึกข้อมูลไตรมาส</span></button>
         </div>
       </form>
+    </div>
+  </div>
+
+  <!-- 🔒 [V2.5.0 UPDATE] ENHANCED 2-STEP CONFIRMATION DELETE MODAL WITH VERIFICATION INPUT -->
+  <div id="delete-confirm-modal" class="modal-overlay hidden">
+    <div class="modal-card border-pixel" style="max-width:440px;">
+      <div class="modal-header" style="border-bottom-color:#ef4444;">
+        <h3 style="color:#ef4444; display:flex; align-items:center; gap:8px;">💀 ยืนยันการล้างข้อมูลไตรมาส</h3>
+        <button type="button" class="btn-close-modal">✖</button>
+      </div>
+      <div class="modal-body" style="text-align:center; padding:10px 0;">
+        <p style="font-size:0.95rem; margin-bottom:12px;" id="confirm-delete-msg">คุณต้องการล้างข้อมูลรายงานไตรมาสทั้งหมดใช่หรือไม่?</p>
+        <p class="text-muted" style="font-size:0.75rem; color:#ef4444; margin-bottom:12px;">พิมพ์คำว่า <b>DELETE</b> เพื่อยืนยันการล้างข้อมูล:</p>
+        <input type="text" id="delete-verify-input" class="input-retro" placeholder="พิมพ์ DELETE ที่นี่" style="text-align:center; font-weight:bold; letter-spacing:2px; color:#ef4444;">
+      </div>
+      <div class="modal-footer" style="display:flex; justify-content:center; gap:12px; margin-top:16px;">
+        <button type="button" class="btn btn-secondary btn-close-modal"><span>ยกเลิก</span></button>
+        <button type="button" class="btn btn-danger" id="btn-execute-confirmed-delete"><span>✖ ล้างข้อมูล</span></button>
+      </div>
     </div>
   </div>
 
@@ -243,6 +264,6 @@
     </div>
   </div>
 
-  <script src="app.js?v=220"></script>
+  <script src="app.js?v=250"></script>
 </body>
 </html>
