@@ -308,7 +308,13 @@ class PixelStewardApp {
     if (!Array.isArray(this.portfolios)) return;
     this.portfolios.forEach(p => {
       if (!p) return;
-      p.current = Array.isArray(p.assets) ? p.assets.reduce((sum, asset) => sum + (Number(asset.value) || 0), 0) : 0;
+      if (p.category === 'Option') {
+        // [V2.3.1 FIX] Option portfolio current value = Sum of manual profitLossUSD monthly records
+        const records = Array.isArray(this.monthlyRecords) ? this.monthlyRecords.filter(r => r && r.portfolioId === p.id) : [];
+        p.current = records.reduce((sum, r) => sum + (Number(r.profitLossUSD) || 0), 0);
+      } else {
+        p.current = Array.isArray(p.assets) ? p.assets.reduce((sum, asset) => sum + (Number(asset.value) || 0), 0) : 0;
+      }
       if (typeof p.cashBuffer !== 'number') p.cashBuffer = 0;
     });
   }
@@ -1409,7 +1415,7 @@ class PixelStewardApp {
             }
 
             try {
-              const res = await fetch(`https://query1.finance.yahoo.com/v8/finance/chart/${querySymbol}?interval=1d&range=1d`);
+              const res = await fetch(`https://proxy.cors.sh/https://query1.finance.yahoo.com/v8/finance/chart/${querySymbol}?interval=1d&range=1d`);
               if (res.ok) {
                 const data = await res.json();
                 const meta = data?.chart?.result?.[0]?.meta;
@@ -1669,7 +1675,7 @@ const rtjState = {
   balances: rtjLoad(rtjKEY.BALANCES, rtjDEFAULT_BALANCES),
   trades:   rtjLoad(rtjKEY.TRADES, []), 
   cfs:      rtjLoad(rtjKEY.CFS, []),
-  crt:      rtjLoad(rtjKEY.CRT, true),
+  crt:      rtjLoad(rtjKEY.CRT, false),
   calYear:  new Date().getFullYear(),
   calMonth: new Date().getMonth(),
   f: {
@@ -1738,6 +1744,11 @@ function rtjRender() {
   if (!mountEl) return;
   rtjSyncCrtView();
   mountEl.innerHTML = rtjBuildApp();
+  if (rtjState && rtjState.crt) {
+    mountEl.classList.add('crt-active');
+  } else {
+    mountEl.classList.remove('crt-active');
+  }
   rtjAttachEvents();
 }
 

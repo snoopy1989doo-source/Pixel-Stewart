@@ -659,7 +659,8 @@ img {
   
   background-color: var(--bg);
   color: var(--text);
-  font-family: 'Press Start 2P', monospace, sans-serif;
+  font-family: 'Kanit', system-ui, -apple-system, sans-serif;
+  font-size: 12px;
   padding: 15px;
   border-radius: 8px;
   border: 3px solid var(--border);
@@ -668,10 +669,13 @@ img {
   overflow: hidden;
 }
 
-.journal-scope label { display: block; font-size: 8px; color: var(--yellow); margin: 8px 0 4px 0; }
+/* ==========================================================
+   [V2.3.1 UPGRADE] Scoped rules for clean mode vs retro mode
+   ========================================================== */
+.journal-scope label { display: block; font-size: 11px; color: var(--yellow); margin: 8px 0 4px 0; }
 .journal-scope input, .journal-scope select {
   width: 100%; background: #000; border: 2px solid var(--border); color: #fff;
-  padding: 8px; font-family: inherit; font-size: 9px; box-sizing: border-box; margin-bottom: 8px;
+  padding: 8px; font-family: inherit; font-size: 12px; box-sizing: border-box; margin-bottom: 8px;
 }
 .journal-scope input:focus, .journal-scope select:focus { border-color: var(--cyan); outline: none; }
 
@@ -681,22 +685,22 @@ img {
 }
 .journal-scope .rpg-avatar-box { font-size: 24px; cursor: pointer; user-select: none; }
 .journal-scope .rpg-hub-info { display: flex; flex-direction: column; gap: 4px; }
-.journal-scope .rpg-hub-row { font-size: 8px; display: flex; gap: 8px; }
+.journal-scope .rpg-hub-row { font-size: 12px; display: flex; gap: 8px; }
 .journal-scope .rpg-hub-label { color: var(--dim); }
 .journal-scope .rpg-hub-value { font-weight: bold; }
 .journal-scope .rpg-setting-trigger { background: transparent; border: none; font-size: 16px; cursor: pointer; }
 
 .journal-scope .card { background: var(--panel); border: 2px solid var(--border); padding: 12px; margin-bottom: 15px; border-radius: 4px; }
-.journal-scope .card-title { font-size: 10px; color: var(--cyan); margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center; }
+.journal-scope .card-title { font-size: 14px; color: var(--cyan); margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center; }
 
 .journal-scope .tabs { display: flex; gap: 6px; margin-bottom: 12px; }
-.journal-scope .tab { flex: 1; padding: 8px; background: #000; border: 1px solid var(--border); color: var(--dim); font-family: inherit; font-size: 8px; cursor: pointer; }
+.journal-scope .tab { flex: 1; padding: 8px; background: #000; border: 1px solid var(--border); color: var(--dim); font-family: inherit; font-size: 12px; cursor: pointer; }
 .journal-scope .tab.active { background: var(--border); color: #fff; font-weight: bold; }
 
 .journal-scope .status-row, .journal-scope .psych-row { display: flex; gap: 6px; margin-bottom: 8px; }
 .journal-scope .status-btn, .journal-scope .psych-btn {
   flex: 1; padding: 8px; background: #000; border: 1px solid var(--border); color: var(--dim);
-  font-family: inherit; font-size: 8px; cursor: pointer; text-align: center;
+  font-family: inherit; font-size: 12px; cursor: pointer; text-align: center;
 }
 .journal-scope .status-btn.active-tp { background: #003811; border-color: var(--green); color: var(--green); }
 .journal-scope .status-btn.active-sl { background: #380008; border-color: var(--red); color: var(--red); }
@@ -705,76 +709,107 @@ img {
 
 .journal-scope .btn {
   width: 100%; padding: 10px; background: var(--border); border: none; color: #fff;
-  font-family: inherit; font-size: 9px; cursor: pointer; margin-top: 8px; font-weight: bold;
+  font-family: inherit; font-size: 12px; cursor: pointer; margin-top: 8px; font-weight: bold;
 }
 .journal-scope .btn-green { background: #00802b; }
 .journal-scope .btn-green:hover { background: #00a337; }
 .journal-scope .btn-red { background: #990011; }
 
-.journal-scope .trade-item, .journal-scope .cf-item { background: #000; border: 1px solid var(--border); padding: 10px; margin-bottom: 8px; font-size: 8px; }
+.journal-scope .trade-item, .journal-scope .cf-item { background: #000; border: 1px solid var(--border); padding: 10px; margin-bottom: 8px; font-size: 11px; }
 .journal-scope .trade-header { display: flex; justify-content: space-between; margin-bottom: 6px; font-weight: bold; }
 .journal-scope .trade-row { display: flex; justify-content: space-between; margin-bottom: 3px; color: var(--dim); }
 .journal-scope .trade-value { color: #fff; }
 
-.journal-scope .badge { padding: 2px 4px; font-size: 7px; border-radius: 2px; }
+.journal-scope .badge { padding: 2px 4px; font-size: 10px; border-radius: 2px; }
 .journal-scope .badge-tp { background: #003811; color: var(--green); border: 1px solid var(--green); }
 .journal-scope .badge-sl { background: #380008; color: var(--red); border: 1px solid var(--red); }
 .journal-scope .badge-be { background: #383000; color: var(--yellow); border: 1px solid var(--yellow); }
 
-.journal-scope .glow-green { color: var(--green); text-shadow: 0 0 5px rgba(82, 255, 107, 0.5); }
-.journal-scope .glow-red { color: var(--red); text-shadow: 0 0 5px rgba(255, 78, 99, 0.5); }
+/* Colors without glow by default (Clean Mode) */
+.journal-scope .glow-green { color: var(--green); }
+.journal-scope .glow-red { color: var(--red); }
 .journal-scope .glow-yellow { color: var(--yellow); }
 .journal-scope .glow-cyan { color: var(--cyan); }
 .journal-scope .txt-white { color: #fff; }
 
 .journal-scope .stats-block { background: #000; border: 1px solid var(--border); padding: 10px; margin-bottom: 12px; }
-.journal-scope .stats-block-title { font-size: 8px; color: var(--cyan); margin-bottom: 8px; }
+.journal-scope .stats-block-title { font-size: 13px; color: var(--cyan); margin-bottom: 8px; }
 .journal-scope .inner-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
 .journal-scope .stat-subbox { background: var(--panel); border: 1px solid #1f293d; padding: 6px; }
-.journal-scope .stat-sublabel { font-size: 6px; color: var(--dim); margin-bottom: 4px; }
-.journal-scope .stat-subvalue { font-size: 9px; font-weight: bold; }
+.journal-scope .stat-sublabel { font-size: 10px; color: var(--dim); margin-bottom: 4px; }
+.journal-scope .stat-subvalue { font-size: 13px; font-weight: bold; }
 
 .journal-scope .hp-bar-wrap { width: 100%; height: 8px; background: #000; border: 1px solid var(--border); margin-top: 4px; }
 .journal-scope .hp-bar-fill { height: 100%; background: var(--green); }
 
 .journal-scope .bottom-nav { display: flex; gap: 4px; background: var(--panel); border: 2px solid var(--border); padding: 6px; margin-top: 15px; }
-.journal-scope .nav-btn { flex: 1; padding: 8px 4px; background: #000; border: 1px solid var(--border); color: var(--dim); font-family: inherit; font-size: 7px; cursor: pointer; display: flex; flex-direction: column; align-items: center; gap: 4px; }
+.journal-scope .nav-btn { flex: 1; padding: 8px 4px; background: #000; border: 1px solid var(--border); color: var(--dim); font-family: inherit; font-size: 11px; cursor: pointer; display: flex; flex-direction: column; align-items: center; gap: 4px; }
 .journal-scope .nav-btn.active { background: var(--border); color: #fff; }
 
 .journal-scope .filter-row { display: flex; gap: 4px; margin-bottom: 6px; }
-.journal-scope .del-btn { background: #380008; border: 1px solid var(--red); color: var(--red); padding: 2px 6px; font-family: inherit; font-size: 7px; cursor: pointer; }
+.journal-scope .del-btn { background: #380008; border: 1px solid var(--red); color: var(--red); padding: 2px 6px; font-family: inherit; font-size: 11px; cursor: pointer; }
 
 /* Calendar Mesh Component */
 .journal-scope .cal-box { background: #000; border: 1px solid var(--border); padding: 8px; margin-top: 8px; }
 .journal-scope .cal-header-layout { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
 .journal-scope .cal-grid-mesh { display: grid; grid-template-columns: repeat(7, 1fr); gap: 2px; }
-.journal-scope .cal-weekday { text-align: center; font-size: 6px; color: var(--yellow); padding: 2px 0; }
+.journal-scope .cal-weekday { text-align: center; font-size: 11px; color: var(--yellow); padding: 2px 0; }
 .journal-scope .cal-day-node { border: 1px solid #1f293d; min-height: 36px; padding: 2px; display: flex; flex-direction: column; justify-content: space-between; }
 .journal-scope .skin-cal-blank { background: transparent; border-color: transparent; }
 .journal-scope .skin-cal-neutral { background: var(--panel); }
 .journal-scope .skin-cal-win { background: #00260b; border-color: var(--green); }
 .journal-scope .skin-cal-loss { background: #260005; border-color: var(--red); }
 .journal-scope .skin-cal-today { border: 1px solid var(--cyan) !important; box-shadow: inset 0 0 5px var(--cyan); }
-.journal-scope .cal-day-idx { font-size: 6px; color: var(--dim); }
-.journal-scope .cal-day-pnl { font-size: 6px; font-weight: bold; text-align: center; }
+.journal-scope .cal-day-idx { font-size: 10px; color: var(--dim); }
+.journal-scope .cal-day-pnl { font-size: 11px; font-weight: bold; text-align: center; }
 .journal-scope .skin-cal-win .cal-day-pnl { color: var(--green); }
 .journal-scope .skin-cal-loss .cal-day-pnl { color: var(--red); }
-.journal-scope .cal-day-count { font-size: 5px; color: var(--dim); text-align: right; }
+.journal-scope .cal-day-count { font-size: 9px; color: var(--dim); text-align: right; }
 
 .journal-scope .weekday-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 2px; }
 .journal-scope .weekday-node { background: var(--panel); border: 1px solid #1f293d; padding: 4px 2px; text-align: center; }
-.journal-scope .weekday-lbl { font-size: 5px; color: var(--dim); margin-bottom: 2px; }
-.journal-scope .weekday-val { font-size: 6px; font-weight: bold; }
+.journal-scope .weekday-lbl { font-size: 9px; color: var(--dim); margin-bottom: 2px; }
+.journal-scope .weekday-val { font-size: 11px; font-weight: bold; }
 
-.journal-scope .bal-card-item { display: flex; justify-content: space-between; align-items: center; background: #000; border: 1px solid var(--border); padding: 6px; margin-bottom: 4px; font-size: 8px; }
+.journal-scope .bal-card-item { display: flex; justify-content: space-between; align-items: center; background: #000; border: 1px solid var(--border); padding: 6px; margin-bottom: 4px; font-size: 11px; }
 .journal-scope .divider { height: 2px; background: var(--border); margin: 12px 0; }
-.journal-scope .empty { text-align: center; color: var(--dim); font-size: 8px; padding: 20px 0; }
+.journal-scope .empty { text-align: center; color: var(--dim); font-size: 11px; padding: 20px 0; }
+
+/* CRT Mode Styling Overrides (Activated via toggle) */
+.journal-scope.crt-active {
+  font-family: 'Press Start 2P', monospace, sans-serif !important;
+  font-size: 8px;
+}
+.journal-scope.crt-active label { font-size: 8px; }
+.journal-scope.crt-active input, .journal-scope.crt-active select { font-size: 9px; }
+.journal-scope.crt-active .rpg-hub-row { font-size: 8px; }
+.journal-scope.crt-active .card-title { font-size: 10px; }
+.journal-scope.crt-active .tab { font-size: 8px; }
+.journal-scope.crt-active .status-btn, .journal-scope.crt-active .psych-btn { font-size: 8px; }
+.journal-scope.crt-active .btn { font-size: 9px; }
+.journal-scope.crt-active .trade-item, .journal-scope.crt-active .cf-item { font-size: 8px; }
+.journal-scope.crt-active .badge { font-size: 7px; }
+.journal-scope.crt-active .glow-green { text-shadow: 0 0 5px rgba(82, 255, 107, 0.5); }
+.journal-scope.crt-active .glow-red { text-shadow: 0 0 5px rgba(255, 78, 99, 0.5); }
+.journal-scope.crt-active .stats-block-title { font-size: 8px; }
+.journal-scope.crt-active .stat-sublabel { font-size: 6px; }
+.journal-scope.crt-active .stat-subvalue { font-size: 9px; }
+.journal-scope.crt-active .nav-btn { font-size: 7px; }
+.journal-scope.crt-active .del-btn { font-size: 7px; }
+.journal-scope.crt-active .cal-weekday { font-size: 6px; }
+.journal-scope.crt-active .cal-day-idx { font-size: 6px; }
+.journal-scope.crt-active .cal-day-pnl { font-size: 6px; }
+.journal-scope.crt-active .cal-day-count { font-size: 5px; }
+.journal-scope.crt-active .weekday-lbl { font-size: 5px; }
+.journal-scope.crt-active .weekday-val { font-size: 6px; }
+.journal-scope.crt-active .bal-card-item { font-size: 8px; }
+.journal-scope.crt-active .empty { font-size: 8px; }
 
 .crt::after {
   content: " "; display: block; position: absolute; top: 0; left: 0; bottom: 0; right: 0;
-  background: rgba(18, 16, 16, 0) opacity(0);
-  background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%);
+  background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.15) 50%);
   background-size: 100% 4px; z-index: 10; pointer-events: none;
+  opacity: 0.8;
 }
 .crt.disabled::after { display: none; }
 
