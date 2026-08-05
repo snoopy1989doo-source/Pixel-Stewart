@@ -1,6 +1,6 @@
 /* ==========================================================================
-   PIXEL STEWARD UNIFIED DESIGN SYSTEM - STYLE.CSS (V.2.3.0)
-   Updated: YOC fix, Net Worth, Logo Fallback, Privacy Mode, Live Price, CSV
+   PIXEL STEWARD UNIFIED DESIGN SYSTEM - STYLE.CSS (V.3.1.0)
+   Updated: Fixed Layout Distortion, Defensive Images, Scoped Forex Journal
    ========================================================================== */
 
 /* --- 1. ROOT DESIGN TOKENS --- */
@@ -41,7 +41,7 @@
   --transition-quick: all 0.15s ease-in-out;
 }
 
-/* --- 2. BASE RESETS --- */
+/* --- 2. BASE RESETS & DEFENSIVE CSS --- */
 *, *::before, *::after {
   box-sizing: border-box;
   margin: 0;
@@ -57,6 +57,13 @@ html, body {
   font-size: 16px;
   line-height: 1.5;
   overflow-x: hidden;
+}
+
+/* 🛡️ DEFENSIVE IMAGE RULES: ป้องกันรูปขยายขนาดทะลักพัง Layout */
+img {
+  max-width: 100%;
+  height: auto;
+  display: block;
 }
 
 /* --- 3. RETRO UTILITIES & MODALS --- */
@@ -139,7 +146,7 @@ html, body {
   margin-bottom: 12px;
 }
 
-/* --- 4. APP LAYOUT & MINI DOCK SIDEBAR --- */
+/* --- 4. APP LAYOUT & SIDEBAR (FIXED SIZE DISTORTION) --- */
 .app-container {
   display: flex;
   width: 100vw;
@@ -147,9 +154,8 @@ html, body {
   overflow: hidden;
 }
 
-/* 🚀 SIDEBAR MINI DOCK (COLLAPSED & HOVER EXPAND) */
 .sidebar {
-  width: 72px; /* ความกว้างสภาวะปกติแบบพับ */
+  width: 72px;
   background-color: var(--color-bg-inset);
   padding: 16px 10px;
   display: flex;
@@ -160,15 +166,14 @@ html, body {
   flex-shrink: 0;
   transition: var(--transition-smooth);
   z-index: 100;
-  overflow: hidden;
+  overflow: hidden !important; /* ซ่อน Scrollbar ที่ดันออกมารอบนอก */
 }
 
 .sidebar:hover {
-  width: 260px; /* ความกว้างเมื่อเมาส์ชี้สไลด์ขยายออก */
+  width: 260px;
   box-shadow: 8px 0px 16px rgba(0, 0, 0, 0.7);
 }
 
-/* 👤 PLAYER PROFILE CARD IN DOCK */
 .player-profile-card {
   display: flex;
   align-items: center;
@@ -206,21 +211,10 @@ html, body {
   transition: opacity 0.2s ease;
 }
 
-.sidebar:hover .profile-info {
-  opacity: 1;
-}
+.sidebar:hover .profile-info { opacity: 1; }
 
-.player-name {
-  font-weight: bold;
-  font-size: 0.8rem;
-  color: #fff;
-}
-
-.player-tag {
-  font-family: var(--font-press-start);
-  font-size: 0.5rem;
-  color: var(--color-accent);
-}
+.player-name { font-weight: bold; font-size: 0.8rem; color: #fff; }
+.player-tag { font-family: var(--font-press-start); font-size: 0.5rem; color: var(--color-accent); }
 
 .brand {
   display: flex;
@@ -232,33 +226,17 @@ html, body {
   opacity: 0;
   transition: opacity 0.2s ease;
 }
+.sidebar:hover .brand { opacity: 1; }
+.brand-title { font-family: var(--font-press-start); font-size: 0.8rem; }
 
-.sidebar:hover .brand {
-  opacity: 1;
-}
-
-.brand-title {
-  font-family: var(--font-press-start);
-  font-size: 0.8rem;
-}
-
-.exchange-widget {
-  opacity: 0;
-  transition: opacity 0.2s ease;
-  white-space: nowrap;
-}
-
-.sidebar:hover .exchange-widget {
-  opacity: 1;
-}
-
-/* 🎮 NAV MENU ITEMS & CLEAN ICON SYSTEM (ถอดขอบไอคอนออก $100\%$) */
+/* 🎮 NAV MENU ITEMS & STRICT ICON SIZING (แก้ปัญหาขนาดเพี้ยนในรูปถ่าย) */
 .nav-menu {
   display: flex;
   flex-direction: column;
   gap: 10px;
   flex-grow: 1;
   overflow-y: auto;
+  overflow-x: hidden;
 }
 
 .nav-item {
@@ -274,6 +252,8 @@ html, body {
   transition: var(--transition-quick);
   text-align: left;
   white-space: nowrap;
+  overflow: hidden !important; /* ป้องกันไม่ให้เกิด Scrollbar ภายในปุ่ม */
+  height: 44px;
 }
 
 .nav-item:hover, .nav-item.active {
@@ -290,35 +270,37 @@ html, body {
   opacity: 0;
   transition: opacity 0.2s ease;
 }
+.sidebar:hover .nav-item span { opacity: 1; }
 
-.sidebar:hover .nav-item span {
-  opacity: 1;
-}
-
-/* CLEAN PIXEL ICONS (เพรียวเปลือย ไร้ขอบสีดำ) */
-.menu-pixel-icon {
-  width: 26px;
-  height: 26px;
-  object-fit: contain;
+/* 🔧 ล็อกขนาดไอคอนเมนูให้อยู่ที่ 26x26px ถาวร ป้องกันการขยายตัวพัง UI */
+.menu-pixel-icon,
+.nav-item img {
+  width: 26px !important;
+  height: 26px !important;
+  min-width: 26px !important;
+  min-height: 26px !important;
+  max-width: 26px !important;
+  max-height: 26px !important;
+  object-fit: contain !important;
   image-rendering: pixelated;
-  flex-shrink: 0;
+  flex-shrink: 0 !important;
   border: none !important;
   box-shadow: none !important;
   background: transparent !important;
 }
 
 .card-title-icon {
-  width: 22px;
-  height: 22px;
-  object-fit: contain;
+  width: 22px !important;
+  height: 22px !important;
+  object-fit: contain !important;
   image-rendering: pixelated;
   vertical-align: middle;
   margin-right: 6px;
   border: none !important;
   background: transparent !important;
+  flex-shrink: 0;
 }
 
-/* [V2.3.0 FIX] Ticker Logo Aspect Ratio & Uniform Sizing */
 .ticker-logo-img {
   width: 28px !important;
   height: 28px !important;
@@ -333,7 +315,6 @@ html, body {
   box-sizing: border-box;
 }
 
-/* [V2.3.0 NEW] Financial Badges & Privacy Mode Styles */
 .badge-pl {
   padding: 2px 6px;
   border-radius: 4px;
@@ -361,10 +342,7 @@ html, body {
   font-size: 0.75rem;
   cursor: pointer;
 }
-.btn-privacy.active {
-  background: #f59e0b;
-  color: #000;
-}
+.btn-privacy.active { background: #f59e0b; color: #000; }
 
 .main-content {
   flex: 1;
@@ -376,7 +354,6 @@ html, body {
   min-width: 0;
 }
 
-/* 🌤️ TIME WIDGET CARD */
 .time-widget-card {
   display: flex;
   align-items: center;
@@ -406,20 +383,10 @@ html, body {
   image-rendering: pixelated;
 }
 
-.time-badge {
-  font-family: var(--font-press-start);
-  font-size: 0.55rem;
-  color: var(--color-accent);
-}
+.time-badge { font-family: var(--font-press-start); font-size: 0.55rem; color: var(--color-accent); }
+.time-digital-clock { font-family: monospace; font-size: 0.85rem; font-weight: bold; color: #fff; }
 
-.time-digital-clock {
-  font-family: monospace;
-  font-size: 0.85rem;
-  font-weight: bold;
-  color: #fff;
-}
-
-/* --- 5. MEMORY CARD RETRO GRID (ขยับตำแหน่งลง 22% PIXEL PERFECT) --- */
+/* --- 5. MEMORY CARD RETRO GRID --- */
 .memory-card-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
@@ -440,9 +407,7 @@ html, body {
   border: 2px solid #000;
 }
 
-.memory-card-wrapper:hover {
-  transform: translateY(-6px);
-}
+.memory-card-wrapper:hover { transform: translateY(-6px); }
 
 .memory-card-bg {
   position: absolute;
@@ -456,7 +421,6 @@ html, body {
   pointer-events: none;
 }
 
-/* Tier Glow Filters */
 .memory-card-wrapper.tier-silver { filter: drop-shadow(0px 4px 0px #000); }
 .memory-card-wrapper.tier-gold { filter: drop-shadow(0px 0px 8px rgba(245, 158, 11, 0.75)) drop-shadow(0px 4px 0px #000); }
 .memory-card-wrapper.tier-purple { filter: drop-shadow(0px 0px 12px rgba(168, 85, 247, 0.9)) drop-shadow(0px 4px 0px #000); }
@@ -472,7 +436,6 @@ html, body {
   border-radius: 6px;
 }
 
-/* Bounding Box ลงมาที่ TOP: 22% พอดีเป๊ะ */
 .memory-card-content {
   position: absolute;
   top: 22%;
@@ -497,18 +460,8 @@ html, body {
   text-overflow: ellipsis;
 }
 
-.card-cat-text {
-  font-size: 0.6rem;
-  color: var(--color-text-muted);
-  margin-top: 2px;
-}
-
-.card-val-text {
-  font-family: var(--font-press-start);
-  font-size: 0.72rem;
-  color: var(--color-success);
-  margin-top: 4px;
-}
+.card-cat-text { font-size: 0.6rem; color: var(--color-text-muted); margin-top: 2px; }
+.card-val-text { font-family: var(--font-press-start); font-size: 0.72rem; color: var(--color-success); margin-top: 4px; }
 
 .card-progress-bar {
   width: 100%;
@@ -520,11 +473,7 @@ html, body {
   border-radius: 2px;
 }
 
-.card-progress-fill {
-  height: 100%;
-  background: var(--color-success);
-  transition: width 0.3s ease;
-}
+.card-progress-fill { height: 100%; background: var(--color-success); transition: width 0.3s ease; }
 
 .card-footer-tag {
   position: absolute;
@@ -538,7 +487,6 @@ html, body {
   letter-spacing: 0.5px;
 }
 
-/* ➕ ADD NEW CARD */
 .memory-card-add-new {
   width: 100%;
   aspect-ratio: 180 / 240;
@@ -560,7 +508,6 @@ html, body {
   background: rgba(31, 39, 62, 0.85);
 }
 
-/* BUTTON UTILITIES */
 .btn {
   font-family: var(--font-kanit);
   font-weight: 700;
@@ -586,27 +533,17 @@ html, body {
 .btn-secondary { background-color: #475569; color: #fff; }
 .btn-success { background-color: var(--color-success); color: #fff; }
 .btn-danger { background-color: var(--color-danger); color: #fff; }
-/* [V2.3.0 NEW] Warning button for asset withdrawal */
 .btn-warning { background-color: var(--color-accent); color: #000; }
 .btn-small { padding: 3px 8px; font-size: 0.7rem; }
 
-/* [V2.3.0 NEW] Portfolio Net Worth info row */
 .stat-card { padding: 15px; background: #1f273e; }
 .stat-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; font-size: 0.75rem; font-weight: bold; }
 .stat-value { font-family: var(--font-press-start); font-size: 0.9rem; margin-bottom: 4px; word-break: break-all; }
 .stat-desc { font-size: 0.75rem; color: var(--color-text-muted); }
 
-/* [V2.3.0 NEW] Retro table base */
 .retro-table thead tr th { font-weight: bold; }
 .retro-table tbody tr:hover { background: rgba(59, 130, 246, 0.08); }
 
-@media (max-width: 768px) {
-  .app-container { flex-direction: column; }
-  .sidebar { width: 100%; height: auto; }
-  .sidebar:hover { width: 100%; }
-  .memory-card-grid { grid-template-columns: repeat(2, 1fr); gap: 12px; }
-}
-/* [V3.0.0 NEW] Portfolio Health widget — square pixel-art avatar frame instead of a circle crop */
 .health-avatar-square-img {
   width: 60px;
   height: 60px;
@@ -618,7 +555,6 @@ html, body {
   background: transparent;
 }
 
-/* [V3.0.0 NEW] Transparent score breakdown chips under the health widget */
 .health-score-breakdown {
   display: flex;
   flex-wrap: wrap;
@@ -635,7 +571,6 @@ html, body {
   white-space: nowrap;
 }
 
-/* [V3.0.0 NEW] Quarterly page — Card View grid */
 .quarterly-card-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
@@ -689,32 +624,11 @@ html, body {
   padding: 6px 10px;
   gap: 6px;
 }
-.quarterly-mini-bar-col {
-  width: 100%;
-  height: 100%;
-  display: flex;
-  align-items: flex-end;
-}
-.quarterly-mini-bar-fill {
-  width: 100%;
-  min-height: 2px;
-  border: 1px solid #000;
-}
-.quarterly-mini-chart-labels {
-  display: flex;
-  justify-content: space-between;
-  font-size: 0.6rem;
-  color: var(--color-text-muted);
-  padding: 4px 2px 0 2px;
-}
-.quarterly-card-growth {
-  text-align: center;
-  font-family: var(--font-press-start);
-  font-size: 0.85rem;
-  margin-top: 8px;
-}
+.quarterly-mini-bar-col { width: 100%; height: 100%; display: flex; align-items: flex-end; }
+.quarterly-mini-bar-fill { width: 100%; min-height: 2px; border: 1px solid #000; }
+.quarterly-mini-chart-labels { display: flex; justify-content: space-between; font-size: 0.6rem; color: var(--color-text-muted); padding: 4px 2px 0 2px; }
+.quarterly-card-growth { text-align: center; font-family: var(--font-press-start); font-size: 0.85rem; margin-top: 8px; }
 
-/* [V3.0.0 NEW] Empty Quarter state — retro "awaiting data" placeholder */
 .quarterly-empty-state {
   height: 70px;
   background: #111625;
@@ -726,16 +640,9 @@ html, body {
   gap: 2px;
 }
 .quarterly-empty-icon { width: 24px; height: 24px; image-rendering: pixelated; }
-.quarterly-empty-title {
-  font-family: var(--font-press-start);
-  font-size: 0.55rem;
-  color: #8b5cf6;
-}
+.quarterly-empty-title { font-family: var(--font-press-start); font-size: 0.55rem; color: #8b5cf6; }
 .quarterly-empty-sub { font-size: 0.65rem; color: var(--color-text-muted); }
 
-@media (max-width: 768px) {
-  .quarterly-card-grid { grid-template-columns: repeat(2, 1fr); }
-} 
 /* ==========================================
    🕹️ RETRO TRADER JOURNAL SCOPED CSS (.journal-scope)
    ========================================== */
@@ -854,7 +761,6 @@ html, body {
 .journal-scope .skin-cal-loss .cal-day-pnl { color: var(--red); }
 .journal-scope .cal-day-count { font-size: 5px; color: var(--dim); text-align: right; }
 
-/* Weekday Grid */
 .journal-scope .weekday-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 2px; }
 .journal-scope .weekday-node { background: var(--panel); border: 1px solid #1f293d; padding: 4px 2px; text-align: center; }
 .journal-scope .weekday-lbl { font-size: 5px; color: var(--dim); margin-bottom: 2px; }
@@ -864,7 +770,6 @@ html, body {
 .journal-scope .divider { height: 2px; background: var(--border); margin: 12px 0; }
 .journal-scope .empty { text-align: center; color: var(--dim); font-size: 8px; padding: 20px 0; }
 
-/* CRT Effect Overlay */
 .crt::after {
   content: " "; display: block; position: absolute; top: 0; left: 0; bottom: 0; right: 0;
   background: rgba(18, 16, 16, 0) opacity(0);
@@ -872,3 +777,11 @@ html, body {
   background-size: 100% 4px; z-index: 10; pointer-events: none;
 }
 .crt.disabled::after { display: none; }
+
+@media (max-width: 768px) {
+  .app-container { flex-direction: column; }
+  .sidebar { width: 100%; height: auto; }
+  .sidebar:hover { width: 100%; }
+  .memory-card-grid { grid-template-columns: repeat(2, 1fr); gap: 12px; }
+  .quarterly-card-grid { grid-template-columns: repeat(2, 1fr); }
+}
