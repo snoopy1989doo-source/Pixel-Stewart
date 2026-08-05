@@ -1,6 +1,8 @@
 /* ==========================================
-   PIXEL STEWARD CORE ENGINE - APP.JS (V.3.2.0)
-   Updated: Linked Forex Journal Accounts, USD/THB Dual Currency, Gamified RPG Dashboard
+   PIXEL STEWARD CORE ENGINE - APP.JS (V.3.3.0)
+   Fixed: Dashboard & Forex Black Screen (Render Container Fix),
+          Auto Quarterly Snapshot Engine 100%,
+          Sub-Asset Inline Editor (Dime Sync)
    ========================================== */
 
 // ⏰ 1. RETRO TIME SYSTEM ENGINE
@@ -68,31 +70,137 @@ if (typeof firebase !== 'undefined' && firebaseConfig.apiKey && firebaseConfig.a
   }
 }
 
+/* ==========================================================================
+   🕹️ RETRO TRADER JOURNAL ENGINE (DECLARED FIRST TO PREVENT TDZ BUG)
+   ========================================================================== */
+const rtjKEY = {
+  TRADES:       'rtj_trades_v2',
+  CFS:          'rtj_cfs_v2',
+  BALANCES:     'rtj_balances_v3',
+  SOUND:        'rtj_sound_v2',
+  CRT:          'rtj_crt_v2',
+  LAST_ACCOUNT: 'rtj_last_account_v1'
+};
+
+const rtjDEFAULT_BALANCES = {
+  Demo: 10000,
+  LIFE: 1000,
+  RISK: 500,
+  Swingtrade: 2000
+};
+
+function rtjLoad(key, def) { 
+  try { 
+    const v = localStorage.getItem(key); 
+    if (v === null || v === 'undefined') return def;
+    if (key === rtjKEY.BALANCES) {
+      const parsed = JSON.parse(v);
+      if (typeof parsed === 'number') {
+        return { ...rtjDEFAULT_BALANCES, Demo: parsed };
+      }
+      return { ...rtjDEFAULT_BALANCES, ...parsed };
+    }
+    return JSON.parse(v);
+  } catch { return def; } 
+}
+
+function rtjSave(key, val) { try { localStorage.setItem(key, JSON.stringify(val)); } catch {} }
+
+function rtjBeep(type) {
+  if (!rtjState || !rtjState.sound) return;
+  try {
+    const AC = window.AudioContext || window.webkitAudioContext; if (!AC) return;
+    const ctx = new AC(), osc = ctx.createOscillator(), g = ctx.createGain(); osc.connect(g); g.connect(ctx.destination);
+    if (type === 'win') {
+      osc.type = 'square'; osc.frequency.setValueAtTime(523, ctx.currentTime); osc.frequency.setValueAtTime(659, ctx.currentTime + .09);
+      g.gain.setValueAtTime(.07, ctx.currentTime); g.gain.exponentialRampToValueAtTime(.001, ctx.currentTime + .3);
+      osc.start(); osc.stop(ctx.currentTime + .3);
+    } else if (type === 'lose') {
+      osc.type = 'sawtooth'; osc.frequency.setValueAtTime(220, ctx.currentTime); osc.frequency.linearRampToValueAtTime(100, ctx.currentTime + .5);
+      g.gain.setValueAtTime(.08, ctx.currentTime); g.gain.exponentialRampToValueAtTime(.001, ctx.currentTime + .5);
+      osc.start(); osc.stop(ctx.currentTime + .5);
+    } else if (type === 'alert') {
+      osc.type = 'sawtooth'; osc.frequency.setValueAtTime(400, ctx.currentTime); osc.frequency.linearRampToValueAtTime(800, ctx.currentTime + .2); osc.frequency.linearRampToValueAtTime(400, ctx.currentTime + .4);
+      g.gain.setValueAtTime(.1, ctx.currentTime); g.gain.exponentialRampToValueAtTime(.001, ctx.currentTime + .4);
+      osc.start(); osc.stop(ctx.currentTime + .4);
+    } else {
+      osc.type = 'triangle'; osc.frequency.setValueAtTime(600, ctx.currentTime); g.gain.setValueAtTime(.04, ctx.currentTime); g.gain.exponentialRampToValueAtTime(.001, ctx.currentTime + .06);
+      osc.start(); osc.stop(ctx.currentTime + .06);
+    }
+  } catch {}
+}
+
+function rtjToday() { return new Date().toISOString().split('T')[0]; }
+function rtjFmt(n, d = 2) { return Number(n || 0).toFixed(d); }
+function rtjFmtDate(s) { if (!s) return ''; const [y, m, d] = s.split('-'); return `${d}/${m}/${y.slice(2)}`; }
+function rtjUid() { return Date.now().toString(36) + Math.random().toString(36).slice(2, 5); }
+
+function rtjWeekStart(dateStr) { const d = new Date(dateStr); const day = d.getDay(); const diff = day === 0 ? -6 : 1 - day; d.setDate(d.getDate() + diff); return d.toISOString().split('T')[0]; }
+function rtjWeekEnd(dateStr) { const ws = rtjWeekStart(dateStr); const d = new Date(ws); d.setDate(d.getDate() + 6); return d.toISOString().split('T')[0]; }
+function rtjMonthStart(dateStr) { return dateStr.slice(0, 7) + '-01'; }
+function rtjMonthEnd(dateStr) { const [y, m] = dateStr.split('-'); const last = new Date(+y, +m, 0); return `${y}-${m}-${String(last.getDate()).padStart(2, '0')}`; }
+
+function rtjFilterByPeriod(trades, period) {
+  const safeTrades = Array.isArray(trades) ? trades : [];
+  const safePeriod = period || { mode: 'all' };
+  if (!safePeriod || safePeriod.mode === 'all') return safeTrades;
+  const t = rtjToday();
+  if (safePeriod.mode === 'daily') { return safeTrades.filter(tr => tr && tr.date === (safePeriod.date || t)); }
+  if (safePeriod.mode === 'weekly') { return safeTrades.filter(tr => tr && tr.date >= rtjWeekStart(t) && tr.date <= rtjWeekEnd(t)); }
+  if (safePeriod.mode === 'monthly') { return safeTrades.filter(tr => tr && tr.date >= rtjMonthStart(t) && tr.date <= rtjMonthEnd(t)); }
+  if (safePeriod.mode === 'custom') { return safeTrades.filter(tr => tr && tr.date >= (safePeriod.from || '') && tr.date <= (safePeriod.to || '9999-12-31')); }
+  return safeTrades;
+}
+
+const rtjSavedLastAccount = rtjLoad(rtjKEY.LAST_ACCOUNT, 'Demo');
+
+const rtjState = {
+  page:     'HOME', inputTab: 'TRADE', logTab: 'TRADE',
+  sound:    rtjLoad(rtjKEY.SOUND, true), 
+  balances: rtjLoad(rtjKEY.BALANCES, rtjDEFAULT_BALANCES),
+  trades:   rtjLoad(rtjKEY.TRADES, []), 
+  cfs:      rtjLoad(rtjKEY.CFS, []),
+  crt:      rtjLoad(rtjKEY.CRT, false),
+  calYear:  new Date().getFullYear(),
+  calMonth: new Date().getMonth(),
+  f: {
+    date: rtjToday(), symbol: 'GOLD', dir: 'Buy', entry: '', exit: '',
+    sl: '', lot: '', pnl: '', status: 'TP', tf: '1H',
+    conf: false, fear: false, greed: false, account: rtjSavedLastAccount
+  },
+  cf: { date: rtjToday(), type: 'Deposit', amount: '', desc: '', account: rtjSavedLastAccount },
+  filter: { symbol: 'ALL', status: 'ALL', period: { mode: 'all' }, account: rtjSavedLastAccount },
+  statsPeriod: { mode: 'all', account: rtjSavedLastAccount }
+};
+
+/* ==========================================================================
+   🏰 PIXEL STEWARD MAIN APPLICATION CLASS
+   ========================================================================== */
 const INITIAL_PORTFOLIOS = [
-  { id: 'p-redwing', name: 'RedWing (กยศ.)', category: 'Life Goal', goalType: 'numeric', goal: 270000, goalSchedule: '', current: 0, cashBuffer: 0, dryPowder: 0, assets: [], notes: '', dcaDoneThisMonth: false },
-  { id: 'p-zero1', name: 'Zero 1', category: 'Emergency Fund', goalType: 'numeric', goal: 150000, goalSchedule: '', current: 0, cashBuffer: 0, dryPowder: 0, assets: [], notes: '', dcaDoneThisMonth: false },
-  { id: 'p-zero2', name: 'Zero 2', category: 'Global Stock', goalType: 'numeric', goal: 1020000, goalSchedule: '', current: 0, cashBuffer: 0, dryPowder: 0, assets: [
+  { id: 'p-redwing', name: 'RedWing (กยศ.)', category: 'Life Goal', goalType: 'numeric', goal: 8000, goalSchedule: '', current: 0, cashBuffer: 0, dryPowder: 0, assets: [], notes: '', dcaDoneThisMonth: false },
+  { id: 'p-zero1', name: 'Zero 1', category: 'Emergency Fund', goalType: 'numeric', goal: 4500, goalSchedule: '', current: 0, cashBuffer: 0, dryPowder: 0, assets: [], notes: '', dcaDoneThisMonth: false },
+  { id: 'p-zero2', name: 'Zero 2', category: 'Global Stock', goalType: 'numeric', goal: 30000, goalSchedule: '', current: 0, cashBuffer: 0, dryPowder: 0, assets: [
     { name: 'NVDA', shares: 0.065108, costPrice: 199.6858, costBasis: 13.00, currentPrice: 199.6858, value: 13.00 },
     { name: 'PLTR', shares: 0, costPrice: 0, costBasis: 0, currentPrice: 0, value: 0 }
   ], notes: '', dcaDoneThisMonth: false },
-  { id: 'p-zero3', name: 'Zero 3', category: 'Global Stock', goalType: 'numeric', goal: 500000, goalSchedule: '', current: 0, cashBuffer: 0, dryPowder: 0, assets: [
+  { id: 'p-zero3', name: 'Zero 3', category: 'Global Stock', goalType: 'numeric', goal: 15000, goalSchedule: '', current: 0, cashBuffer: 0, dryPowder: 0, assets: [
     { name: 'SMR', shares: 0, costPrice: 0, costBasis: 0, currentPrice: 0, value: 0 },
     { name: 'TSLA', shares: 0, costPrice: 0, costBasis: 0, currentPrice: 0, value: 0 }
   ], notes: '', dcaDoneThisMonth: false },
-  { id: 'p-zero4', name: 'Zero 4', category: 'Global Stock', goalType: 'numeric', goal: 500000, goalSchedule: '', current: 0, cashBuffer: 0, dryPowder: 0, assets: [], notes: '', dcaDoneThisMonth: false },
-  { id: 'p-zero5', name: 'Zero 5', category: 'Global Stock', goalType: 'numeric', goal: 500000, goalSchedule: '', current: 0, cashBuffer: 0, dryPowder: 0, assets: [], notes: '', dcaDoneThisMonth: false },
-  { id: 'p-divyield', name: 'Dividend Yield', category: 'Global Stock', goalType: 'numeric', goal: 500000, goalSchedule: '', current: 0, cashBuffer: 0, dryPowder: 0, assets: [
+  { id: 'p-zero4', name: 'Zero 4', category: 'Global Stock', goalType: 'numeric', goal: 15000, goalSchedule: '', current: 0, cashBuffer: 0, dryPowder: 0, assets: [], notes: '', dcaDoneThisMonth: false },
+  { id: 'p-zero5', name: 'Zero 5', category: 'Global Stock', goalType: 'numeric', goal: 15000, goalSchedule: '', current: 0, cashBuffer: 0, dryPowder: 0, assets: [], notes: '', dcaDoneThisMonth: false },
+  { id: 'p-divyield', name: 'Dividend Yield', category: 'Global Stock', goalType: 'numeric', goal: 15000, goalSchedule: '', current: 0, cashBuffer: 0, dryPowder: 0, assets: [
     { name: 'KO', shares: 0, costPrice: 0, costBasis: 0, currentPrice: 0, value: 0 },
     { name: 'AVGO', shares: 0, costPrice: 0, costBasis: 0, currentPrice: 0, value: 0 },
     { name: 'CVX', shares: 0, costPrice: 0, costBasis: 0, currentPrice: 0, value: 0 }
   ], notes: '', dcaDoneThisMonth: false },
-  { id: 'p-thaidiv', name: 'THAI Dividend', category: 'THAI Dividend', goalType: 'numeric', goal: 500000, goalSchedule: '', current: 0, cashBuffer: 0, dryPowder: 0, assets: [], notes: '', dcaDoneThisMonth: false },
-  { id: 'p-nextgen', name: 'NEXT GEN', category: 'Global Stock', goalType: 'numeric', goal: 500000, goalSchedule: '', current: 0, cashBuffer: 0, dryPowder: 0, assets: [
+  { id: 'p-thaidiv', name: 'THAI Dividend', category: 'THAI Dividend', goalType: 'numeric', goal: 15000, goalSchedule: '', current: 0, cashBuffer: 0, dryPowder: 0, assets: [], notes: '', dcaDoneThisMonth: false },
+  { id: 'p-nextgen', name: 'NEXT GEN', category: 'Global Stock', goalType: 'numeric', goal: 15000, goalSchedule: '', current: 0, cashBuffer: 0, dryPowder: 0, assets: [
     { name: 'VOO', shares: 0, costPrice: 0, costBasis: 0, currentPrice: 0, value: 0 },
     { name: 'GEV', shares: 0, costPrice: 0, costBasis: 0, currentPrice: 0, value: 0 },
     { name: 'ISRG', shares: 0, costPrice: 0, costBasis: 0, currentPrice: 0, value: 0 }
   ], notes: '', dcaDoneThisMonth: false },
-  { id: 'p-crypto', name: 'Crypto', category: 'Crypto', goalType: 'numeric', goal: 200000, goalSchedule: '', current: 0, cashBuffer: 0, dryPowder: 0, assets: [], notes: '', dcaDoneThisMonth: false }
+  { id: 'p-crypto', name: 'Crypto', category: 'Crypto', goalType: 'numeric', goal: 6000, goalSchedule: '', current: 0, cashBuffer: 0, dryPowder: 0, assets: [], notes: '', dcaDoneThisMonth: false }
 ];
 const INITIAL_QUARTERLY_RECORDS = [];
 const INITIAL_MONTHLY_RECORDS = [];
@@ -133,7 +241,6 @@ class PixelStewardApp {
   getForexAccountEquity(accountName) {
     if (typeof rtjState === 'undefined' || !rtjState) return 0;
     const safeBalances = rtjState.balances || rtjDEFAULT_BALANCES;
-    // Map accountName to check if it matches case-insensitively or defaults to ALL
     const key = Object.keys(safeBalances).find(k => k.toLowerCase() === (accountName || '').trim().toLowerCase());
     const targetAcc = key || 'ALL';
 
@@ -156,16 +263,15 @@ class PixelStewardApp {
     return accStartBal + netDeposit + netPnl;
   }
 
-  formatMoney(val, category, showBoth = true) {
-    const isUSD = this.isPortfolioUSD(category);
-    const sym = isUSD ? '$' : '฿';
+  formatMoney(valUSD, category, showBoth = true) {
     if (this.isPrivacyMode) {
-      return `<span class="pixel-money pixel-money-masked">${sym}***,***</span>`;
+      return `<span class="pixel-money pixel-money-masked">$***,***</span>` +
+             (showBoth ? ` <span style="font-size:0.75rem; color:#94a3b8; font-family:'Kanit', sans-serif;">(฿***,***)</span>` : '');
     }
-    const numStr = Number(val || 0).toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 2 });
-    let html = `<span class="pixel-money">${sym}${numStr}</span>`;
-    if (isUSD && showBoth) {
-      const thbVal = (Number(val || 0) * this.exchangeRate).toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 });
+    const usdNum = Number(valUSD || 0).toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 2 });
+    let html = `<span class="pixel-money">$${usdNum}</span>`;
+    if (showBoth) {
+      const thbVal = (Number(valUSD || 0) * this.exchangeRate).toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 });
       html += ` <span style="font-size:0.75rem; color:#94a3b8; font-family:'Kanit', sans-serif;">(฿${thbVal})</span>`;
     }
     return html;
@@ -271,11 +377,11 @@ class PixelStewardApp {
         const sharesStr = prompt(`ระบุจำนวนหุ้น/หน่วย (ถ้าไม่ต้องการระบุ ให้เว้นว่างหรือพิมพ์ 1):`, '1');
         const shares = Number(sharesStr) || 1;
 
-        const valStr = prompt(`ระบุมูลค่าปัจจุบันรวม (Market Value) ในสกุลเงินพอร์ต:`);
+        const valStr = prompt(`ระบุมูลค่าปัจจุบันรวม ($ USD) ในสกุลเงินพอร์ต:`);
         const val = Number(valStr);
         if (isNaN(val) || val < 0) { alert('❌ โปรดกรอกตัวเลขมูลค่าให้ถูกต้อง'); return; }
 
-        const costStr = prompt(`ระบุราคาทุนรวมทั้งหมด (Total Cost Basis) (ถ้าเท่ากับมูลค่าปัจจุบัน ให้พิมพ์ ${val}):`, val.toString());
+        const costStr = prompt(`ระบุราคาทุนรวมทั้งหมด ($ USD) (ถ้าเท่ากับมูลค่าปัจจุบัน ให้พิมพ์ ${val}):`, val.toString());
         const costBasis = Number(costStr) >= 0 ? Number(costStr) : val;
 
         if (!active.assets) active.assets = [];
@@ -309,7 +415,7 @@ class PixelStewardApp {
         const schInput = document.getElementById('port-goal-schedule');
         const label = document.getElementById('port-goal-label');
         if (goalTypeSelect.value === 'numeric') {
-          label.innerText = 'เป้าหมายเงินสะสม:';
+          label.innerText = 'เป้าหมายเงินสะสม ($ USD):';
           valInput.classList.remove('hidden'); schInput.classList.add('hidden');
         } else {
           label.innerText = 'เป้าหมายแผนวินัย DCA:';
@@ -326,6 +432,8 @@ class PixelStewardApp {
     if (quarterlyForm) quarterlyForm.addEventListener('submit', (e) => { e.preventDefault(); this.handleSaveQuarterly(); });
     const divForm = document.getElementById('dividend-form');
     if (divForm) divForm.addEventListener('submit', (e) => { e.preventDefault(); this.handleSaveDividend(); });
+    const assetEditForm = document.getElementById('asset-edit-form');
+    if (assetEditForm) assetEditForm.addEventListener('submit', (e) => { e.preventDefault(); this.handleSaveAssetEdit(); });
 
     const globalRateInput = document.getElementById('global-usd-rate');
     if (globalRateInput) {
@@ -348,7 +456,54 @@ class PixelStewardApp {
     }
 
     this.fetchRateOnLoad();
+    this.autoSnapshotQuarterly();
     this.refreshUI();
+  }
+
+  /* 🤖 AUTO QUARTERLY SNAPSHOT ENGINE 100% */
+  autoSnapshotQuarterly() {
+    if (!Array.isArray(this.portfolios) || this.portfolios.length === 0) return;
+    
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = now.getMonth() + 1;
+    
+    let targetQuarterField = '';
+    let targetYear = year;
+    
+    if (month >= 1 && month <= 3) {
+      targetQuarterField = 'q4';
+      targetYear = year - 1;
+    } else if (month >= 4 && month <= 6) {
+      targetQuarterField = 'q1';
+    } else if (month >= 7 && month <= 9) {
+      targetQuarterField = 'q2';
+    } else if (month >= 10 && month <= 12) {
+      targetQuarterField = 'q3';
+    }
+
+    let autoSnapCount = 0;
+    const stockPorts = this.portfolios.filter(p => p && (p.category || '').toLowerCase() !== 'option' && (p.category || '').toLowerCase() !== 'forex');
+
+    stockPorts.forEach(p => {
+      let rec = this.quarterlyRecords.find(r => r && r.portfolioId === p.id && r.year === targetYear);
+      if (!rec) {
+        rec = { id: 'q-' + Date.now() + '-' + Math.random().toString(36).slice(2, 5), portfolioId: p.id, year: targetYear, q1: 0, f1: 0, q2: 0, f2: 0, q3: 0, f3: 0, q4: 0, f4: 0, notes: 'Auto-Snapshot' };
+        this.quarterlyRecords.push(rec);
+      }
+
+      if (!rec[targetQuarterField] || rec[targetQuarterField] === 0) {
+        const currentValUSD = (p.current || 0) + (p.cashBuffer || 0);
+        if (currentValUSD > 0) {
+          rec[targetQuarterField] = currentValUSD;
+          autoSnapCount++;
+        }
+      }
+    });
+
+    if (autoSnapCount > 0) {
+      this.saveState();
+    }
   }
 
   async fetchRateOnLoad() {
@@ -410,10 +565,11 @@ class PixelStewardApp {
     if (!Array.isArray(this.portfolios)) return;
     this.portfolios.forEach(p => {
       if (!p) return;
-      if (p.category === 'Option') {
+      const cat = (p.category || '').toLowerCase();
+      if (cat.includes('option')) {
         const records = Array.isArray(this.monthlyRecords) ? this.monthlyRecords.filter(r => r && r.portfolioId === p.id) : [];
         p.current = records.reduce((sum, r) => sum + (Number(r.profitLossUSD) || 0), 0);
-      } else if (p.category === 'Forex') {
+      } else if (cat.includes('forex')) {
         p.current = this.getForexAccountEquity(p.name);
       } else {
         p.current = Array.isArray(p.assets) ? p.assets.reduce((sum, asset) => sum + (Number(asset.value) || 0), 0) : 0;
@@ -436,24 +592,18 @@ class PixelStewardApp {
 
   getCalculations() {
     this.autoCalculatePortfolios();
-    let totalTHB = 0, totalUSD = 0, totalCashBufferTHB = 0, totalDryPowderTHB = 0;
+    let totalUSD = 0, totalCashBufferUSD = 0, totalDryPowderUSD = 0;
     if (Array.isArray(this.portfolios)) {
       this.portfolios.forEach(p => {
         if (!p) return;
-        const isUSD = this.isPortfolioUSD(p.category);
-        if (isUSD) {
-          totalUSD += (p.current || 0);
-          totalCashBufferTHB += (p.cashBuffer || 0) * this.exchangeRate;
-          totalDryPowderTHB += (p.dryPowder || 0) * this.exchangeRate;
-        } else {
-          totalTHB += (p.current || 0);
-          totalCashBufferTHB += (p.cashBuffer || 0);
-          totalDryPowderTHB += (p.dryPowder || 0);
-        }
+        totalUSD += (p.current || 0);
+        totalCashBufferUSD += (p.cashBuffer || 0);
+        totalDryPowderUSD += (p.dryPowder || 0);
       });
     }
-    const netWorthTHB = totalTHB + (totalUSD * this.exchangeRate) + totalCashBufferTHB + totalDryPowderTHB;
-    return { netWorthTHB, netWorthUSD: netWorthTHB / this.exchangeRate, totalTHB, totalUSD, totalCashBufferTHB, totalDryPowderTHB };
+    const netWorthUSD = totalUSD + totalCashBufferUSD + totalDryPowderUSD;
+    const netWorthTHB = netWorthUSD * this.exchangeRate;
+    return { netWorthUSD, netWorthTHB, totalUSD, totalCashBufferUSD, totalDryPowderUSD };
   }
 
   getPortfolioLevel(p) {
@@ -475,8 +625,7 @@ class PixelStewardApp {
     if (pct >= 80) return `🏆 เลเวลสูงสุดขอบทองแล้ว!`;
     const targetPct = pct < 40 ? 40 : 80;
     const needed = ((targetPct / 100) * p.goal) - (p.current + p.cashBuffer);
-    const sym = this.isPortfolioUSD(p.category) ? '$' : '฿';
-    return `🔮 เลเวลอัปขั้นถัดไป: ขาดอีกประมาณ ${sym}${needed.toLocaleString(undefined,{maximumFractionDigits:0})}`;
+    return `🔮 เลเวลอัปขั้นถัดไป: ขาดอีกประมาณ $${needed.toLocaleString(undefined,{maximumFractionDigits:0})}`;
   }
 
   getMeloAvatarState(score) {
@@ -486,6 +635,7 @@ class PixelStewardApp {
     return { imgSrc: './assets/avatar/avatar-concerned.png', text: '😟 วิกฤต! เติมเสบียงด่วน', cls: 'color:#ef4444;' };
   }
 
+  /* 📊 DASHBOARD RENDERER */
   renderDashboard(container) {
     const calc = this.getCalculations();
     const topGoals = Array.isArray(this.portfolios) ? this.portfolios.filter(p => p && p.goalType === 'numeric' && p.goal > 0).map(p => ({ name: p.name, pct: ((p.current + p.cashBuffer) / p.goal) * 100 })).sort((a, b) => b.pct - a.pct).slice(0, 3) : [];
@@ -493,54 +643,43 @@ class PixelStewardApp {
     let q1 = 0, q2 = 0, q3 = 0, q4 = 0;
     if (Array.isArray(this.quarterlyRecords)) {
       this.quarterlyRecords.filter(r => r && r.year === yr).forEach(r => {
-        const p = this.portfolios.find(port => port && port.id === r.portfolioId);
-        const rate = p && this.isPortfolioUSD(p.category) ? this.exchangeRate : 1;
-        q1 += (r.q1||0)*rate; q2 += (r.q2||0)*rate; q3 += (r.q3||0)*rate; q4 += (r.q4||0)*rate;
+        q1 += (r.q1||0); q2 += (r.q2||0); q3 += (r.q3||0); q4 += (r.q4||0);
       });
     }
     const maxQ = Math.max(q1, q2, q3, q4, 1);
 
-    // Compute Category Allocations
-    let catAlloc = {
-      thai: 0,
-      global: 0,
-      deriv: 0,
-      crypto: 0,
-      other: 0
-    };
-    let grandTotal = 0;
+    let catAlloc = { thai: 0, global: 0, deriv: 0, crypto: 0, other: 0 };
+    let grandTotalUSD = 0;
     
     if (Array.isArray(this.portfolios)) {
       this.portfolios.forEach(p => {
         if(!p) return;
-        const isUSD = this.isPortfolioUSD(p.category);
-        const r = isUSD ? this.exchangeRate : 1;
-        const valTHB = ((p.current||0) + (p.cashBuffer||0)) * r;
-        grandTotal += valTHB;
+        const valUSD = (p.current||0) + (p.cashBuffer||0);
+        grandTotalUSD += valUSD;
         
         const cat = (p.category || '').toLowerCase();
         if(cat.includes('thai')) {
-          catAlloc.thai += valTHB;
+          catAlloc.thai += valUSD;
         } else if(cat.includes('global') || cat.includes('growth') || cat.includes('foreign') || cat.includes('ต่างประเทศ') || cat.includes('next')) {
-          catAlloc.global += valTHB;
+          catAlloc.global += valUSD;
         } else if(cat.includes('option') || cat.includes('forex') || cat.includes('ฟอเร็กซ์') || cat.includes('ออปชัน')) {
-          catAlloc.deriv += valTHB;
+          catAlloc.deriv += valUSD;
         } else if(cat.includes('crypto') || cat.includes('คริปโต')) {
-          catAlloc.crypto += valTHB;
+          catAlloc.crypto += valUSD;
         } else {
-          catAlloc.other += valTHB;
+          catAlloc.other += valUSD;
         }
       });
     }
 
-    const dryPowderRatio = calc.netWorthTHB > 0 ? (calc.totalDryPowderTHB / calc.netWorthTHB) * 100 : 0;
-    const debtRemaining = Math.max(0, this.debtRemainingTHB || 0);
-    const debtStart = Math.max(0, this.debtStartTHB || 0);
+    const dryPowderRatio = calc.netWorthUSD > 0 ? (calc.totalDryPowderUSD / calc.netWorthUSD) * 100 : 0;
+    const debtRemainingUSD = Math.max(0, (this.debtRemainingTHB || 0) / this.exchangeRate);
+    const debtStartUSD = Math.max(0, (this.debtStartTHB || 0) / this.exchangeRate);
 
-    const debtToNetWorthRatio = calc.netWorthTHB > 0 ? debtRemaining / calc.netWorthTHB : (debtRemaining > 0 ? 1 : 0);
+    const debtToNetWorthRatio = calc.netWorthUSD > 0 ? debtRemainingUSD / calc.netWorthUSD : (debtRemainingUSD > 0 ? 1 : 0);
     const debtScore = 25 * Math.max(0, 1 - Math.min(1, debtToNetWorthRatio));
     const dryPowderScore = 20 * Math.min(1, dryPowderRatio / 15);
-    const snowballProgressPct = debtStart > 0 ? Math.max(0, Math.min(1, (debtStart - debtRemaining) / debtStart)) : (debtRemaining === 0 ? 1 : 0);
+    const snowballProgressPct = debtStartUSD > 0 ? Math.max(0, Math.min(1, (debtStartUSD - debtRemainingUSD) / debtStartUSD)) : (debtRemainingUSD === 0 ? 1 : 0);
     const snowballScore = 20 * snowballProgressPct;
     const topGoalPct = topGoals.length > 0 ? Math.min(100, topGoals[0].pct) : 0;
     const goalScore = 20 * (topGoalPct / 100);
@@ -550,15 +689,16 @@ class PixelStewardApp {
     healthScore = Math.max(0, Math.min(100, healthScore));
     const meloState = this.getMeloAvatarState(healthScore);
 
-    const investedTHB = calc.totalTHB + (calc.totalUSD * this.exchangeRate);
+    const investedUSD = calc.totalUSD;
 
-    // Format privacy values
     const nwTHB = this.isPrivacyMode ? '฿***,***' : `฿${calc.netWorthTHB.toLocaleString(undefined,{maximumFractionDigits:0})}`;
     const nwUSD = this.isPrivacyMode ? '$***,***' : `$${calc.netWorthUSD.toLocaleString(undefined,{maximumFractionDigits:0})}`;
-    const invTHB = this.isPrivacyMode ? '฿***,***' : `฿${investedTHB.toLocaleString(undefined,{maximumFractionDigits:0})}`;
-    const invUSD = this.isPrivacyMode ? '$***,***' : `$${(investedTHB / this.exchangeRate).toLocaleString(undefined,{maximumFractionDigits:0})}`;
-    const dryTHB = this.isPrivacyMode ? '฿***,***' : `฿${calc.totalDryPowderTHB.toLocaleString(undefined,{maximumFractionDigits:0})}`;
-    const dryUSD = this.isPrivacyMode ? '$***,***' : `$${(calc.totalDryPowderTHB / this.exchangeRate).toLocaleString(undefined,{maximumFractionDigits:0})}`;
+    const investedTHB = investedUSD * this.exchangeRate;
+    const invTHBStr = this.isPrivacyMode ? '฿***,***' : `฿${investedTHB.toLocaleString(undefined,{maximumFractionDigits:0})}`;
+    const invUSDStr = this.isPrivacyMode ? '$***,***' : `$${investedUSD.toLocaleString(undefined,{maximumFractionDigits:0})}`;
+    const dryTHBVal = calc.totalDryPowderUSD * this.exchangeRate;
+    const dryTHBStr = this.isPrivacyMode ? '฿***,***' : `฿${dryTHBVal.toLocaleString(undefined,{maximumFractionDigits:0})}`;
+    const dryUSDStr = this.isPrivacyMode ? '$***,***' : `$${calc.totalDryPowderUSD.toLocaleString(undefined,{maximumFractionDigits:0})}`;
 
     container.innerHTML = `
       <!-- 💰 TREASURY INVENTORY -->
@@ -569,8 +709,8 @@ class PixelStewardApp {
           </div>
           <div class="slot-details">
             <div class="slot-title">NET WORTH รวม</div>
-            <div class="slot-value text-accent">${nwTHB}</div>
-            <div class="slot-subtitle">${nwUSD} USD</div>
+            <div class="slot-value text-accent">${nwUSD}</div>
+            <div class="slot-subtitle">(${nwTHB})</div>
           </div>
         </div>
         
@@ -580,8 +720,8 @@ class PixelStewardApp {
           </div>
           <div class="slot-details">
             <div class="slot-title">เงินลงทุนแล้ว</div>
-            <div class="slot-value" style="color:var(--color-success);">${invTHB}</div>
-            <div class="slot-subtitle">${invUSD} USD</div>
+            <div class="slot-value" style="color:var(--color-success);">${invUSDStr}</div>
+            <div class="slot-subtitle">(${invTHBStr})</div>
           </div>
         </div>
 
@@ -591,8 +731,8 @@ class PixelStewardApp {
           </div>
           <div class="slot-details">
             <div class="slot-title">กระสุนรอช้อน (Dry Powder)</div>
-            <div class="slot-value" style="color:var(--color-warning);">${dryTHB}</div>
-            <div class="slot-subtitle">${dryUSD} USD</div>
+            <div class="slot-value" style="color:var(--color-warning);">${dryUSDStr}</div>
+            <div class="slot-subtitle">(${dryTHBStr})</div>
           </div>
         </div>
       </div>
@@ -605,17 +745,18 @@ class PixelStewardApp {
           </h4>
           <div style="display:flex; flex-direction:column; gap:10px;">
             ${!Array.isArray(this.portfolios) || this.portfolios.length === 0 ? '<p class="text-muted" style="font-size:0.8rem;">ไม่มีเควสการเงิน โปรดสร้างพอร์ตเพื่อลงทะเบียนเควส</p>' : this.portfolios.map(p => {
-              const isUSD = this.isPortfolioUSD(p.category);
-              const r = isUSD ? this.exchangeRate : 1;
-              const curTHB = ((p.current||0)+(p.cashBuffer||0))*r;
-              const goalTHB = p.goalType==='numeric'?((p.goal||0)*r):0;
-              const pct = p.goalType==='numeric'?(p.goal>0?(curTHB/goalTHB)*100:0):(p.dcaDoneThisMonth?100:0);
+              const curUSD = (p.current||0)+(p.cashBuffer||0);
+              const goalUSD = p.goalType==='numeric'?(p.goal||0):0;
+              const pct = p.goalType==='numeric'?(p.goal>0?(curUSD/goalUSD)*100:0):(p.dcaDoneThisMonth?100:0);
               const isCleared = pct >= 100;
               
               let questBadge = isCleared ? '<span class="quest-status cleared">🏆 CLEARED</span>' : '<span class="quest-status active">⚔️ ACTIVE</span>';
               if (p.goalType === 'schedule') {
                 questBadge = p.dcaDoneThisMonth ? '<span class="quest-status cleared">🏆 CLEARED</span>' : '<span class="quest-status schedule">📅 PLAN</span>';
               }
+
+              const curTHBSub = (curUSD * this.exchangeRate).toLocaleString(undefined,{maximumFractionDigits:0});
+              const goalTHBSub = (goalUSD * this.exchangeRate).toLocaleString(undefined,{maximumFractionDigits:0});
 
               return `
                 <div class="quest-card border-pixel ${isCleared ? 'quest-cleared' : ''}">
@@ -624,7 +765,7 @@ class PixelStewardApp {
                     ${questBadge}
                   </div>
                   <div class="quest-desc">
-                    มูลค่า: ${this.formatMoney(p.current + p.cashBuffer, p.category)} / ${p.goalType==='numeric' ? this.formatMoney(p.goal, p.category) : 'DCA ' + p.goalSchedule}
+                    มูลค่า: $${curUSD.toLocaleString(undefined,{maximumFractionDigits:2})} <span style="color:#94a3b8; font-size:0.7rem;">(฿${curTHBSub})</span> / ${p.goalType==='numeric' ? '$' + goalUSD.toLocaleString(undefined,{maximumFractionDigits:0}) + ' <span style="color:#94a3b8; font-size:0.7rem;">(฿' + goalTHBSub + ')</span>' : 'DCA ' + p.goalSchedule}
                   </div>
                   <div class="quest-progress">
                     <div class="quest-hp-bar">
@@ -643,35 +784,35 @@ class PixelStewardApp {
           <div class="border-pixel" style="padding:15px; background:#1f273e;">
             <h4 style="font-family:'Press Start 2P'; font-size:0.6rem; color:#10b981; margin-bottom:12px;">📊 ALLOCATION MATRIX (การจัดสรรคลังรวม)</h4>
             <div class="segmented-bar border-pixel-inset" style="height:20px; display:flex; overflow:hidden; background:#111625; margin-bottom:15px;">
-              ${grandTotal === 0 ? '<div style="width:100%; text-align:center; font-size:0.7rem; color:#64748b; line-height:20px;">คลังว่างเปล่า</div>' : `
-                <div style="width:${(catAlloc.thai/grandTotal)*100}%; background:#22c55e; height:100%;" title="หุ้นไทย"></div>
-                <div style="width:${(catAlloc.global/grandTotal)*100}%; background:#3b82f6; height:100%;" title="หุ้นต่างประเทศ"></div>
-                <div style="width:${(catAlloc.deriv/grandTotal)*100}%; background:#a855f7; height:100%;" title="ออปชัน & ฟอเร็กซ์"></div>
-                <div style="width:${(catAlloc.crypto/grandTotal)*100}%; background:#eab308; height:100%;" title="คริปโต"></div>
-                <div style="width:${(catAlloc.other/grandTotal)*100}%; background:#64748b; height:100%;" title="อื่นๆ"></div>
+              ${grandTotalUSD === 0 ? '<div style="width:100%; text-align:center; font-size:0.7rem; color:#64748b; line-height:20px;">คลังว่างเปล่า</div>' : `
+                <div style="width:${(catAlloc.thai/grandTotalUSD)*100}%; background:#22c55e; height:100%;" title="หุ้นไทย"></div>
+                <div style="width:${(catAlloc.global/grandTotalUSD)*100}%; background:#3b82f6; height:100%;" title="หุ้นต่างประเทศ"></div>
+                <div style="width:${(catAlloc.deriv/grandTotalUSD)*100}%; background:#a855f7; height:100%;" title="ออปชัน & ฟอเร็กซ์"></div>
+                <div style="width:${(catAlloc.crypto/grandTotalUSD)*100}%; background:#eab308; height:100%;" title="คริปโต"></div>
+                <div style="width:${(catAlloc.other/grandTotalUSD)*100}%; background:#64748b; height:100%;" title="อื่นๆ"></div>
               `}
             </div>
             
             <div style="display:flex; flex-direction:column; gap:10px; font-size:0.75rem;">
               <div>
-                <div style="display:flex; justify-content:space-between;"><span>🟢 หุ้นไทย</span><b>${grandTotal>0?((catAlloc.thai/grandTotal)*100).toFixed(1):0}%</b></div>
-                <div class="bar-mini"><div class="bar-mini-fill" style="width:${grandTotal>0?(catAlloc.thai/grandTotal)*100:0}%; background:#22c55e;"></div></div>
+                <div style="display:flex; justify-content:space-between;"><span>🟢 หุ้นไทย</span><b>${grandTotalUSD>0?((catAlloc.thai/grandTotalUSD)*100).toFixed(1):0}%</b></div>
+                <div class="bar-mini"><div class="bar-mini-fill" style="width:${grandTotalUSD>0?(catAlloc.thai/grandTotalUSD)*100:0}%; background:#22c55e;"></div></div>
               </div>
               <div>
-                <div style="display:flex; justify-content:space-between;"><span>🔵 หุ้นต่างประเทศ</span><b>${grandTotal>0?((catAlloc.global/grandTotal)*100).toFixed(1):0}%</b></div>
-                <div class="bar-mini"><div class="bar-mini-fill" style="width:${grandTotal>0?(catAlloc.global/grandTotal)*100:0}%; background:#3b82f6;"></div></div>
+                <div style="display:flex; justify-content:space-between;"><span>🔵 หุ้นต่างประเทศ</span><b>${grandTotalUSD>0?((catAlloc.global/grandTotalUSD)*100).toFixed(1):0}%</b></div>
+                <div class="bar-mini"><div class="bar-mini-fill" style="width:${grandTotalUSD>0?(catAlloc.global/grandTotalUSD)*100:0}%; background:#3b82f6;"></div></div>
               </div>
               <div>
-                <div style="display:flex; justify-content:space-between;"><span>🟣 ออปชัน & ฟอเร็กซ์</span><b>${grandTotal>0?((catAlloc.deriv/grandTotal)*100).toFixed(1):0}%</b></div>
-                <div class="bar-mini"><div class="bar-mini-fill" style="width:${grandTotal>0?(catAlloc.deriv/grandTotal)*100:0}%; background:#a855f7;"></div></div>
+                <div style="display:flex; justify-content:space-between;"><span>🟣 ออปชัน & ฟอเร็กซ์</span><b>${grandTotalUSD>0?((catAlloc.deriv/grandTotalUSD)*100).toFixed(1):0}%</b></div>
+                <div class="bar-mini"><div class="bar-mini-fill" style="width:${grandTotalUSD>0?(catAlloc.deriv/grandTotalUSD)*100:0}%; background:#a855f7;"></div></div>
               </div>
               <div>
-                <div style="display:flex; justify-content:space-between;"><span>🟡 คริปโต</span><b>${grandTotal>0?((catAlloc.crypto/grandTotal)*100).toFixed(1):0}%</b></div>
-                <div class="bar-mini"><div class="bar-mini-fill" style="width:${grandTotal>0?(catAlloc.crypto/grandTotal)*100:0}%; background:#eab308;"></div></div>
+                <div style="display:flex; justify-content:space-between;"><span>🟡 คริปโต</span><b>${grandTotalUSD>0?((catAlloc.crypto/grandTotalUSD)*100).toFixed(1):0}%</b></div>
+                <div class="bar-mini"><div class="bar-mini-fill" style="width:${grandTotalUSD>0?(catAlloc.crypto/grandTotalUSD)*100:0}%; background:#eab308;"></div></div>
               </div>
               <div>
-                <div style="display:flex; justify-content:space-between;"><span>⚪ อื่นๆ (เป้าหมายชีวิต/เงินสำรอง)</span><b>${grandTotal>0?((catAlloc.other/grandTotal)*100).toFixed(1):0}%</b></div>
-                <div class="bar-mini"><div class="bar-mini-fill" style="width:${grandTotal>0?(catAlloc.other/grandTotal)*100:0}%; background:#64748b;"></div></div>
+                <div style="display:flex; justify-content:space-between;"><span>⚪ อื่นๆ (เป้าหมายชีวิต/เงินสำรอง)</span><b>${grandTotalUSD>0?((catAlloc.other/grandTotalUSD)*100).toFixed(1):0}%</b></div>
+                <div class="bar-mini"><div class="bar-mini-fill" style="width:${grandTotalUSD>0?(catAlloc.other/grandTotalUSD)*100:0}%; background:#64748b;"></div></div>
               </div>
             </div>
           </div>
@@ -720,8 +861,7 @@ class PixelStewardApp {
     let active = this.portfolios.find(p => p && p.id === this.selectedPortId) || this.portfolios[0];
     this.selectedPortId = active.id;
     const lvl = this.getPortfolioLevel(active);
-    const isUSD = this.isPortfolioUSD(active.category);
-    const weight = this.getCalculations().netWorthTHB > 0 ? (((active.current+active.cashBuffer)*(isUSD?this.exchangeRate:1))/this.getCalculations().netWorthTHB)*100 : 0;
+    const weight = this.getCalculations().netWorthUSD > 0 ? (((active.current+active.cashBuffer))/this.getCalculations().netWorthUSD)*100 : 0;
 
     container.innerHTML = `
       <div style="display:flex; flex-direction:column; gap:20px;">
@@ -733,7 +873,7 @@ class PixelStewardApp {
             ${this.portfolios.map(p => {
               if (!p) return '';
               const pct = p.goal > 0 ? (((p.current + p.cashBuffer) / p.goal) * 100) : 0;
-              const isPurpleTier = pct >= 80 || this.isPortfolioUSD(p.category);
+              const isPurpleTier = pct >= 80;
               const tierClass = isPurpleTier ? 'tier-purple' : (pct >= 40 ? 'tier-gold' : 'tier-silver');
               const isActive = p.id === this.selectedPortId ? 'active' : '';
 
@@ -746,7 +886,7 @@ class PixelStewardApp {
                       <div class="card-cat-text">${p.category}</div>
                     </div>
                     <div>
-                      <div class="card-val-text">${this.formatMoney(p.current + p.cashBuffer, p.category)}</div>
+                      <div class="card-val-text">${this.formatMoney(p.current + p.cashBuffer, p.category, false)}</div>
                       <div style="display:flex; justify-content:space-between; align-items:center; font-family:'Press Start 2P'; font-size:0.5rem; color:#94a3b8; margin-top:3px;">
                         <span>${pct.toFixed(0)}%</span>
                         <div class="card-progress-bar" style="width:70%; margin:0;">
@@ -781,12 +921,12 @@ class PixelStewardApp {
             </div>
             
             <div style="background:#111625; padding:10px; border:2px solid #000; font-size:0.85rem; cursor:pointer;" onclick="app.inlineEditGoal('${active.id}')">
-              🎯 เป้าหมาย: ${active.goalType==='numeric'?this.formatMoney(active.goal, active.category):active.goalSchedule} <span style="font-size:0.7rem; color:#64748b; float:right;">✏️ แก้ไข</span>
+              🎯 เป้าหมาย: ${active.goalType==='numeric'?this.formatMoney(active.goal, active.category, false):active.goalSchedule} <span style="font-size:0.7rem; color:#64748b; float:right;">✏️ แก้ไข</span>
             </div>
             
             <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px;">
               <div style="background:#111625; padding:10px; border:2px solid #000; font-size:0.85rem; color:#10b981; font-weight:bold;">
-                💼 สุธิตลับพอร์ต: ${this.formatMoney(active.current+active.cashBuffer, active.category)}
+                💼 สุธิตลับพอร์ต: ${this.formatMoney(active.current+active.cashBuffer, active.category, false)}
               </div>
               <div style="background:#0c1020; padding:10px; border:2px solid #000; font-size:0.8rem; color:#94a3b8;">
                 ⚖️ Weight: <b>${weight.toFixed(1)}% ของคลังรวม</b>
@@ -866,9 +1006,9 @@ class PixelStewardApp {
               </h5>
               <form id="update-balance-form" style="display:flex; flex-direction:column; gap:8px; font-size:0.8rem;">
                 <label>มูลค่าอัตโนมัติ (หลังบ้าน):</label>
-                <div style="background:#111625; padding:8px; border:2px solid #000; font-weight:bold; color:#10b981;">${this.formatMoney(active.current+active.cashBuffer, active.category)}</div>
+                <div style="background:#111625; padding:8px; border:2px solid #000; font-weight:bold; color:#10b981;">${this.formatMoney(active.current+active.cashBuffer, active.category, false)}</div>
                 
-                <label>ระบุเงินช้อน Dry Powder:</label>
+                <label>ระบุเงินช้อน Dry Powder ($ USD):</label>
                 <input type="number" id="update-dry" class="input-retro" value="${active.dryPowder||0}" required style="width:100%;">
                 <input type="submit" class="btn btn-success btn-retro" style="width:100%; padding:6px; font-weight:bold;" value="💾 บันทึกเงินช้อน">
               </form>
@@ -886,6 +1026,78 @@ class PixelStewardApp {
         this.saveState(); this.refreshUI(); alert('🎯 อัปเดตเงินช้อนสำเร็จ!'); 
       }
     });
+  }
+
+  /* ✏️ OPEN SUB-ASSET EDIT MODAL (DIME SYNC SYSTEM) */
+  openAssetEditModal(portId, assetIdx) {
+    const p = this.portfolios.find(x => x && x.id === portId);
+    if (!p || !p.assets || !p.assets[assetIdx]) return;
+    const a = p.assets[assetIdx];
+
+    document.getElementById('asset-edit-port-id').value = portId;
+    document.getElementById('asset-edit-index').value = assetIdx;
+    document.getElementById('asset-edit-name').value = a.name || '';
+    document.getElementById('asset-edit-shares').value = a.shares !== undefined ? a.shares : 1;
+    document.getElementById('asset-edit-cost-price').value = a.costPrice !== undefined ? a.costPrice : (a.costBasis / (a.shares || 1));
+    document.getElementById('asset-edit-market-val').value = a.value !== undefined ? a.value : 0;
+
+    const modal = document.getElementById('asset-edit-modal');
+    if (modal) modal.classList.remove('hidden');
+
+    const updatePreview = () => {
+      const shares = Number(document.getElementById('asset-edit-shares').value) || 0;
+      const costPrice = Number(document.getElementById('asset-edit-cost-price').value) || 0;
+      const marketVal = Number(document.getElementById('asset-edit-market-val').value) || 0;
+
+      const totalCost = shares * costPrice;
+      const totalPL = marketVal - totalCost;
+      const pctPL = totalCost > 0 ? (totalPL / totalCost) * 100 : 0;
+      const isProfit = totalPL >= 0;
+
+      const costEl = document.getElementById('preview-total-cost');
+      const plEl = document.getElementById('preview-total-pl');
+
+      if (costEl) costEl.textContent = `$${totalCost.toFixed(2)}`;
+      if (plEl) {
+        plEl.textContent = `${isProfit ? '+' : ''}$${totalPL.toFixed(2)} (${isProfit ? '+' : ''}${pctPL.toFixed(1)}%)`;
+        plEl.style.color = isProfit ? '#10b981' : '#ef4444';
+      }
+    };
+
+    ['asset-edit-shares', 'asset-edit-cost-price', 'asset-edit-market-val'].forEach(id => {
+      const input = document.getElementById(id);
+      if (input) input.oninput = updatePreview;
+    });
+
+    updatePreview();
+  }
+
+  handleSaveAssetEdit() {
+    const portId = document.getElementById('asset-edit-port-id').value;
+    const idx = Number(document.getElementById('asset-edit-index').value);
+    const p = this.portfolios.find(x => x && x.id === portId);
+    if (!p || !p.assets || !p.assets[idx]) return;
+
+    const name = document.getElementById('asset-edit-name').value.trim().toUpperCase();
+    const shares = Number(document.getElementById('asset-edit-shares').value) || 1;
+    const costPrice = Number(document.getElementById('asset-edit-cost-price').value) || 0;
+    const marketVal = Number(document.getElementById('asset-edit-market-val').value) || 0;
+
+    if (!name) { alert('❌ โปรดระบุชื่อ Ticker สินทรัพย์!'); return; }
+
+    p.assets[idx] = {
+      name: name,
+      shares: shares,
+      costPrice: costPrice,
+      costBasis: shares * costPrice,
+      currentPrice: shares > 0 ? marketVal / shares : marketVal,
+      value: marketVal
+    };
+
+    this.saveState();
+    this.closeModals();
+    this.refreshUI();
+    this.showRetroToast(`🎯 แก้ไขสินทรัพย์ย่อย "${name}" สำเร็จ!`, 'success');
   }
 
   deletePortfolio(portId) {
@@ -913,7 +1125,7 @@ class PixelStewardApp {
     const p = this.portfolios.find(x => x && x.id === id);
     if (!p) return;
     if (p.goalType === 'numeric') {
-      const newGoal = prompt(`✏️ แก้ไขเป้าหมายตัวเลขเงินสะสมของพอร์ต "${p.name}" เป็น:`, p.goal);
+      const newGoal = prompt(`✏️ แก้ไขเป้าหมายตัวเลขเงินสะสม ($ USD) ของพอร์ต "${p.name}" เป็น:`, p.goal);
       if (newGoal !== null && !isNaN(Number(newGoal)) && Number(newGoal) >= 0) {
         p.goal = Number(newGoal);
         this.saveState(); this.refreshUI();
@@ -930,7 +1142,7 @@ class PixelStewardApp {
   modularDepositAsset(portId, assetIdx) {
     const p = this.portfolios.find(x => x && x.id === portId);
     if (p && p.assets && p.assets[assetIdx]) {
-      const amount = prompt(`📥 [ฝากเสบียงเพิ่ม/➕] ระบุจำนวนเงินต้นที่ต้องการเติมเข้าช่อง "${p.assets[assetIdx].name}":`);
+      const amount = prompt(`📥 [ฝากเสบียงเพิ่ม/➕] ระบุจำนวนเงินต้น ($ USD) ที่ต้องการเติมเข้าช่อง "${p.assets[assetIdx].name}":`);
       if (amount !== null && !isNaN(Number(amount)) && Number(amount) > 0) {
         const numAmt = Number(amount);
         p.assets[assetIdx].value += numAmt;
@@ -943,7 +1155,7 @@ class PixelStewardApp {
   modularWithdrawAsset(portId, assetIdx) {
     const p = this.portfolios.find(x => x && x.id === portId);
     if (p && p.assets && p.assets[assetIdx]) {
-      const amount = prompt(`📤 [ถอนเสบียงออก/➖] ระบุจำนวนเงินที่ต้องการหักออกจากช่อง "${p.assets[assetIdx].name}":`);
+      const amount = prompt(`📤 [ถอนเสบียงออก/➖] ระบุจำนวนเงิน ($ USD) ที่ต้องการหักออกจากช่อง "${p.assets[assetIdx].name}":`);
       if (amount !== null && !isNaN(Number(amount)) && Number(amount) > 0) {
         if (p.assets[assetIdx].value < Number(amount)) {
           alert('❌ จำนวนเงินถอนออกมากกว่าเสบียงคงเหลือในตลับสินทรัพย์ย่อยครับ');
@@ -1062,27 +1274,26 @@ class PixelStewardApp {
       if (!p) return;
       const r = this.quarterlyRecords.find(x => x && x.portfolioId === p.id && x.year === year);
       if (!r) return;
-      const rate = this.isPortfolioUSD(p.category) ? this.exchangeRate : 1;
-      sums.q1 += (r.q1 || 0) * rate; sums.q2 += (r.q2 || 0) * rate;
-      sums.q3 += (r.q3 || 0) * rate; sums.q4 += (r.q4 || 0) * rate;
+      sums.q1 += (r.q1 || 0); sums.q2 += (r.q2 || 0);
+      sums.q3 += (r.q3 || 0); sums.q4 += (r.q4 || 0);
     });
     const growth = this.getQuarterGrowth(sums.q2, 0, sums.q1);
     return { ...sums, growth };
   }
 
   renderQuarterly(container) {
-    const stockPorts = Array.isArray(this.portfolios) ? this.portfolios.filter(p => p && p.category !== 'Option' && p.category !== 'Forex') : [];
+    const stockPorts = Array.isArray(this.portfolios) ? this.portfolios.filter(p => p && (p.category || '').toLowerCase() !== 'option' && (p.category || '').toLowerCase() !== 'forex') : [];
     if (stockPorts.length === 0) { container.innerHTML = '<div class="border-pixel" style="padding:20px; background:#1f273e;">ไม่มีรายการหุ้นรายไตรมาส (โปรดตั้งค่าเปิดตลับพอร์ตหลักก่อนครับ)</div>'; return; }
 
     const year = this.quarterlyViewYear;
     const years = this.getQuarterlyYearsList();
     const summary = this.getGlobalQuarterSummary(stockPorts, year);
-    const fmtQ = (v) => v > 0 ? `฿${v.toLocaleString(undefined, { maximumFractionDigits: 2 })}` : '฿0.00';
+    const fmtQ = (v) => v > 0 ? `$${v.toLocaleString(undefined, { maximumFractionDigits: 2 })}` : '$0.00';
 
     const headerHtml = `
       <div class="border-pixel" style="padding:14px 16px; background:#1f273e; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
         <div>
-          <h3 style="font-family:'Press Start 2P'; font-size:0.8rem; margin:0;">🗓️ หุ้นรายไตรมาส</h3>
+          <h3 style="font-family:'Press Start 2P'; font-size:0.8rem; margin:0;">🗓️ หุ้นรายไตรมาส ($ USD)</h3>
           <p class="text-muted" style="font-size:0.78rem; margin:4px 0 0 0;">ติดตามประวัติการเติบโตของพอร์ตการลงทุนรายไตรมาส</p>
         </div>
         <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
@@ -1150,9 +1361,9 @@ class PixelStewardApp {
               <div class="quarterly-mini-chart">
                 ${miniBar(rec.q1, '#3b82f6')}${miniBar(rec.q2, '#10b981')}${miniBar(rec.q3, '#8b5cf6')}${miniBar(rec.q4, '#f59e0b')}
               </div>
-              <div class="quarterly-mini-chart-labels"><span>${(rec.q1 || 0) > 0 ? '฿' + rec.q1.toLocaleString() : '-'}</span><span>Q1</span><span>Q2</span><span>Q3</span><span>Q4</span></div>
+              <div class="quarterly-mini-chart-labels"><span>${(rec.q1 || 0) > 0 ? '$' + rec.q1.toLocaleString() : '-'}</span><span>Q1</span><span>Q2</span><span>Q3</span><span>Q4</span></div>
               <div style="display:flex; justify-content:space-between; font-size:0.6rem; color:#64748b; padding:0 2px;">
-                <span>-</span><span>${(rec.q2 || 0) > 0 ? '฿' + rec.q2.toLocaleString() : '-'}</span><span>${(rec.q3 || 0) > 0 ? '฿' + rec.q3.toLocaleString() : '-'}</span><span>${(rec.q4 || 0) > 0 ? '฿' + rec.q4.toLocaleString() : '-'}</span>
+                <span>-</span><span>${(rec.q2 || 0) > 0 ? '$' + rec.q2.toLocaleString() : '-'}</span><span>${(rec.q3 || 0) > 0 ? '$' + rec.q3.toLocaleString() : '-'}</span><span>${(rec.q4 || 0) > 0 ? '$' + rec.q4.toLocaleString() : '-'}</span>
               </div>
             ` : `
               <div class="quarterly-empty-state">
@@ -1180,7 +1391,7 @@ class PixelStewardApp {
       const g2 = this.getQuarterGrowth(r.q2, r.f2, r.q1);
       const g3 = this.getQuarterGrowth(r.q3, r.f3, r.q2);
       const g4 = this.getQuarterGrowth(r.q4, r.f4, r.q3);
-      const cell = (v, g) => `${v > 0 ? '฿' + v.toLocaleString() : '<span class="text-muted">⏳ รอข้อมูล</span>'}${g ? `<div style="font-size:0.65rem;" class="${g.cls}">${g.text}</div>` : ''}`;
+      const cell = (v, g) => `${v > 0 ? '$' + v.toLocaleString() : '<span class="text-muted">⏳ รอข้อมูล</span>'}${g ? `<div style="font-size:0.65rem;" class="${g.cls}">${g.text}</div>` : ''}`;
       return `
         <tr>
           <td style="padding:8px; border:2px solid #000;">${idx + 1}. ${p.name}</td>
@@ -1300,35 +1511,54 @@ class PixelStewardApp {
     this.refreshUI();
   }
 
-  // 🛠️ [NEW FIX] อัปเดตการแสดงผลปุ่ม Edit / Delete ในหน้าบันทึกงวดสัญญา Option
   renderOptionManual(container) {
-    const optionPorts = Array.isArray(this.portfolios) ? this.portfolios.filter(p => p && p.category === 'Option') : [];
-    const records = Array.isArray(this.monthlyRecords) ? this.monthlyRecords.filter(r => r && optionPorts.map(p => p.id).includes(r.portfolioId)) : [];
+    const optionPorts = Array.isArray(this.portfolios) 
+      ? this.portfolios.filter(p => p && (p.category || '').toLowerCase().includes('option')) 
+      : [];
+
+    const records = Array.isArray(this.monthlyRecords) 
+      ? this.monthlyRecords.filter(r => r && optionPorts.map(p => p.id).includes(r.portfolioId)) 
+      : [];
+
     container.innerHTML = `
       <div class="border-pixel" style="padding:15px; background:#1f273e;">
         <h4 style="font-family:'Press Start 2P'; font-size:0.65rem; color:var(--color-accent); margin-bottom:10px; display:flex; align-items:center;">
-          <img src="./assets/icons/icon-daimon.png" alt="Diamond" class="card-title-icon"> บันทึกงวดสัญญา Option
+          <img src="./assets/icons/icon-daimon.png" alt="Diamond" class="card-title-icon"> บันทึกงวดสัญญา Option ($ USD)
         </h4>
         <div style="display:grid; grid-template-columns:1fr 2fr; gap:15px;">
           <div class="border-pixel-inset" style="padding:12px; background:#111625;">
             <label style="font-size:0.8rem;">เลือกพอร์ต:</label>
-            <select id="opt-port-select" class="input-retro" style="width:100%; margin-bottom:8px;">${optionPorts.length===0?'<option>ไม่มีตลับพอร์ตออปชัน</option>':optionPorts.map(p=>`<option value="${p.id}">${p.name}</option>`).join('')}</select>
+            <select id="opt-port-select" class="input-retro" style="width:100%; margin-bottom:8px;">
+              ${optionPorts.length === 0 
+                ? '<option value="">❌ ไม่พบตลับพอร์ต Option</option>' 
+                : optionPorts.map(p => `<option value="${p.id}">${p.name}</option>`).join('')}
+            </select>
+
             <label style="font-size:0.8rem;">เดือนงวด:</label>
-            <select id="opt-month-select" class="input-retro" style="width:100%; margin-bottom:8px;">${[...Array(12).keys()].map(i=>`<option value="${i+1}">เดือน ${i+1}</option>`).join('')}</select>
-            <label style="font-size:0.8rem;">P/L สุทธิ (USD):</label>
-            <input type="number" id="opt-pl-input" class="input-retro" style="width:100%; margin-bottom:12px;">
-            <button class="btn btn-success btn-retro" id="btn-save-opt-manual" style="width:100%;"><span>💾 บันทึกงวดสัญญา</span></button>
+            <select id="opt-month-select" class="input-retro" style="width:100%; margin-bottom:8px;">
+              ${[...Array(12).keys()].map(i => `<option value="${i+1}">เดือน ${i+1}</option>`).join('')}
+            </select>
+
+            <label style="font-size:0.8rem;">P/L สุทธิ ($ USD):</label>
+            <input type="number" id="opt-pl-input" class="input-retro" placeholder="เช่น 150 หรือ -50" style="width:100%; margin-bottom:12px;">
+
+            <button class="btn btn-success btn-retro" id="btn-save-opt-manual" style="width:100%;">
+              <span>💾 บันทึกงวดสัญญา</span>
+            </button>
           </div>
+
           <div class="border-pixel-inset" style="padding:12px; background:#111625;">
             <h5 style="display:flex; align-items:center; gap:6px;">
               <img src="./assets/icons/icon-document-chart.png" alt="Log" class="card-title-icon"> ประวัติสัญญารายเดือนย่อย
             </h5>
             <div style="max-height:220px; overflow-y:auto; font-size:0.85rem; margin-top:8px;">
-              ${records.length===0?'<p class="text-muted">ไม่มีประวัติคงเหลือ</p>':records.map(r=>`
+              ${records.length === 0 ? '<p class="text-muted">ไม่มีประวัติคงเหลือ</p>' : records.map(r => `
                 <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid #333; padding:6px 0;">
-                  <span><b>${this.portfolios.find(x=>x && x.id===r.portfolioId)?.name || ''}</b> (เดือน ${r.month})</span>
+                  <span><b>${this.portfolios.find(x => x && x.id === r.portfolioId)?.name || ''}</b> (เดือน ${r.month})</span>
                   <div style="display:flex; gap:6px; align-items:center;">
-                    <b class="${(r.profitLossUSD||0)>=0?'text-success':'text-danger'}">${(r.profitLossUSD||0)>=0?'+':''}$${r.profitLossUSD || 0}</b>
+                    <b class="${(r.profitLossUSD || 0) >= 0 ? 'text-success' : 'text-danger'}">
+                      ${(r.profitLossUSD || 0) >= 0 ? '+' : ''}$${r.profitLossUSD || 0}
+                    </b>
                     <button class="btn btn-warning btn-small" onclick="app.inlineEditOption('${r.id}')" style="padding:2px 6px; font-size:0.7rem; color:#000;" title="แก้ไขงวดสัญญา">✏️</button>
                     <button class="btn btn-danger btn-small" onclick="app.deleteOptionRecord('${r.id}')" style="padding:2px 6px; font-size:0.7rem;" title="ลบรายการนี้">✖</button>
                   </div>
@@ -1338,21 +1568,46 @@ class PixelStewardApp {
           </div>
         </div>
       </div>`;
-    if(optionPorts.length>0){
-      document.getElementById('btn-save-opt-manual').addEventListener('click', () => {
-        const pId = document.getElementById('opt-port-select').value; const m = Number(document.getElementById('opt-month-select').value); const pl = Number(document.getElementById('opt-pl-input').value);
-        if(!pId || isNaN(pl)) return;
-        this.monthlyRecords.push({ id:'m-'+Date.now(), portfolioId:pId, year:new Date().getFullYear(), month:m, profitLossUSD:pl, notes:'Manual' });
-        this.saveState(); this.refreshUI();
+
+    const btnSave = document.getElementById('btn-save-opt-manual');
+    if (btnSave) {
+      btnSave.addEventListener('click', () => {
+        const portSelect = document.getElementById('opt-port-select');
+        const pId = portSelect ? portSelect.value : '';
+        const m = Number(document.getElementById('opt-month-select').value);
+        const plInput = document.getElementById('opt-pl-input').value;
+
+        if (!pId) {
+          alert('❌ โปรดสร้างพอร์ตหมวดหมู่ "Option" ก่อนบันทึกรายการครับ');
+          return;
+        }
+
+        if (plInput.trim() === '' || isNaN(Number(plInput))) {
+          alert('❌ โปรดระบุตัวเลข P/L สุทธิ ($ USD) ให้ถูกต้อง');
+          return;
+        }
+
+        const pl = Number(plInput);
+        this.monthlyRecords.push({
+          id: 'm-' + Date.now(),
+          portfolioId: pId,
+          year: new Date().getFullYear(),
+          month: m,
+          profitLossUSD: pl,
+          notes: 'Manual'
+        });
+
+        this.saveState();
+        this.refreshUI();
+        alert('🎯 บันทึกงวดสัญญา Option สำเร็จ!');
       });
     }
   }
 
-  // 🛠️ [NEW METHOD] ฟังก์ชันแก้ไขตัวเลข P/L สุทธิสำหรับ Option
   inlineEditOption(id) {
     const r = this.monthlyRecords.find(x => x && x.id === id);
     if (!r) return;
-    const newPL = prompt(`✏️ ระบุ P/L สุทธิ (USD) ใหม่สำหรับงวดเดือน ${r.month}:`, r.profitLossUSD);
+    const newPL = prompt(`✏️ ระบุ P/L สุทธิ ($ USD) ใหม่สำหรับงวดเดือน ${r.month}:`, r.profitLossUSD);
     if (newPL !== null && !isNaN(Number(newPL))) {
       r.profitLossUSD = Number(newPL);
       this.saveState();
@@ -1360,7 +1615,6 @@ class PixelStewardApp {
     }
   }
 
-  // 🛠️ [NEW METHOD] ฟังก์ชันลบรายการบันทึกงวดสัญญา Option
   deleteOptionRecord(id) {
     if (confirm('⚠️ คุณต้องการลบประวัติรายการงวดสัญญานี้ใช่หรือไม่?')) {
       this.monthlyRecords = this.monthlyRecords.filter(x => x && x.id !== id);
@@ -1386,8 +1640,8 @@ class PixelStewardApp {
           <thead>
             <tr style="background:#111625;">
               <th style="padding:8px; border:2px solid #000;">ชื่อพอร์ต</th>
-              <th style="padding:8px; border:2px solid #000;">ต้นทุนเงินลงทุนสะสม</th>
-              <th style="padding:8px; border:2px solid #000;">รวมรับปันผล</th>
+              <th style="padding:8px; border:2px solid #000;">ต้นทุนเงินลงทุนสะสม ($ USD)</th>
+              <th style="padding:8px; border:2px solid #000;">รวมรับปันผล ($ USD)</th>
               <th style="padding:8px; border:2px solid #000; color:var(--color-accent);">YOC Score</th>
             </tr>
           </thead>
@@ -1397,7 +1651,7 @@ class PixelStewardApp {
               const divs = Array.isArray(this.dividendRecords) ? this.dividendRecords.filter(x=>x && x.portfolioId===p.id).reduce((s,x)=>s+Number(x.amount||0),0) : 0;
               const totalCostBasis = Array.isArray(p.assets) ? p.assets.reduce((sum, a) => sum + (Number(a.costBasis) || Number(a.value) || 0), 0) : (p.current || 0);
               const yoc = totalCostBasis > 0 ? ((divs / totalCostBasis) * 100).toFixed(2) + '%' : 'N/A';
-              return `<tr><td style="padding:8px; border:2px solid #000;"><b>${p.name}</b></td><td style="padding:8px; border:2px solid #000;">${this.formatMoney(totalCostBasis, p.category)}</td><td style="padding:8px; border:2px solid #000; color:var(--color-success);">${this.formatMoney(divs,p.category)}</td><td style="padding:8px; border:2px solid #000; font-weight:bold; color:var(--color-accent); font-family:'Press Start 2P'!important; font-size:0.75rem!important;">${yoc}</td></tr>`;
+              return `<tr><td style="padding:8px; border:2px solid #000;"><b>${p.name}</b></td><td style="padding:8px; border:2px solid #000;">${this.formatMoney(totalCostBasis, p.category, false)}</td><td style="padding:8px; border:2px solid #000; color:var(--color-success);">${this.formatMoney(divs, p.category, false)}</td><td style="padding:8px; border:2px solid #000; font-weight:bold; color:var(--color-accent); font-family:'Press Start 2P'!important; font-size:0.75rem!important;">${yoc}</td></tr>`;
             }).join('')}
           </tbody>
         </table>
@@ -1413,7 +1667,7 @@ class PixelStewardApp {
                   <th style="padding:8px; border:1px solid #000; text-align:center;">วันรับเงิน</th>
                   <th style="padding:8px; border:1px solid #000;">ตลับพอร์ตหลัก</th>
                   <th style="padding:8px; border:1px solid #000;">หมายเหตุ/ชื่อหุ้น</th>
-                  <th style="padding:8px; border:1px solid #000; text-align:right; padding-right:10px;">จำนวนเงิน</th>
+                  <th style="padding:8px; border:1px solid #000; text-align:right; padding-right:10px;">จำนวนเงิน ($ USD)</th>
                   <th style="padding:8px; border:1px solid #000; text-align:center;">ตัวจัดการ</th>
                 </tr>
               </thead>
@@ -1424,13 +1678,13 @@ class PixelStewardApp {
                       if(!r) return '';
                       const p = this.portfolios.find(x => x && x.id === r.portfolioId);
                       const pName = p ? p.name : 'Unknown';
-                      const pCat = p ? p.category : 'Thai Stock';
+                      const pCat = p ? p.category : 'Global Stock';
                       return `
                       <tr style="border-bottom:1px solid #222;">
                         <td style="padding:8px; border:1px solid #000; text-align:center; font-family:monospace; color:#94a3b8;">${r.date || ''}</td>
                         <td style="padding:8px; border:1px solid #000; color:#fff;"><b>${pName}</b></td>
                         <td style="padding:8px; border:1px solid #000; color:#94a3b8;">${r.notes || '-'}</td>
-                        <td style="padding:8px; border:1px solid #000; text-align:right; padding-right:10px; font-weight:bold;">${this.formatMoney(r.amount || 0, pCat)}</td>
+                        <td style="padding:8px; border:1px solid #000; text-align:right; padding-right:10px; font-weight:bold;">${this.formatMoney(r.amount || 0, pCat, false)}</td>
                         <td style="padding:8px; border:1px solid #000; text-align:center;">
                           <button class="btn btn-warning btn-small" onclick="app.inlineEditDividend('${r.id}')" style="padding:2px 6px; font-size:0.7rem; font-weight:bold; color:#000;">✏️ แก้ไข</button>
                           <button class="btn btn-danger btn-small" onclick="app.deleteDividend('${r.id}')" style="padding:2px 6px; font-size:0.7rem; font-weight:bold; color:#fff; margin-left:4px;">✖ ลบ</button>
@@ -1450,19 +1704,20 @@ class PixelStewardApp {
     container.innerHTML = `
       <div class="border-pixel" style="padding:15px; background:#1f273e; overflow-x:auto;">
         <table class="retro-table" style="width:100%; border-collapse:collapse; font-size:0.8rem; text-align:left;">
-          <thead><tr style="background:#111625;"><th style="padding:8px; border:2px solid #000;">ชื่อพอร์ต</th><th style="padding:8px; border:2px solid #000;">เป้าหมายรวม</th><th style="padding:8px; border:2px solid #000;">พอร์ตรวมจริง (THB)</th><th style="padding:8px; border:2px solid #000;">ส่วนต่างที่ขาด (THB)</th><th style="padding:8px; border:2px solid #000; color:var(--color-success); min-width:180px;">เควสสเกล (EXP Bar)</th></tr></thead>
+          <thead><tr style="background:#111625;"><th style="padding:8px; border:2px solid #000;">ชื่อพอร์ต</th><th style="padding:8px; border:2px solid #000;">เป้าหมายรวม ($ USD)</th><th style="padding:8px; border:2px solid #000;">พอร์ตรวมจริง ($ USD)</th><th style="padding:8px; border:2px solid #000;">ส่วนต่างที่ขาด ($ USD)</th><th style="padding:8px; border:2px solid #000; color:var(--color-success); min-width:180px;">เควสสเกล (EXP Bar)</th></tr></thead>
           <tbody>
             ${this.portfolios.map(p => {
               if(!p) return '';
-              const r = this.isPortfolioUSD(p.category) ? this.exchangeRate : 1;
-              const curTHB = ((p.current||0)+(p.cashBuffer||0))*r; const goalTHB = p.goalType==='numeric'?((p.goal||0)*r):0; const diff = p.goalType==='numeric'?Math.max(goalTHB-curTHB,0):0;
-              const pct = p.goalType==='numeric'?(p.goal>0?(curTHB/goalTHB)*100:0):(p.dcaDoneThisMonth?100:0);
+              const curUSD = (p.current||0)+(p.cashBuffer||0); 
+              const goalUSD = p.goalType==='numeric'?(p.goal||0):0; 
+              const diff = p.goalType==='numeric'?Math.max(goalUSD-curUSD,0):0;
+              const pct = p.goalType==='numeric'?(p.goal>0?(curUSD/goalUSD)*100:0):(p.dcaDoneThisMonth?100:0);
               const fillPct = Math.min(100, Math.max(0, pct));
               return `<tr>
                 <td style="padding:8px; border:2px solid #000;"><b>${p.name}</b></td>
-                <td style="padding:8px; border:2px solid #000;">${p.goalType==='numeric'?this.formatMoney(p.goal||0,p.category):p.goalSchedule}</td>
-                <td style="padding:8px; border:2px solid #000;">฿${curTHB.toLocaleString(undefined,{maximumFractionDigits:0})}</td>
-                <td style="padding:8px; border:2px solid #000; color:#ef4444;">${diff>0?'฿'+diff.toLocaleString(undefined,{maximumFractionDigits:0}):'✔️ เควสเคลียร์'}</td>
+                <td style="padding:8px; border:2px solid #000;">${p.goalType==='numeric'?this.formatMoney(p.goal||0,p.category, false):p.goalSchedule}</td>
+                <td style="padding:8px; border:2px solid #000;">$${curUSD.toLocaleString(undefined,{maximumFractionDigits:2})}</td>
+                <td style="padding:8px; border:2px solid #000; color:#ef4444;">${diff>0?'$'+diff.toLocaleString(undefined,{maximumFractionDigits:2}):'✔️ เควสเคลียร์'}</td>
                 <td style="padding:8px; border:2px solid #000;">
                   <div style="position:relative; width:100%; height:18px; background:#111625; border:2px solid #000; display:flex; align-items:center; overflow:hidden;">
                     <div style="width:${fillPct}%; background:var(--color-success); height:100%; transition:width 0.4s ease;"></div>
@@ -1613,15 +1868,15 @@ class PixelStewardApp {
 
   handleExecuteTransfer() {
     const srcId = document.getElementById('tf-source').value;
-    const destId = document.getElementById('tf-target').value; const amt = Number(document.getElementById('tf-amount').value); const r = Number(document.getElementById('tf-rate').value)||this.exchangeRate; const src = this.portfolios.find(x=>x && x.id===srcId);
+    const destId = document.getElementById('tf-target').value; 
+    const amt = Number(document.getElementById('tf-amount').value); 
+    const src = this.portfolios.find(x=>x && x.id===srcId);
     if(!src || src.dryPowder < amt) { alert('❌ กระสุนไม่เพียงพอ'); return; }
     src.dryPowder -= amt;
     if(destId!=='system') {
       const dest = this.portfolios.find(x=>x && x.id===destId);
       if(dest) {
-        const sUSD = this.isPortfolioUSD(src.category); const tUSD = this.isPortfolioUSD(dest.category);
-        let conv = amt; if(sUSD && !tUSD) conv = amt * r; else if(!sUSD && tUSD) conv = amt / r;
-        dest.dryPowder += conv;
+        dest.dryPowder += amt;
       }
     }
     this.saveState(); this.closeModals(); this.refreshUI(); alert('⚡ โยกย้ายจัดสรรเรียบร้อย!');
@@ -1641,7 +1896,7 @@ class PixelStewardApp {
   inlineEditDividend(id) {
     const r = this.dividendRecords.find(x => x && x.id === id);
     if (!r) return;
-    const newAmount = prompt(`✏️ ระบุจำนวนตัวเลขเงินปันผลใหม่ที่ถูกต้อง:`, r.amount);
+    const newAmount = prompt(`✏️ ระบุจำนวนตัวเลขเงินปันผล ($ USD) ใหม่ที่ถูกต้อง:`, r.amount);
     if (newAmount !== null && !isNaN(Number(newAmount)) && Number(newAmount) > 0) {
       const newNotes = prompt(`✏️ ระบุโน้ตชื่อหุ้นหรือหมายเหตุใหม่:`, r.notes || '');
       if (newNotes !== null) { r.amount = Number(newAmount); r.notes = newNotes.trim(); this.saveState(); this.refreshUI(); }
@@ -1662,10 +1917,10 @@ class PixelStewardApp {
   
   openTransferModal() {
     if(!Array.isArray(this.portfolios) || this.portfolios.length===0){ alert('❌ โปรดสร้างตลับพอร์ตเพื่อทำรายการโยกย้ายเสบียง'); return; }
-    document.getElementById('tf-source').innerHTML = this.portfolios.map(p=>p?`<option value="${p.id}">${p.name} (Dry: ${p.dryPowder})</option>`:'').join('');
+    document.getElementById('tf-source').innerHTML = this.portfolios.map(p=>p?`<option value="${p.id}">${p.name} (Dry: $${p.dryPowder})</option>`:'').join('');
     document.getElementById('tf-target').innerHTML = '<option value="system">ถอนเงินออกนอกคลัง</option>'+this.portfolios.map(p=>p?`<option value="${p.id}">${p.name}</option>`:'').join('');
     document.getElementById('tf-rate').value = this.exchangeRate;
-    document.getElementById('transfer-modal').classList.remove('hidden');
+    document.getElementById('transfer-modal').classList.add('hidden');
   }
   
   closeModals() { 
@@ -1748,10 +2003,8 @@ class PixelStewardApp {
       if (!r) return;
       const p = this.portfolios.find(x => x && x.id === r.portfolioId);
       const pName = p ? p.name : 'Unassigned';
-      const cat = p ? p.category : 'Thai Stock';
-      const curr = this.isPortfolioUSD(cat) ? 'USD' : 'THB';
       const cleanNotes = (r.notes || '').replace(/,/g, ' ');
-      csvContent += `"${r.date || ''}","${pName}","${cleanNotes}",${r.amount || 0},"${curr}"\n`;
+      csvContent += `"${r.date || ''}","${pName}","${cleanNotes}",${r.amount || 0},"USD"\n`;
     });
 
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
@@ -1769,7 +2022,7 @@ class PixelStewardApp {
       return;
     }
 
-    let csvContent = "\uFEFFชื่อพอร์ต,หมวดหมู่,ประเภทเป้าหมาย,เป้าหมายสะสม,มูลค่าปัจจุบัน,เงินสดช้อน (Dry Powder),ต้นทุนสะสม,กำไร/ขาดทุนสะสม,YOC Score\n";
+    let csvContent = "\uFEFFชื่อพอร์ต,หมวดหมู่,ประเภทเป้าหมาย,เป้าหมายสะสม ($),มูลค่าปัจจุบัน ($),เงินสดช้อน Dry Powder ($),ต้นทุนสะสม ($),กำไร/ขาดทุนสะสม ($),YOC Score\n";
     this.portfolios.forEach(p => {
       if (!p) return;
       const divs = Array.isArray(this.dividendRecords) ? this.dividendRecords.filter(x=>x && x.portfolioId===p.id).reduce((s,x)=>s+Number(x.amount||0),0) : 0;
@@ -1815,7 +2068,7 @@ class PixelStewardApp {
       case 'dashboard':  this.renderDashboard(container); break;
       case 'portfolios': this.renderPortfolios(container); break;
       case 'journal':
-        container.innerHTML = '<div id="tab-content-journal-mount"></div>';
+        container.innerHTML = '<div class="journal-scope" id="tab-content-journal-mount"></div>';
         rtjRender();
         break;
       case 'quarterly':  this.renderQuarterly(container); break;
@@ -1828,197 +2081,12 @@ class PixelStewardApp {
   }
 }
 
+// 🚀 INITIALIZATION INSTANTIATION
 window.app = new PixelStewardApp();
+
 /* ==========================================================================
-   🕹️ RETRO TRADER JOURNAL ENGINE (NAMESPACED: rtj_)
+   🕹️ RETRO TRADER JOURNAL FUNCTIONS & EVENT ATTACHMENTS
    ========================================================================== */
-const rtjKEY = {
-  TRADES:       'rtj_trades_v2',
-  CFS:          'rtj_cfs_v2',
-  BALANCES:     'rtj_balances_v3',
-  SOUND:        'rtj_sound_v2',
-  CRT:          'rtj_crt_v2',
-  LAST_ACCOUNT: 'rtj_last_account_v1'
-};
-
-const rtjDEFAULT_BALANCES = {
-  Demo: 10000,
-  LIFE: 1000,
-  RISK: 500,
-  Swingtrade: 2000
-};
-
-function rtjLoad(key, def) { 
-  try { 
-    const v = localStorage.getItem(key); 
-    if (v === null || v === 'undefined') return def;
-    if (key === rtjKEY.BALANCES) {
-      const parsed = JSON.parse(v);
-      if (typeof parsed === 'number') {
-        return { ...rtjDEFAULT_BALANCES, Demo: parsed };
-      }
-      return { ...rtjDEFAULT_BALANCES, ...parsed };
-    }
-    return JSON.parse(v);
-  } catch { return def; } 
-}
-
-function rtjSave(key, val) { try { localStorage.setItem(key, JSON.stringify(val)); } catch {} }
-
-function rtjBeep(type) {
-  if (!rtjState || !rtjState.sound) return;
-  try {
-    const AC = window.AudioContext || window.webkitAudioContext; if (!AC) return;
-    const ctx = new AC(), osc = ctx.createOscillator(), g = ctx.createGain(); osc.connect(g); g.connect(ctx.destination);
-    if (type === 'win') {
-      osc.type = 'square'; osc.frequency.setValueAtTime(523, ctx.currentTime); osc.frequency.setValueAtTime(659, ctx.currentTime + .09);
-      g.gain.setValueAtTime(.07, ctx.currentTime); g.gain.exponentialRampToValueAtTime(.001, ctx.currentTime + .3);
-      osc.start(); osc.stop(ctx.currentTime + .3);
-    } else if (type === 'lose') {
-      osc.type = 'sawtooth'; osc.frequency.setValueAtTime(220, ctx.currentTime); osc.frequency.linearRampToValueAtTime(100, ctx.currentTime + .5);
-      g.gain.setValueAtTime(.08, ctx.currentTime); g.gain.exponentialRampToValueAtTime(.001, ctx.currentTime + .5);
-      osc.start(); osc.stop(ctx.currentTime + .5);
-    } else if (type === 'alert') {
-      osc.type = 'sawtooth'; osc.frequency.setValueAtTime(400, ctx.currentTime); osc.frequency.linearRampToValueAtTime(800, ctx.currentTime + .2); osc.frequency.linearRampToValueAtTime(400, ctx.currentTime + .4);
-      g.gain.setValueAtTime(.1, ctx.currentTime); g.gain.exponentialRampToValueAtTime(.001, ctx.currentTime + .4);
-      osc.start(); osc.stop(ctx.currentTime + .4);
-    } else {
-      osc.type = 'triangle'; osc.frequency.setValueAtTime(600, ctx.currentTime); g.gain.setValueAtTime(.04, ctx.currentTime); g.gain.exponentialRampToValueAtTime(.001, ctx.currentTime + .06);
-      osc.start(); osc.stop(ctx.currentTime + .06);
-    }
-  } catch {}
-}
-
-function rtjToday() { return new Date().toISOString().split('T')[0]; }
-function rtjFmt(n, d = 2) { return Number(n || 0).toFixed(d); }
-function rtjFmtDate(s) { if (!s) return ''; const [y, m, d] = s.split('-'); return `${d}/${m}/${y.slice(2)}`; }
-function rtjUid() { return Date.now().toString(36) + Math.random().toString(36).slice(2, 5); }
-
-function rtjWeekStart(dateStr) { const d = new Date(dateStr); const day = d.getDay(); const diff = day === 0 ? -6 : 1 - day; d.setDate(d.getDate() + diff); return d.toISOString().split('T')[0]; }
-function rtjWeekEnd(dateStr) { const ws = rtjWeekStart(dateStr); const d = new Date(ws); d.setDate(d.getDate() + 6); return d.toISOString().split('T')[0]; }
-function rtjMonthStart(dateStr) { return dateStr.slice(0, 7) + '-01'; }
-function rtjMonthEnd(dateStr) { const [y, m] = dateStr.split('-'); const last = new Date(+y, +m, 0); return `${y}-${m}-${String(last.getDate()).padStart(2, '0')}`; }
-
-function rtjFilterByPeriod(trades, period) {
-  const safeTrades = Array.isArray(trades) ? trades : [];
-  const safePeriod = period || { mode: 'all' };
-  if (!safePeriod || safePeriod.mode === 'all') return safeTrades;
-  const t = rtjToday();
-  if (safePeriod.mode === 'daily') { return safeTrades.filter(tr => tr && tr.date === (safePeriod.date || t)); }
-  if (safePeriod.mode === 'weekly') { return safeTrades.filter(tr => tr && tr.date >= rtjWeekStart(t) && tr.date <= rtjWeekEnd(t)); }
-  if (safePeriod.mode === 'monthly') { return safeTrades.filter(tr => tr && tr.date >= rtjMonthStart(t) && tr.date <= rtjMonthEnd(t)); }
-  if (safePeriod.mode === 'custom') { return safeTrades.filter(tr => tr && tr.date >= (safePeriod.from || '') && tr.date <= (safePeriod.to || '9999-12-31')); }
-  return safeTrades;
-}
-
-function rtjComputeStats(trades, startBal) {
-  const safeTrades = Array.isArray(trades) ? trades : [];
-  const total = safeTrades.length;
-  const wins = safeTrades.filter(t => t && t.status === 'TP').length;
-  const loses = safeTrades.filter(t => t && t.status === 'SL').length;
-  const bes = safeTrades.filter(t => t && t.status === 'BE').length;
-  const wr = total > 0 ? (wins / total * 100).toFixed(1) : 0;
-  const netPnl = safeTrades.reduce((s, t) => s + (Number(t.pnl) || 0), 0);
-
-  function calcRR(t) {
-    if (!t) return null;
-    const entryExitDist = Math.abs((Number(t.entry) || 0) - (Number(t.exit) || 0)); 
-    const entrySLDist = Math.abs((Number(t.entry) || 0) - (Number(t.sl) || 0));
-    if (entryExitDist === 0 || entrySLDist === 0 || (Number(t.lot) || 0) === 0) return null;
-    const pipVal = Math.abs(Number(t.pnl) || 0) / (entryExitDist * Number(t.lot));
-    const riskUSD = entrySLDist * Number(t.lot) * pipVal; 
-    const rewardUSD = Math.abs(Number(t.pnl) || 0);
-    return riskUSD > 0 ? rewardUSD / riskUSD : null;
-  }
-
-  const rrs = safeTrades.map(calcRR).filter(r => r !== null && r > 0);
-  const avgRR = rrs.length > 0 ? (rrs.reduce((a, b) => a + b, 0) / rrs.length).toFixed(2) + 'R' : '-';
-
-  const grossProfit = safeTrades.filter(t => t && Number(t.pnl) > 0).reduce((s, t) => s + Number(t.pnl), 0);
-  const grossLoss = Math.abs(safeTrades.filter(t => t && Number(t.pnl) < 0).reduce((s, t) => s + Number(t.pnl), 0));
-  const profitFactor = grossLoss > 0 ? (grossProfit / grossLoss).toFixed(2) : (grossProfit > 0 ? '∞' : '0.00');
-  const expectancy = total > 0 ? (netPnl / total).toFixed(2) : '0.00';
-
-  const lossTrades = safeTrades.filter(t => t && Number(t.pnl) < 0);
-  const greedCost = Math.abs(lossTrades.filter(t => t.psychology && t.psychology.greed).reduce((s, t) => s + Number(t.pnl), 0));
-  const fearCost = Math.abs(lossTrades.filter(t => t.psychology && t.psychology.fear).reduce((s, t) => s + Number(t.pnl), 0));
-
-  let maxWinStreak = 0, maxLossStreak = 0;
-  let currentWinStreak = 0, currentLossStreak = 0;
-  
-  const streakTrades = safeTrades.filter(t => t && (t.status === 'TP' || t.status === 'SL'));
-  for (let t of streakTrades) {
-    if (t.status === 'TP') {
-      currentWinStreak++; currentLossStreak = 0;
-      if (currentWinStreak > maxWinStreak) maxWinStreak = currentWinStreak;
-    } else if (t.status === 'SL') {
-      currentLossStreak++; currentWinStreak = 0;
-      if (currentLossStreak > maxLossStreak) maxLossStreak = currentLossStreak;
-    }
-  }
-
-  return { total, wins, loses, bes, wr, netPnl, avgRR, profitFactor, expectancy, greedCost, fearCost, maxWinStreak, maxLossStreak };
-}
-
-function rtjGetAccountAge(account) {
-  const allDates = [];
-  if (rtjState && Array.isArray(rtjState.trades)) {
-    rtjState.trades.forEach(t => { if(t && (account === 'ALL' || (t.account || 'Demo') === account)) allDates.push(new Date(t.date)); });
-  }
-  if (rtjState && Array.isArray(rtjState.cfs)) {
-    rtjState.cfs.forEach(c => { if(c && (account === 'ALL' || (c.account || 'Demo') === account)) allDates.push(new Date(c.date)); });
-  }
-  
-  if (allDates.length === 0) return "0Y 0M 0D";
-  
-  const minDate = new Date(Math.min(...allDates));
-  const now = new Date();
-  
-  let years = now.getFullYear() - minDate.getFullYear();
-  let months = now.getMonth() - minDate.getMonth();
-  let days = now.getDate() - minDate.getDate();
-  
-  if (days < 0) {
-    months--;
-    const prevMonthDays = new Date(now.getFullYear(), now.getMonth(), 0).getDate();
-    days += prevMonthDays;
-  }
-  if (months < 0) {
-    years--;
-    months += 12;
-  }
-  return `${years}Y ${months}M ${days}D`;
-}
-
-function rtjGetAccountList() {
-  const safeBalances = (rtjState && rtjState.balances) ? rtjState.balances : rtjDEFAULT_BALANCES;
-  const defaultAccs = Object.keys(safeBalances);
-  const tradeAccs = (rtjState && Array.isArray(rtjState.trades)) ? rtjState.trades.map(t => t ? (t.account || 'Demo') : 'Demo') : [];
-  const cfAccs = (rtjState && Array.isArray(rtjState.cfs)) ? rtjState.cfs.map(c => c ? (c.account || 'Demo') : 'Demo') : [];
-  return [...new Set([...defaultAccs, ...tradeAccs, ...cfAccs])].filter(Boolean);
-}
-
-const rtjSavedLastAccount = rtjLoad(rtjKEY.LAST_ACCOUNT, 'Demo');
-
-const rtjState = {
-  page:     'HOME', inputTab: 'TRADE', logTab: 'TRADE',
-  sound:    rtjLoad(rtjKEY.SOUND, true), 
-  balances: rtjLoad(rtjKEY.BALANCES, rtjDEFAULT_BALANCES),
-  trades:   rtjLoad(rtjKEY.TRADES, []), 
-  cfs:      rtjLoad(rtjKEY.CFS, []),
-  crt:      rtjLoad(rtjKEY.CRT, false),
-  calYear:  new Date().getFullYear(),
-  calMonth: new Date().getMonth(),
-  f: {
-    date: rtjToday(), symbol: 'GOLD', dir: 'Buy', entry: '', exit: '',
-    sl: '', lot: '', pnl: '', status: 'TP', tf: '1H',
-    conf: false, fear: false, greed: false, account: rtjSavedLastAccount
-  },
-  cf: { date: rtjToday(), type: 'Deposit', amount: '', desc: '', account: rtjSavedLastAccount },
-  filter: { symbol: 'ALL', status: 'ALL', period: { mode: 'all' }, account: rtjSavedLastAccount },
-  statsPeriod: { mode: 'all', account: rtjSavedLastAccount }
-};
-
 function rtjGetTodayLosses() { 
   if (!rtjState || !Array.isArray(rtjState.trades)) return 0;
   return rtjState.trades.filter(tr => tr && tr.date === rtjToday() && tr.status === 'SL').length; 
