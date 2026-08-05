@@ -1,6 +1,6 @@
 /* ==========================================================================
-   PIXEL STEWARD UNIFIED DESIGN SYSTEM - STYLE.CSS (V.3.1.0)
-   Updated: Fixed Layout Distortion, Defensive Images, Scoped Forex Journal
+   PIXEL STEWARD UNIFIED DESIGN SYSTEM - STYLE.CSS (V.3.2.0)
+   Updated: Added RPG Inventory Cards, Active Quest HP bars, Allocation Matrix Gauges
    ========================================================================== */
 
 /* --- 1. ROOT DESIGN TOKENS --- */
@@ -812,6 +812,156 @@ img {
   opacity: 0.8;
 }
 .crt.disabled::after { display: none; }
+
+/* --- 8. RPG TREASURY INVENTORY & QUEST LOG (V3.2.0) --- */
+.inventory-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 16px;
+  margin-bottom: 20px;
+}
+.inventory-slot {
+  background: var(--color-bg-card);
+  padding: 12px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  transition: transform 0.2s ease, border-color 0.2s ease;
+}
+.inventory-slot:hover {
+  transform: translateY(-2px);
+  border-color: var(--color-accent);
+}
+.slot-icon-frame {
+  width: 48px;
+  height: 48px;
+  background: #111625;
+  border: 2px solid #000;
+  box-shadow: inset 0 0 5px rgba(0,0,0,0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.slot-icon-frame img {
+  width: 32px;
+  height: 32px;
+}
+.slot-details {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+.slot-title {
+  font-family: 'Press Start 2P', monospace;
+  font-size: 0.55rem;
+  color: #94a3b8;
+  margin-bottom: 4px;
+}
+.slot-value {
+  font-size: 1.25rem;
+  font-weight: 900;
+  line-height: 1.2;
+}
+.slot-subtitle {
+  font-family: monospace;
+  font-size: 0.75rem;
+  color: #64748b;
+  margin-top: 2px;
+}
+
+/* Quest Log */
+.quest-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 12px;
+  margin-bottom: 20px;
+}
+.quest-card {
+  background: var(--color-bg-card);
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  transition: border-color 0.2s ease;
+}
+.quest-card:hover {
+  border-color: var(--color-accent);
+}
+.quest-cleared {
+  background: #0d2a1d;
+  border-color: var(--color-success) !important;
+}
+.quest-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.quest-title {
+  font-weight: bold;
+  font-size: 0.9rem;
+  color: #fff;
+}
+.quest-status {
+  font-family: 'Press Start 2P', monospace;
+  font-size: 0.5rem;
+  padding: 2px 6px;
+  border: 1px solid currentColor;
+}
+.quest-status.cleared {
+  color: var(--color-success);
+  background: rgba(16, 185, 129, 0.1);
+}
+.quest-status.active {
+  color: var(--color-warning);
+  background: rgba(245, 158, 11, 0.1);
+}
+.quest-status.schedule {
+  color: #3b82f6;
+  background: rgba(59, 130, 246, 0.1);
+}
+.quest-desc {
+  font-size: 0.75rem;
+  color: #94a3b8;
+}
+.quest-progress {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.quest-hp-bar {
+  flex: 1;
+  height: 12px;
+  background: #111625;
+  border: 2px solid #000;
+  position: relative;
+  overflow: hidden;
+}
+.quest-hp-fill {
+  height: 100%;
+  background: var(--color-success);
+  transition: width 0.4s ease;
+}
+.quest-pct {
+  font-family: 'Press Start 2P', monospace;
+  font-size: 0.55rem;
+  color: #fff;
+  width: 36px;
+  text-align: right;
+}
+
+/* Allocation Gauges */
+.bar-mini {
+  width: 100%;
+  height: 6px;
+  background: #111625;
+  border: 1px solid #000;
+  overflow: hidden;
+  margin-top: 4px;
+}
+.bar-mini-fill {
+  height: 100%;
+  transition: width 0.4s ease;
+}
 
 @media (max-width: 768px) {
   .app-container { flex-direction: column; }

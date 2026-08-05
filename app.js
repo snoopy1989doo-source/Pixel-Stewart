@@ -1,6 +1,6 @@
 /* ==========================================
-   PIXEL STEWARD CORE ENGINE - APP.JS (V.3.1.0)
-   Updated: Integrated Option Edit/Delete System
+   PIXEL STEWARD CORE ENGINE - APP.JS (V.3.2.0)
+   Updated: Linked Forex Journal Accounts, USD/THB Dual Currency, Gamified RPG Dashboard
    ========================================== */
 
 // ⏰ 1. RETRO TIME SYSTEM ENGINE
@@ -68,7 +68,32 @@ if (typeof firebase !== 'undefined' && firebaseConfig.apiKey && firebaseConfig.a
   }
 }
 
-const INITIAL_PORTFOLIOS = [];
+const INITIAL_PORTFOLIOS = [
+  { id: 'p-redwing', name: 'RedWing (กยศ.)', category: 'Life Goal', goalType: 'numeric', goal: 270000, goalSchedule: '', current: 0, cashBuffer: 0, dryPowder: 0, assets: [], notes: '', dcaDoneThisMonth: false },
+  { id: 'p-zero1', name: 'Zero 1', category: 'Emergency Fund', goalType: 'numeric', goal: 150000, goalSchedule: '', current: 0, cashBuffer: 0, dryPowder: 0, assets: [], notes: '', dcaDoneThisMonth: false },
+  { id: 'p-zero2', name: 'Zero 2', category: 'Global Stock', goalType: 'numeric', goal: 1020000, goalSchedule: '', current: 0, cashBuffer: 0, dryPowder: 0, assets: [
+    { name: 'NVDA', shares: 0.065108, costPrice: 199.6858, costBasis: 13.00, currentPrice: 199.6858, value: 13.00 },
+    { name: 'PLTR', shares: 0, costPrice: 0, costBasis: 0, currentPrice: 0, value: 0 }
+  ], notes: '', dcaDoneThisMonth: false },
+  { id: 'p-zero3', name: 'Zero 3', category: 'Global Stock', goalType: 'numeric', goal: 500000, goalSchedule: '', current: 0, cashBuffer: 0, dryPowder: 0, assets: [
+    { name: 'SMR', shares: 0, costPrice: 0, costBasis: 0, currentPrice: 0, value: 0 },
+    { name: 'TSLA', shares: 0, costPrice: 0, costBasis: 0, currentPrice: 0, value: 0 }
+  ], notes: '', dcaDoneThisMonth: false },
+  { id: 'p-zero4', name: 'Zero 4', category: 'Global Stock', goalType: 'numeric', goal: 500000, goalSchedule: '', current: 0, cashBuffer: 0, dryPowder: 0, assets: [], notes: '', dcaDoneThisMonth: false },
+  { id: 'p-zero5', name: 'Zero 5', category: 'Global Stock', goalType: 'numeric', goal: 500000, goalSchedule: '', current: 0, cashBuffer: 0, dryPowder: 0, assets: [], notes: '', dcaDoneThisMonth: false },
+  { id: 'p-divyield', name: 'Dividend Yield', category: 'Global Stock', goalType: 'numeric', goal: 500000, goalSchedule: '', current: 0, cashBuffer: 0, dryPowder: 0, assets: [
+    { name: 'KO', shares: 0, costPrice: 0, costBasis: 0, currentPrice: 0, value: 0 },
+    { name: 'AVGO', shares: 0, costPrice: 0, costBasis: 0, currentPrice: 0, value: 0 },
+    { name: 'CVX', shares: 0, costPrice: 0, costBasis: 0, currentPrice: 0, value: 0 }
+  ], notes: '', dcaDoneThisMonth: false },
+  { id: 'p-thaidiv', name: 'THAI Dividend', category: 'THAI Dividend', goalType: 'numeric', goal: 500000, goalSchedule: '', current: 0, cashBuffer: 0, dryPowder: 0, assets: [], notes: '', dcaDoneThisMonth: false },
+  { id: 'p-nextgen', name: 'NEXT GEN', category: 'Global Stock', goalType: 'numeric', goal: 500000, goalSchedule: '', current: 0, cashBuffer: 0, dryPowder: 0, assets: [
+    { name: 'VOO', shares: 0, costPrice: 0, costBasis: 0, currentPrice: 0, value: 0 },
+    { name: 'GEV', shares: 0, costPrice: 0, costBasis: 0, currentPrice: 0, value: 0 },
+    { name: 'ISRG', shares: 0, costPrice: 0, costBasis: 0, currentPrice: 0, value: 0 }
+  ], notes: '', dcaDoneThisMonth: false },
+  { id: 'p-crypto', name: 'Crypto', category: 'Crypto', goalType: 'numeric', goal: 200000, goalSchedule: '', current: 0, cashBuffer: 0, dryPowder: 0, assets: [], notes: '', dcaDoneThisMonth: false }
+];
 const INITIAL_QUARTERLY_RECORDS = [];
 const INITIAL_MONTHLY_RECORDS = [];
 
@@ -91,14 +116,59 @@ class PixelStewardApp {
     this.init();
   }
 
-  formatMoney(val, category) {
-    const isUSD = category === 'Option';
+  isPortfolioUSD(category) {
+    if (!category) return false;
+    const cat = category.toLowerCase();
+    return cat.includes('option') || 
+           cat.includes('forex') || 
+           cat.includes('global') || 
+           cat.includes('growth') || 
+           cat.includes('foreign') ||
+           cat.includes('ต่างประเทศ') ||
+           cat.includes('next gen') || 
+           cat.includes('nextgen') ||
+           cat.includes('crypto');
+  }
+
+  getForexAccountEquity(accountName) {
+    if (typeof rtjState === 'undefined' || !rtjState) return 0;
+    const safeBalances = rtjState.balances || rtjDEFAULT_BALANCES;
+    // Map accountName to check if it matches case-insensitively or defaults to ALL
+    const key = Object.keys(safeBalances).find(k => k.toLowerCase() === (accountName || '').trim().toLowerCase());
+    const targetAcc = key || 'ALL';
+
+    let accStartBal = 0;
+    if (targetAcc === 'ALL') {
+      accStartBal = Object.values(safeBalances).reduce((a, b) => a + (Number(b) || 0), 0);
+    } else {
+      accStartBal = Number(safeBalances[targetAcc]) || 0;
+    }
+
+    const safeCFs = Array.isArray(rtjState.cfs) ? rtjState.cfs : [];
+    const netDeposit = safeCFs
+      .filter(c => c && (targetAcc === 'ALL' || (c.account || 'Demo') === targetAcc))
+      .reduce((s, c) => s + (c.type === 'Deposit' ? Number(c.amount || 0) : -Number(c.amount || 0)), 0);
+
+    const safeTrades = Array.isArray(rtjState.trades) ? rtjState.trades : [];
+    const filteredTrades = safeTrades.filter(t => t && (targetAcc === 'ALL' || (t.account || 'Demo') === targetAcc));
+    const netPnl = filteredTrades.reduce((s, t) => s + (Number(t.pnl) || 0), 0);
+
+    return accStartBal + netDeposit + netPnl;
+  }
+
+  formatMoney(val, category, showBoth = true) {
+    const isUSD = this.isPortfolioUSD(category);
     const sym = isUSD ? '$' : '฿';
     if (this.isPrivacyMode) {
       return `<span class="pixel-money pixel-money-masked">${sym}***,***</span>`;
     }
     const numStr = Number(val || 0).toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 2 });
-    return `<span class="pixel-money">${sym}${numStr}</span>`;
+    let html = `<span class="pixel-money">${sym}${numStr}</span>`;
+    if (isUSD && showBoth) {
+      const thbVal = (Number(val || 0) * this.exchangeRate).toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 });
+      html += ` <span style="font-size:0.75rem; color:#94a3b8; font-family:'Kanit', sans-serif;">(฿${thbVal})</span>`;
+    }
+    return html;
   }
 
   getTickerLogoHtml(assetName, category) {
@@ -309,9 +379,10 @@ class PixelStewardApp {
     this.portfolios.forEach(p => {
       if (!p) return;
       if (p.category === 'Option') {
-        // [V2.3.1 FIX] Option portfolio current value = Sum of manual profitLossUSD monthly records
         const records = Array.isArray(this.monthlyRecords) ? this.monthlyRecords.filter(r => r && r.portfolioId === p.id) : [];
         p.current = records.reduce((sum, r) => sum + (Number(r.profitLossUSD) || 0), 0);
+      } else if (p.category === 'Forex') {
+        p.current = this.getForexAccountEquity(p.name);
       } else {
         p.current = Array.isArray(p.assets) ? p.assets.reduce((sum, asset) => sum + (Number(asset.value) || 0), 0) : 0;
       }
@@ -337,7 +408,7 @@ class PixelStewardApp {
     if (Array.isArray(this.portfolios)) {
       this.portfolios.forEach(p => {
         if (!p) return;
-        const isUSD = p.category === 'Option';
+        const isUSD = this.isPortfolioUSD(p.category);
         if (isUSD) {
           totalUSD += (p.current || 0);
           totalCashBufferTHB += (p.cashBuffer || 0) * this.exchangeRate;
@@ -372,7 +443,8 @@ class PixelStewardApp {
     if (pct >= 80) return `🏆 เลเวลสูงสุดขอบทองแล้ว!`;
     const targetPct = pct < 40 ? 40 : 80;
     const needed = ((targetPct / 100) * p.goal) - (p.current + p.cashBuffer);
-    return `🔮 เลเวลอัปขั้นถัดไป: ขาดอีกประมาณ ${p.category === 'Option' ? '$' : '฿'}${needed.toLocaleString(undefined,{maximumFractionDigits:0})}`;
+    const sym = this.isPortfolioUSD(p.category) ? '$' : '฿';
+    return `🔮 เลเวลอัปขั้นถัดไป: ขาดอีกประมาณ ${sym}${needed.toLocaleString(undefined,{maximumFractionDigits:0})}`;
   }
 
   getMeloAvatarState(score) {
@@ -380,29 +452,6 @@ class PixelStewardApp {
     if (score >= 70) return { imgSrc: './assets/avatar/avatar-happy.png', text: '🙂 พอร์ตกำลังเติบโตสมบูรณ์ดี!', cls: 'color:#10b981;' };
     if (score >= 40) return { imgSrc: './assets/avatar/avatar-normal.png', text: '😐 พอร์ตเสถียร รักษาวินัยต่อ!', cls: 'color:#eab308;' };
     return { imgSrc: './assets/avatar/avatar-concerned.png', text: '😟 วิกฤต! เติมเสบียงด่วน', cls: 'color:#ef4444;' };
-  }
-
-  refreshUI() {
-    this.autoCalculatePortfolios();
-    const mainHeader = document.querySelector('.main-header');
-    if (mainHeader) mainHeader.style.display = 'flex';
-
-    const tabContent = document.getElementById('tab-content');
-    if (!tabContent) return;
-    tabContent.innerHTML = '';
-    switch (this.activeTab) {
-      case 'dashboard': this.renderDashboard(tabContent); break;
-      case 'portfolios': this.renderPortfolios(tabContent); break;
-      case 'journal':
-        tabContent.innerHTML = '<div class="journal-scope" id="tab-content-journal-mount"></div>';
-        rtjRender();
-        break;
-      case 'quarterly': this.renderQuarterly(tabContent); break;
-      case 'dividends': this.renderDividends(tabContent); break;
-      case 'option': this.renderOptionManual(tabContent); break;
-      case 'comparison': this.renderComparison(tabContent); break;
-      case 'settings': this.renderSettings(tabContent); break;
-    }
   }
 
   renderDashboard(container) {
@@ -413,26 +462,44 @@ class PixelStewardApp {
     if (Array.isArray(this.quarterlyRecords)) {
       this.quarterlyRecords.filter(r => r && r.year === yr).forEach(r => {
         const p = this.portfolios.find(port => port && port.id === r.portfolioId);
-        const rate = p && p.category === 'Option' ? this.exchangeRate : 1;
+        const rate = p && this.isPortfolioUSD(p.category) ? this.exchangeRate : 1;
         q1 += (r.q1||0)*rate; q2 += (r.q2||0)*rate; q3 += (r.q3||0)*rate; q4 += (r.q4||0)*rate;
       });
     }
     const maxQ = Math.max(q1, q2, q3, q4, 1);
 
-    const categoryTotals = {};
+    // Compute Category Allocations
+    let catAlloc = {
+      thai: 0,
+      global: 0,
+      deriv: 0,
+      crypto: 0,
+      other: 0
+    };
+    let grandTotal = 0;
+    
     if (Array.isArray(this.portfolios)) {
       this.portfolios.forEach(p => {
-        if (!p) return;
-        const cat = p.category || 'Uncategorized';
-        const rate = cat === 'Option' ? this.exchangeRate : 1;
-        const valTHB = ((p.current || 0) + (p.cashBuffer || 0)) * rate;
-        categoryTotals[cat] = (categoryTotals[cat] || 0) + valTHB;
+        if(!p) return;
+        const isUSD = this.isPortfolioUSD(p.category);
+        const r = isUSD ? this.exchangeRate : 1;
+        const valTHB = ((p.current||0) + (p.cashBuffer||0)) * r;
+        grandTotal += valTHB;
+        
+        const cat = (p.category || '').toLowerCase();
+        if(cat.includes('thai')) {
+          catAlloc.thai += valTHB;
+        } else if(cat.includes('global') || cat.includes('growth') || cat.includes('foreign') || cat.includes('ต่างประเทศ') || cat.includes('next')) {
+          catAlloc.global += valTHB;
+        } else if(cat.includes('option') || cat.includes('forex') || cat.includes('ฟอเร็กซ์') || cat.includes('ออปชัน')) {
+          catAlloc.deriv += valTHB;
+        } else if(cat.includes('crypto') || cat.includes('คริปโต')) {
+          catAlloc.crypto += valTHB;
+        } else {
+          catAlloc.other += valTHB;
+        }
       });
     }
-    const totalAssetVal = calc.netWorthTHB > 0 ? calc.netWorthTHB : 1;
-    const catBreakdown = Object.keys(categoryTotals).map(cat => ({
-      name: cat, val: categoryTotals[cat], pct: (categoryTotals[cat] / totalAssetVal) * 100
-    })).sort((a, b) => b.val - a.val);
 
     const dryPowderRatio = calc.netWorthTHB > 0 ? (calc.totalDryPowderTHB / calc.netWorthTHB) * 100 : 0;
     const debtRemaining = Math.max(0, this.debtRemainingTHB || 0);
@@ -452,61 +519,160 @@ class PixelStewardApp {
     const meloState = this.getMeloAvatarState(healthScore);
 
     const investedTHB = calc.totalTHB + (calc.totalUSD * this.exchangeRate);
-    const netWorthDisplay = this.isPrivacyMode ? '฿***,***' : `฿${calc.netWorthTHB.toLocaleString(undefined,{maximumFractionDigits:0})}`;
-    const investedDisplay = this.isPrivacyMode ? '฿***,***' : `฿${investedTHB.toLocaleString(undefined,{maximumFractionDigits:0})}`;
-    const dryDisplay = this.isPrivacyMode ? '฿***,***' : `฿${calc.totalDryPowderTHB.toLocaleString(undefined,{maximumFractionDigits:0})}`;
+
+    // Format privacy values
+    const nwTHB = this.isPrivacyMode ? '฿***,***' : `฿${calc.netWorthTHB.toLocaleString(undefined,{maximumFractionDigits:0})}`;
+    const nwUSD = this.isPrivacyMode ? '$***,***' : `$${calc.netWorthUSD.toLocaleString(undefined,{maximumFractionDigits:0})}`;
+    const invTHB = this.isPrivacyMode ? '฿***,***' : `฿${investedTHB.toLocaleString(undefined,{maximumFractionDigits:0})}`;
+    const invUSD = this.isPrivacyMode ? '$***,***' : `$${(investedTHB / this.exchangeRate).toLocaleString(undefined,{maximumFractionDigits:0})}`;
+    const dryTHB = this.isPrivacyMode ? '฿***,***' : `฿${calc.totalDryPowderTHB.toLocaleString(undefined,{maximumFractionDigits:0})}`;
+    const dryUSD = this.isPrivacyMode ? '$***,***' : `$${(calc.totalDryPowderTHB / this.exchangeRate).toLocaleString(undefined,{maximumFractionDigits:0})}`;
 
     container.innerHTML = `
-      <div style="display:grid; grid-template-columns:1fr 1fr; gap:20px;">
-        <div class="stat-card border-pixel">
-          <div class="stat-header"><span>💰 Net Worth (ความมั่งคั่งสุทธิรวม)</span><img src="./assets/icons/icon-chest.png" class="card-title-icon"></div>
-          <div class="stat-value text-accent">${netWorthDisplay}</div>
-          <div class="stat-desc">📈 ลงทุนแล้ว: ${investedDisplay} + 💵 รอช้อน: ${dryDisplay}</div>
+      <!-- 💰 TREASURY INVENTORY -->
+      <div class="inventory-grid">
+        <div class="inventory-slot border-pixel">
+          <div class="slot-icon-frame">
+            <img src="./assets/icons/icon-chest.png" class="pixelated">
+          </div>
+          <div class="slot-details">
+            <div class="slot-title">NET WORTH รวม</div>
+            <div class="slot-value text-accent">${nwTHB}</div>
+            <div class="slot-subtitle">${nwUSD} USD</div>
+          </div>
         </div>
-        <div class="stat-card border-pixel">
-          <div class="stat-header"><span>Dry Powder (กระสุนรอช้อน)</span><img src="./assets/icons/icon-coin-stack.png" class="card-title-icon"></div>
-          <div class="stat-value" style="color:var(--color-warning)!important;">฿${calc.totalDryPowderTHB.toLocaleString(undefined,{maximumFractionDigits:2})}</div>
-          <div class="stat-desc">สัดส่วนกระสุน: ${dryPowderRatio.toFixed(1)}% ของพอร์ตรวม</div>
+        
+        <div class="inventory-slot border-pixel">
+          <div class="slot-icon-frame">
+            <img src="./assets/icons/icon-briefcase.png" class="pixelated">
+          </div>
+          <div class="slot-details">
+            <div class="slot-title">เงินลงทุนแล้ว</div>
+            <div class="slot-value" style="color:var(--color-success);">${invTHB}</div>
+            <div class="slot-subtitle">${invUSD} USD</div>
+          </div>
+        </div>
+
+        <div class="inventory-slot border-pixel">
+          <div class="slot-icon-frame">
+            <img src="./assets/icons/icon-coin-stack.png" class="pixelated">
+          </div>
+          <div class="slot-details">
+            <div class="slot-title">กระสุนรอช้อน (Dry Powder)</div>
+            <div class="slot-value" style="color:var(--color-warning);">${dryTHB}</div>
+            <div class="slot-subtitle">${dryUSD} USD</div>
+          </div>
         </div>
       </div>
 
-      <div style="display:grid; grid-template-columns:1fr 1.2fr 0.8fr; gap:20px; margin-top:20px;">
+      <div style="display:grid; grid-template-columns: 1.1fr 0.9fr; gap:20px; margin-top:20px;">
+        <!-- ⚔️ ACTIVE QUEST LOG -->
         <div class="border-pixel" style="padding:15px; background:#1f273e;">
-          <h4 style="font-family:'Press Start 2P'; font-size:0.6rem; color:#10b981; margin-bottom:12px;">💎 ASSET ALLOCATION</h4>
-          <div style="display:flex; flex-direction:column; gap:8px;">
-            ${catBreakdown.length === 0 ? '<p class="text-muted" style="font-size:0.8rem;">ไม่มีข้อมูลพอร์ต</p>' : catBreakdown.map(c => `
+          <h4 style="font-family:'Press Start 2P'; font-size:0.6rem; color:var(--color-accent); margin-bottom:12px; display:flex; align-items:center; gap:8px;">
+            ⚔️ ACTIVE QUEST LOG (ภารกิจการเงิน)
+          </h4>
+          <div style="display:flex; flex-direction:column; gap:10px;">
+            ${!Array.isArray(this.portfolios) || this.portfolios.length === 0 ? '<p class="text-muted" style="font-size:0.8rem;">ไม่มีเควสการเงิน โปรดสร้างพอร์ตเพื่อลงทะเบียนเควส</p>' : this.portfolios.map(p => {
+              const isUSD = this.isPortfolioUSD(p.category);
+              const r = isUSD ? this.exchangeRate : 1;
+              const curTHB = ((p.current||0)+(p.cashBuffer||0))*r;
+              const goalTHB = p.goalType==='numeric'?((p.goal||0)*r):0;
+              const pct = p.goalType==='numeric'?(p.goal>0?(curTHB/goalTHB)*100:0):(p.dcaDoneThisMonth?100:0);
+              const isCleared = pct >= 100;
+              
+              let questBadge = isCleared ? '<span class="quest-status cleared">🏆 CLEARED</span>' : '<span class="quest-status active">⚔️ ACTIVE</span>';
+              if (p.goalType === 'schedule') {
+                questBadge = p.dcaDoneThisMonth ? '<span class="quest-status cleared">🏆 CLEARED</span>' : '<span class="quest-status schedule">📅 PLAN</span>';
+              }
+
+              return `
+                <div class="quest-card border-pixel ${isCleared ? 'quest-cleared' : ''}">
+                  <div class="quest-header">
+                    <span class="quest-title">${p.name} <span style="font-size:0.75rem; color:#94a3b8; font-weight:normal;">(${p.category})</span></span>
+                    ${questBadge}
+                  </div>
+                  <div class="quest-desc">
+                    มูลค่า: ${this.formatMoney(p.current + p.cashBuffer, p.category)} / ${p.goalType==='numeric' ? this.formatMoney(p.goal, p.category) : 'DCA ' + p.goalSchedule}
+                  </div>
+                  <div class="quest-progress">
+                    <div class="quest-hp-bar">
+                      <div class="quest-hp-fill" style="width: ${Math.min(100, pct)}%; background: ${isCleared ? 'var(--color-success)' : 'var(--color-primary)'};"></div>
+                    </div>
+                    <span class="quest-pct">${pct.toFixed(0)}%</span>
+                  </div>
+                </div>
+              `;
+            }).join('')}
+          </div>
+        </div>
+
+        <div style="display:flex; flex-direction:column; gap:20px;">
+          <!-- 📊 ALLOCATION MATRIX -->
+          <div class="border-pixel" style="padding:15px; background:#1f273e;">
+            <h4 style="font-family:'Press Start 2P'; font-size:0.6rem; color:#10b981; margin-bottom:12px;">📊 ALLOCATION MATRIX (การจัดสรรคลังรวม)</h4>
+            <div class="segmented-bar border-pixel-inset" style="height:20px; display:flex; overflow:hidden; background:#111625; margin-bottom:15px;">
+              ${grandTotal === 0 ? '<div style="width:100%; text-align:center; font-size:0.7rem; color:#64748b; line-height:20px;">คลังว่างเปล่า</div>' : `
+                <div style="width:${(catAlloc.thai/grandTotal)*100}%; background:#22c55e; height:100%;" title="หุ้นไทย"></div>
+                <div style="width:${(catAlloc.global/grandTotal)*100}%; background:#3b82f6; height:100%;" title="หุ้นต่างประเทศ"></div>
+                <div style="width:${(catAlloc.deriv/grandTotal)*100}%; background:#a855f7; height:100%;" title="ออปชัน & ฟอเร็กซ์"></div>
+                <div style="width:${(catAlloc.crypto/grandTotal)*100}%; background:#eab308; height:100%;" title="คริปโต"></div>
+                <div style="width:${(catAlloc.other/grandTotal)*100}%; background:#64748b; height:100%;" title="อื่นๆ"></div>
+              `}
+            </div>
+            
+            <div style="display:flex; flex-direction:column; gap:10px; font-size:0.75rem;">
               <div>
-                <div style="display:flex; justify-content:space-between; font-size:0.75rem;"><span>${c.name}</span><b>฿${c.val.toLocaleString(undefined,{maximumFractionDigits:0})} (${c.pct.toFixed(1)}%)</b></div>
-                <div class="progress-container" style="height:6px; background:#111625; border:1px solid #000;"><div style="width:${Math.min(100, c.pct)}%; background:#3b82f6; height:100%;"></div></div>
-              </div>`).join('')}
+                <div style="display:flex; justify-content:space-between;"><span>🟢 หุ้นไทย</span><b>${grandTotal>0?((catAlloc.thai/grandTotal)*100).toFixed(1):0}%</b></div>
+                <div class="bar-mini"><div class="bar-mini-fill" style="width:${grandTotal>0?(catAlloc.thai/grandTotal)*100:0}%; background:#22c55e;"></div></div>
+              </div>
+              <div>
+                <div style="display:flex; justify-content:space-between;"><span>🔵 หุ้นต่างประเทศ</span><b>${grandTotal>0?((catAlloc.global/grandTotal)*100).toFixed(1):0}%</b></div>
+                <div class="bar-mini"><div class="bar-mini-fill" style="width:${grandTotal>0?(catAlloc.global/grandTotal)*100:0}%; background:#3b82f6;"></div></div>
+              </div>
+              <div>
+                <div style="display:flex; justify-content:space-between;"><span>🟣 ออปชัน & ฟอเร็กซ์</span><b>${grandTotal>0?((catAlloc.deriv/grandTotal)*100).toFixed(1):0}%</b></div>
+                <div class="bar-mini"><div class="bar-mini-fill" style="width:${grandTotal>0?(catAlloc.deriv/grandTotal)*100:0}%; background:#a855f7;"></div></div>
+              </div>
+              <div>
+                <div style="display:flex; justify-content:space-between;"><span>🟡 คริปโต</span><b>${grandTotal>0?((catAlloc.crypto/grandTotal)*100).toFixed(1):0}%</b></div>
+                <div class="bar-mini"><div class="bar-mini-fill" style="width:${grandTotal>0?(catAlloc.crypto/grandTotal)*100:0}%; background:#eab308;"></div></div>
+              </div>
+              <div>
+                <div style="display:flex; justify-content:space-between;"><span>⚪ อื่นๆ (เป้าหมายชีวิต/เงินสำรอง)</span><b>${grandTotal>0?((catAlloc.other/grandTotal)*100).toFixed(1):0}%</b></div>
+                <div class="bar-mini"><div class="bar-mini-fill" style="width:${grandTotal>0?(catAlloc.other/grandTotal)*100:0}%; background:#64748b;"></div></div>
+              </div>
+            </div>
           </div>
-        </div>
 
-        <div class="border-pixel" style="padding:15px; background:#1f273e;">
-          <h4 style="font-family:'Press Start 2P'; font-size:0.6rem; color:#3b82f6; margin-bottom:12px;">📊 สรุปความเติบโตรายไตรมาส (${yr})</h4>
-          <div style="display:flex; justify-content:space-around; align-items:flex-end; height:120px; background:#111625; padding:10px; border:2px solid #000;">
-            <div style="width:20%; display:flex; flex-direction:column; align-items:center; height:100%; justify-content:flex-end;"><div style="font-size:0.55rem;">฿${q1.toLocaleString()}</div><div style="width:100%; height:${(q1/maxQ)*100}%; background:var(--color-primary); border:1px solid #000;"></div><div style="font-size:0.6rem;">Q1</div></div>
-            <div style="width:20%; display:flex; flex-direction:column; align-items:center; height:100%; justify-content:flex-end;"><div style="font-size:0.55rem;">฿${q2.toLocaleString()}</div><div style="width:100%; height:${(q2/maxQ)*100}%; background:var(--color-success); border:1px solid #000;"></div><div style="font-size:0.6rem;">Q2</div></div>
-            <div style="width:20%; display:flex; flex-direction:column; align-items:center; height:100%; justify-content:flex-end;"><div style="font-size:0.55rem;">฿${q3.toLocaleString()}</div><div style="width:100%; height:${(q3/maxQ)*100}%; background:var(--color-secondary); border:1px solid #000;"></div><div style="font-size:0.6rem;">Q3</div></div>
-            <div style="width:20%; display:flex; flex-direction:column; align-items:center; height:100%; justify-content:flex-end;"><div style="font-size:0.55rem;">฿${q4.toLocaleString()}</div><div style="width:100%; height:${(q4/maxQ)*100}%; background:var(--color-accent); border:1px solid #000;"></div><div style="font-size:0.6rem;">Q4</div></div>
+          <!-- 📈 QUARTERLY GROWTH -->
+          <div class="border-pixel" style="padding:15px; background:#1f273e;">
+            <h4 style="font-family:'Press Start 2P'; font-size:0.6rem; color:#3b82f6; margin-bottom:12px;">📈 สรุปความเติบโตรายไตรมาส (${yr})</h4>
+            <div style="display:flex; justify-content:space-around; align-items:flex-end; height:120px; background:#111625; padding:10px; border:2px solid #000;">
+              <div style="width:20%; display:flex; flex-direction:column; align-items:center; height:100%; justify-content:flex-end;"><div style="font-size:0.55rem;">฿${q1.toLocaleString(undefined,{maximumFractionDigits:0})}</div><div style="width:100%; height:${(q1/maxQ)*100}%; background:var(--color-primary); border:1px solid #000;"></div><div style="font-size:0.6rem;">Q1</div></div>
+              <div style="width:20%; display:flex; flex-direction:column; align-items:center; height:100%; justify-content:flex-end;"><div style="font-size:0.55rem;">฿${q2.toLocaleString(undefined,{maximumFractionDigits:0})}</div><div style="width:100%; height:${(q2/maxQ)*100}%; background:var(--color-success); border:1px solid #000;"></div><div style="font-size:0.6rem;">Q2</div></div>
+              <div style="width:20%; display:flex; flex-direction:column; align-items:center; height:100%; justify-content:flex-end;"><div style="font-size:0.55rem;">฿${q3.toLocaleString(undefined,{maximumFractionDigits:0})}</div><div style="width:100%; height:${(q3/maxQ)*100}%; background:var(--color-secondary); border:1px solid #000;"></div><div style="font-size:0.6rem;">Q3</div></div>
+              <div style="width:20%; display:flex; flex-direction:column; align-items:center; height:100%; justify-content:flex-end;"><div style="font-size:0.55rem;">฿${q4.toLocaleString(undefined,{maximumFractionDigits:0})}</div><div style="width:100%; height:${(q4/maxQ)*100}%; background:var(--color-accent); border:1px solid #000;"></div><div style="font-size:0.6rem;">Q4</div></div>
+            </div>
           </div>
-        </div>
 
-        <div class="border-pixel" style="padding:12px; background:#1f273e; text-align:center;">
-          <h5 style="font-family:'Press Start 2P'; font-size:0.55rem; color:var(--color-accent);">❤️ PORTFOLIO HEALTH</h5>
-          <div style="display:flex; align-items:center; justify-content:center; gap:10px; margin:8px 0; background:#111625; padding:8px; border:2px solid #000;">
-            <img src="${meloState.imgSrc}" class="health-avatar-square-img">
-            <div style="text-align:left;"><div style="font-size:1.1rem; font-family:'Press Start 2P'; color:#10b981;">${healthScore}/100</div><div style="font-size:0.65rem; font-weight:bold; ${meloState.cls}">${meloState.text}</div></div>
-          </div>
-          <div class="health-score-breakdown">
-            <span>💳 หหนี้ ${debtScore.toFixed(0)}/25</span>
-            <span>💵 เงินสด ${dryPowderScore.toFixed(0)}/20</span>
-            <span>❄️ Snowball ${snowballScore.toFixed(0)}/20</span>
-            <span>🎯 เป้าหมาย ${goalScore.toFixed(0)}/20</span>
-            <span>💎 กระจายพอร์ต ${diversificationScore.toFixed(0)}/15</span>
+          <!-- ❤️ PORTFOLIO HEALTH -->
+          <div class="border-pixel" style="padding:12px; background:#1f273e; text-align:center;">
+            <h5 style="font-family:'Press Start 2P'; font-size:0.55rem; color:var(--color-accent);">❤️ PORTFOLIO HEALTH STATUS</h5>
+            <div style="display:flex; align-items:center; justify-content:center; gap:10px; margin:8px 0; background:#111625; padding:8px; border:2px solid #000;">
+              <img src="${meloState.imgSrc}" class="health-avatar-square-img">
+              <div style="text-align:left;"><div style="font-size:1.1rem; font-family:'Press Start 2P'; color:#10b981;">${healthScore}/100</div><div style="font-size:0.65rem; font-weight:bold; ${meloState.cls}">${meloState.text}</div></div>
+            </div>
+            <div class="health-score-breakdown" style="display:flex; flex-wrap:wrap; justify-content:center; gap:6px; font-size:0.65rem;">
+              <span class="badge" style="background:#0c1020; border:1px solid #334155; padding:2px 4px;">💳 หนี้ ${debtScore.toFixed(0)}/25</span>
+              <span class="badge" style="background:#0c1020; border:1px solid #334155; padding:2px 4px;">💵 เงินสด ${dryPowderScore.toFixed(0)}/20</span>
+              <span class="badge" style="background:#0c1020; border:1px solid #334155; padding:2px 4px;">❄️ Snowball ${snowballScore.toFixed(0)}/20</span>
+              <span class="badge" style="background:#0c1020; border:1px solid #334155; padding:2px 4px;">🎯 เป้าหมาย ${goalScore.toFixed(0)}/20</span>
+              <span class="badge" style="background:#0c1020; border:1px solid #334155; padding:2px 4px;">💎 พอร์ต ${diversificationScore.toFixed(0)}/15</span>
+            </div>
           </div>
         </div>
-      </div>`;
+      </div>
+    `;
   }
 
   renderPortfolios(container) {
@@ -522,7 +688,7 @@ class PixelStewardApp {
     let active = this.portfolios.find(p => p && p.id === this.selectedPortId) || this.portfolios[0];
     this.selectedPortId = active.id;
     const lvl = this.getPortfolioLevel(active);
-    const isUSD = active.category === 'Option';
+    const isUSD = this.isPortfolioUSD(active.category);
     const weight = this.getCalculations().netWorthTHB > 0 ? (((active.current+active.cashBuffer)*(isUSD?this.exchangeRate:1))/this.getCalculations().netWorthTHB)*100 : 0;
 
     container.innerHTML = `
@@ -535,7 +701,7 @@ class PixelStewardApp {
             ${this.portfolios.map(p => {
               if (!p) return '';
               const pct = p.goal > 0 ? (((p.current + p.cashBuffer) / p.goal) * 100) : 0;
-              const isPurpleTier = pct >= 80 || p.category === 'Option';
+              const isPurpleTier = pct >= 80 || this.isPortfolioUSD(p.category);
               const tierClass = isPurpleTier ? 'tier-purple' : (pct >= 40 ? 'tier-gold' : 'tier-silver');
               const isActive = p.id === this.selectedPortId ? 'active' : '';
 
@@ -612,7 +778,7 @@ class PixelStewardApp {
                   const diff = val - cost;
                   const pct = cost > 0 ? (diff / cost) * 100 : 0;
                   const isProfit = diff >= 0;
-                  const isUSD = active.category === 'Option';
+                  const isUSD = this.isPortfolioUSD(active.category);
                   const sym = isUSD ? '$' : '฿';
                   const plBadgeClass = isProfit ? 'badge-pl-profit' : 'badge-pl-loss';
                   const sign = isProfit ? '+' : '';
@@ -783,7 +949,7 @@ class PixelStewardApp {
       if (!p) return;
       const r = this.quarterlyRecords.find(x => x && x.portfolioId === p.id && x.year === year);
       if (!r) return;
-      const rate = p.category === 'Option' ? this.exchangeRate : 1;
+      const rate = this.isPortfolioUSD(p.category) ? this.exchangeRate : 1;
       sums.q1 += (r.q1 || 0) * rate; sums.q2 += (r.q2 || 0) * rate;
       sums.q3 += (r.q3 || 0) * rate; sums.q4 += (r.q4 || 0) * rate;
     });
@@ -792,7 +958,7 @@ class PixelStewardApp {
   }
 
   renderQuarterly(container) {
-    const stockPorts = Array.isArray(this.portfolios) ? this.portfolios.filter(p => p && p.category !== 'Option') : [];
+    const stockPorts = Array.isArray(this.portfolios) ? this.portfolios.filter(p => p && p.category !== 'Option' && p.category !== 'Forex') : [];
     if (stockPorts.length === 0) { container.innerHTML = '<div class="border-pixel" style="padding:20px; background:#1f273e;">ไม่มีรายการหุ้นรายไตรมาส (โปรดตั้งค่าเปิดตลับพอร์ตหลักก่อนครับ)</div>'; return; }
 
     const year = this.quarterlyViewYear;
@@ -1175,7 +1341,7 @@ class PixelStewardApp {
           <tbody>
             ${this.portfolios.map(p => {
               if(!p) return '';
-              const r = p.category === 'Option' ? this.exchangeRate : 1;
+              const r = this.isPortfolioUSD(p.category) ? this.exchangeRate : 1;
               const curTHB = ((p.current||0)+(p.cashBuffer||0))*r; const goalTHB = p.goalType==='numeric'?((p.goal||0)*r):0; const diff = p.goalType==='numeric'?Math.max(goalTHB-curTHB,0):0;
               const pct = p.goalType==='numeric'?(p.goal>0?(curTHB/goalTHB)*100:0):(p.dcaDoneThisMonth?100:0);
               const fillPct = Math.min(100, Math.max(0, pct));
@@ -1233,6 +1399,12 @@ class PixelStewardApp {
           <button class="btn btn-primary btn-retro" id="btn-execute-download" style="width:280px; padding:10px;"><span>💾 ดาวน์โหลดไฟล์ JSON สำรองข้อมูล</span></button>
         </div>
         
+        <div class="border-pixel" style="padding:20px; background:#1f273e; display:flex; flex-direction:column; gap:12px;">
+          <h3>🎮 COMMANDER INITIALIZATION (โหลดตลับพอร์ตเริ่มต้น Q3)</h3>
+          <p class="text-muted" style="font-size:0.8rem; color:#94a3b8;">โหลดพอร์ตของระบบทั้ง 10 ตลับพร้อมสินทรัพย์ต่างประเทศตามข้อกำหนด Q3 (RedWing, Zero 1-5, Dividend Yield, THAI Dividend, NEXT GEN, Crypto) เข้าสู่บราวเซอร์:</p>
+          <button class="btn btn-warning btn-retro" id="btn-load-commander-presets" style="width:320px; padding:10px;"><span>📥 โหลดตลับพอร์ตของพี่ Commander</span></button>
+        </div>
+
         <div class="border-pixel" style="padding:15px; background:#111625; font-size:0.8rem;">
           📡 สถานะการซิงก์เครือข่าย Firebase Realtime Cloud: 
           <b style="color:${isFirebaseActive ? '#10b981' : '#ef4444'};">
@@ -1304,6 +1476,15 @@ class PixelStewardApp {
       downloadAnchor.click();
       downloadAnchor.remove();
     });
+
+    document.getElementById('btn-load-commander-presets').addEventListener('click', () => {
+      if (!confirm('⚠️ คำเตือน: การโหลดชุดพอร์ตเริ่มต้นนี้จะทับซ้อนพอร์ตที่บราวเซอร์เก็บอยู่ปัจจุบันทั้งหมด ต้องการดำเนินการต่อหรือไม่?')) return;
+      this.portfolios = JSON.parse(JSON.stringify(INITIAL_PORTFOLIOS));
+      this.selectedPortId = this.portfolios.length > 0 ? this.portfolios[0].id : '';
+      this.saveState();
+      this.refreshUI();
+      alert('🎮 โหลดพอร์ตและสินทรัพย์จำลอง Q3 (ชุดพอร์ต STEWARD) สำเร็จ!');
+    });
   }
 
   handleSavePortfolio() {
@@ -1325,7 +1506,7 @@ class PixelStewardApp {
     if(destId!=='system') {
       const dest = this.portfolios.find(x=>x && x.id===destId);
       if(dest) {
-        const sUSD = src.category === 'Option'; const tUSD = dest.category === 'Option';
+        const sUSD = this.isPortfolioUSD(src.category); const tUSD = this.isPortfolioUSD(dest.category);
         let conv = amt; if(sUSD && !tUSD) conv = amt * r; else if(!sUSD && tUSD) conv = amt / r;
         dest.dryPowder += conv;
       }
@@ -1455,7 +1636,7 @@ class PixelStewardApp {
       const p = this.portfolios.find(x => x && x.id === r.portfolioId);
       const pName = p ? p.name : 'Unassigned';
       const cat = p ? p.category : 'Thai Stock';
-      const curr = cat === 'Option' ? 'USD' : 'THB';
+      const curr = this.isPortfolioUSD(cat) ? 'USD' : 'THB';
       const cleanNotes = (r.notes || '').replace(/,/g, ' ');
       csvContent += `"${r.date || ''}","${pName}","${cleanNotes}",${r.amount || 0},"${curr}"\n`;
     });
