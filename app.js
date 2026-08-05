@@ -1,6 +1,6 @@
 /* ==========================================
    PIXEL STEWARD CORE ENGINE - APP.JS (V.3.1.0)
-   Updated: Integrated Retro Trader Journal (rtj_)
+   Updated: Integrated Option Edit/Delete System
    ========================================== */
 
 // ⏰ 1. RETRO TIME SYSTEM ENGINE
@@ -1015,6 +1015,7 @@ class PixelStewardApp {
     this.refreshUI();
   }
 
+  // 🛠️ [NEW FIX] อัปเดตการแสดงผลปุ่ม Edit / Delete ในหน้าบันทึกงวดสัญญา Option
   renderOptionManual(container) {
     const optionPorts = Array.isArray(this.portfolios) ? this.portfolios.filter(p => p && p.category === 'Option') : [];
     const records = Array.isArray(this.monthlyRecords) ? this.monthlyRecords.filter(r => r && optionPorts.map(p => p.id).includes(r.portfolioId)) : [];
@@ -1038,7 +1039,16 @@ class PixelStewardApp {
               <img src="./assets/icons/icon-document-chart.png" alt="Log" class="card-title-icon"> ประวัติสัญญารายเดือนย่อย
             </h5>
             <div style="max-height:220px; overflow-y:auto; font-size:0.85rem; margin-top:8px;">
-              ${records.length===0?'<p class="text-muted">ไม่มีประวัติคงเหลือ</p>':records.map(r=>`<div style="display:flex; justify-content:space-between; border-bottom:1px solid #333; padding:6px 0;"><span><b>${this.portfolios.find(x=>x && x.id===r.portfolioId)?.name || ''}</b> (เดือน ${r.month})</span><b class="${(r.profitLossUSD||0)>=0?'text-success':'text-danger'}">${(r.profitLossUSD||0)>=0?'+':''}$${r.profitLossUSD || 0}</b></div>`).join('')}
+              ${records.length===0?'<p class="text-muted">ไม่มีประวัติคงเหลือ</p>':records.map(r=>`
+                <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid #333; padding:6px 0;">
+                  <span><b>${this.portfolios.find(x=>x && x.id===r.portfolioId)?.name || ''}</b> (เดือน ${r.month})</span>
+                  <div style="display:flex; gap:6px; align-items:center;">
+                    <b class="${(r.profitLossUSD||0)>=0?'text-success':'text-danger'}">${(r.profitLossUSD||0)>=0?'+':''}$${r.profitLossUSD || 0}</b>
+                    <button class="btn btn-warning btn-small" onclick="app.inlineEditOption('${r.id}')" style="padding:2px 6px; font-size:0.7rem; color:#000;" title="แก้ไขงวดสัญญา">✏️</button>
+                    <button class="btn btn-danger btn-small" onclick="app.deleteOptionRecord('${r.id}')" style="padding:2px 6px; font-size:0.7rem;" title="ลบรายการนี้">✖</button>
+                  </div>
+                </div>
+              `).join('')}
             </div>
           </div>
         </div>
@@ -1050,6 +1060,27 @@ class PixelStewardApp {
         this.monthlyRecords.push({ id:'m-'+Date.now(), portfolioId:pId, year:new Date().getFullYear(), month:m, profitLossUSD:pl, notes:'Manual' });
         this.saveState(); this.refreshUI();
       });
+    }
+  }
+
+  // 🛠️ [NEW METHOD] ฟังก์ชันแก้ไขตัวเลข P/L สุทธิสำหรับ Option
+  inlineEditOption(id) {
+    const r = this.monthlyRecords.find(x => x && x.id === id);
+    if (!r) return;
+    const newPL = prompt(`✏️ ระบุ P/L สุทธิ (USD) ใหม่สำหรับงวดเดือน ${r.month}:`, r.profitLossUSD);
+    if (newPL !== null && !isNaN(Number(newPL))) {
+      r.profitLossUSD = Number(newPL);
+      this.saveState();
+      this.refreshUI();
+    }
+  }
+
+  // 🛠️ [NEW METHOD] ฟังก์ชันลบรายการบันทึกงวดสัญญา Option
+  deleteOptionRecord(id) {
+    if (confirm('⚠️ คุณต้องการลบประวัติรายการงวดสัญญานี้ใช่หรือไม่?')) {
+      this.monthlyRecords = this.monthlyRecords.filter(x => x && x.id !== id);
+      this.saveState();
+      this.refreshUI();
     }
   }
 
@@ -1461,7 +1492,6 @@ class PixelStewardApp {
 }
 
 window.app = new PixelStewardApp();
-
 /* ==========================================================================
    🕹️ RETRO TRADER JOURNAL ENGINE (NAMESPACED: rtj_)
    ========================================================================== */
@@ -1871,7 +1901,7 @@ function rtjBuildLog() {
       <div class="card-title"><span>📋 DATA LEDGER LOG</span></div>
       <div class="tabs">
         <button class="tab ${rtjState.logTab === 'TRADE' ? 'active' : ''}" data-tab-log="TRADE">TRADE</button>
-        <button class="tab ${rtjState.logTab === 'CF' ? 'active' : ''}" data-tab-log="CF">CASHFLOW</button>
+        <button class="tab ${rtjState.logTab === 'CASHFLOW' ? 'active' : ''}" data-tab-log="CASHFLOW">CASHFLOW</button>
       </div>
       ${rtjState.logTab === 'TRADE' ? rtjBuildTradeLog(symbols) : rtjBuildCFLog()}
     </div>`;
