@@ -1,7 +1,8 @@
 /* ==========================================
    PIXEL STEWARD CORE ENGINE - APP.JS (V.3.3.0)
-   Updated: Auto Quarterly Snapshot 100%, Sub-Asset Inline Editor (Dime Sync),
-            USD Base Currency + Secondary THB, Fix TDZ ReferenceError
+   Fixed: Dashboard & Forex Black Screen (Render Container Fix),
+          Auto Quarterly Snapshot Engine 100%,
+          Sub-Asset Inline Editor (Dime Sync)
    ========================================== */
 
 // ⏰ 1. RETRO TIME SYSTEM ENGINE
@@ -223,18 +224,18 @@ class PixelStewardApp {
     this.init();
   }
 
-  showRetroToast(message, type = 'success') {
-    const container = document.getElementById('toast-container');
-    if (!container) return;
-    const toast = document.createElement('div');
-    toast.className = `pixel-toast toast-${type}`;
-    toast.innerHTML = `<span>${type === 'success' ? '🎯' : '⚠️'}</span> <div>${message}</div>`;
-    container.appendChild(toast);
-    setTimeout(() => {
-      toast.style.opacity = '0';
-      toast.style.transition = 'opacity 0.3s ease';
-      setTimeout(() => toast.remove(), 300);
-    }, 4000);
+  isPortfolioUSD(category) {
+    if (!category) return false;
+    const cat = category.toLowerCase();
+    return cat.includes('option') || 
+           cat.includes('forex') || 
+           cat.includes('global') || 
+           cat.includes('growth') || 
+           cat.includes('foreign') ||
+           cat.includes('ต่างประเทศ') ||
+           cat.includes('next gen') || 
+           cat.includes('nextgen') ||
+           cat.includes('crypto');
   }
 
   getForexAccountEquity(accountName) {
@@ -262,7 +263,7 @@ class PixelStewardApp {
     return accStartBal + netDeposit + netPnl;
   }
 
-  formatMoney(valUSD, category, showBoth = false) {
+  formatMoney(valUSD, category, showBoth = true) {
     if (this.isPrivacyMode) {
       return `<span class="pixel-money pixel-money-masked">$***,***</span>` +
              (showBoth ? ` <span style="font-size:0.75rem; color:#94a3b8; font-family:'Kanit', sans-serif;">(฿***,***)</span>` : '');
@@ -270,8 +271,8 @@ class PixelStewardApp {
     const usdNum = Number(valUSD || 0).toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 2 });
     let html = `<span class="pixel-money">$${usdNum}</span>`;
     if (showBoth) {
-      const thbNum = (Number(valUSD || 0) * this.exchangeRate).toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 });
-      html += ` <span style="font-size:0.75rem; color:#94a3b8; font-family:'Kanit', sans-serif;">(฿${thbNum})</span>`;
+      const thbVal = (Number(valUSD || 0) * this.exchangeRate).toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 });
+      html += ` <span style="font-size:0.75rem; color:#94a3b8; font-family:'Kanit', sans-serif;">(฿${thbVal})</span>`;
     }
     return html;
   }
@@ -439,21 +440,20 @@ class PixelStewardApp {
     this.refreshUI();
   }
 
-  /* 🤖 AUTO QUARTERLY SNAPSHOT ENGINE 100% (คำนวณและบันทึกสแนปชอตอัตโนมัติเมื่อเข้าสู่งวดใหม่) */
+  /* 🤖 AUTO QUARTERLY SNAPSHOT ENGINE 100% */
   autoSnapshotQuarterly() {
     if (!Array.isArray(this.portfolios) || this.portfolios.length === 0) return;
     
     const now = new Date();
     const year = now.getFullYear();
-    const month = now.getMonth() + 1; // 1 - 12
+    const month = now.getMonth() + 1;
     
-    // กำหนดไตรมาสที่เพิ่งผ่านมาที่ต้องมีการบันทึก
     let targetQuarterField = '';
     let targetYear = year;
     
     if (month >= 1 && month <= 3) {
       targetQuarterField = 'q4';
-      targetYear = year - 1; // บันทึก Q4 ของปีที่แล้ว
+      targetYear = year - 1;
     } else if (month >= 4 && month <= 6) {
       targetQuarterField = 'q1';
     } else if (month >= 7 && month <= 9) {
@@ -472,7 +472,6 @@ class PixelStewardApp {
         this.quarterlyRecords.push(rec);
       }
 
-      // หากงวดไตรมาสเป้าหมายยังไม่มีข้อมูล (เป็น 0) ให้ดึงมูลค่าสินทรัพย์ปัจจุบัน ($ USD) ไปสแนปชอตลงให้อัตโนมัติ
       if (!rec[targetQuarterField] || rec[targetQuarterField] === 0) {
         const currentValUSD = (p.current || 0) + (p.cashBuffer || 0);
         if (currentValUSD > 0) {
@@ -484,7 +483,6 @@ class PixelStewardApp {
 
     if (autoSnapCount > 0) {
       this.saveState();
-      this.showRetroToast(`🤖 [AUTO SNAPSHOT] บันทึกสรุปไตรมาส (${targetQuarterField.toUpperCase()} / ${targetYear}) ให้อัตโนมัติแล้ว ${autoSnapCount} พอร์ต!`, 'success');
     }
   }
 
@@ -598,6 +596,14 @@ class PixelStewardApp {
     return `🔮 เลเวลอัปขั้นถัดไป: ขาดอีกประมาณ $${needed.toLocaleString(undefined,{maximumFractionDigits:0})}`;
   }
 
+  getMeloAvatarState(score) {
+    if (score >= 90) return { imgSrc: './assets/avatar/avatar-excited.png', text: '🤩 พอร์ตสเกลสุดยอด มหาอัศวิน!', cls: 'color:#3b82f6;' };
+    if (score >= 70) return { imgSrc: './assets/avatar/avatar-happy.png', text: '🙂 พอร์ตกำลังเติบโตสมบูรณ์ดี!', cls: 'color:#10b981;' };
+    if (score >= 40) return { imgSrc: './assets/avatar/avatar-normal.png', text: '😐 พอร์ตเสถียร รักษาวินัยต่อ!', cls: 'color:#eab308;' };
+    return { imgSrc: './assets/avatar/avatar-concerned.png', text: '😟 วิกฤต! เติมเสบียงด่วน', cls: 'color:#ef4444;' };
+  }
+
+  /* 📊 DASHBOARD RENDERER */
   renderDashboard(container) {
     const calc = this.getCalculations();
     const topGoals = Array.isArray(this.portfolios) ? this.portfolios.filter(p => p && p.goalType === 'numeric' && p.goal > 0).map(p => ({ name: p.name, pct: ((p.current + p.cashBuffer) / p.goal) * 100 })).sort((a, b) => b.pct - a.pct).slice(0, 3) : [];
@@ -653,6 +659,15 @@ class PixelStewardApp {
 
     const investedUSD = calc.totalUSD;
 
+    const nwTHB = this.isPrivacyMode ? '฿***,***' : `฿${calc.netWorthTHB.toLocaleString(undefined,{maximumFractionDigits:0})}`;
+    const nwUSD = this.isPrivacyMode ? '$***,***' : `$${calc.netWorthUSD.toLocaleString(undefined,{maximumFractionDigits:0})}`;
+    const investedTHB = investedUSD * this.exchangeRate;
+    const invTHBStr = this.isPrivacyMode ? '฿***,***' : `฿${investedTHB.toLocaleString(undefined,{maximumFractionDigits:0})}`;
+    const invUSDStr = this.isPrivacyMode ? '$***,***' : `$${investedUSD.toLocaleString(undefined,{maximumFractionDigits:0})}`;
+    const dryTHBVal = calc.totalDryPowderUSD * this.exchangeRate;
+    const dryTHBStr = this.isPrivacyMode ? '฿***,***' : `฿${dryTHBVal.toLocaleString(undefined,{maximumFractionDigits:0})}`;
+    const dryUSDStr = this.isPrivacyMode ? '$***,***' : `$${calc.totalDryPowderUSD.toLocaleString(undefined,{maximumFractionDigits:0})}`;
+
     container.innerHTML = `
       <!-- 💰 TREASURY INVENTORY -->
       <div class="inventory-grid">
@@ -662,7 +677,8 @@ class PixelStewardApp {
           </div>
           <div class="slot-details">
             <div class="slot-title">NET WORTH รวม</div>
-            <div class="slot-value text-accent">${this.formatMoney(calc.netWorthUSD, 'Option', true)}</div>
+            <div class="slot-value text-accent">${nwUSD}</div>
+            <div class="slot-subtitle">(${nwTHB})</div>
           </div>
         </div>
         
@@ -672,7 +688,8 @@ class PixelStewardApp {
           </div>
           <div class="slot-details">
             <div class="slot-title">เงินลงทุนแล้ว</div>
-            <div class="slot-value" style="color:var(--color-success);">${this.formatMoney(investedUSD, 'Option', true)}</div>
+            <div class="slot-value" style="color:var(--color-success);">${invUSDStr}</div>
+            <div class="slot-subtitle">(${invTHBStr})</div>
           </div>
         </div>
 
@@ -682,7 +699,8 @@ class PixelStewardApp {
           </div>
           <div class="slot-details">
             <div class="slot-title">กระสุนรอช้อน (Dry Powder)</div>
-            <div class="slot-value" style="color:var(--color-warning);">${this.formatMoney(calc.totalDryPowderUSD, 'Option', true)}</div>
+            <div class="slot-value" style="color:var(--color-warning);">${dryUSDStr}</div>
+            <div class="slot-subtitle">(${dryTHBStr})</div>
           </div>
         </div>
       </div>
@@ -705,6 +723,9 @@ class PixelStewardApp {
                 questBadge = p.dcaDoneThisMonth ? '<span class="quest-status cleared">🏆 CLEARED</span>' : '<span class="quest-status schedule">📅 PLAN</span>';
               }
 
+              const curTHBSub = (curUSD * this.exchangeRate).toLocaleString(undefined,{maximumFractionDigits:0});
+              const goalTHBSub = (goalUSD * this.exchangeRate).toLocaleString(undefined,{maximumFractionDigits:0});
+
               return `
                 <div class="quest-card border-pixel ${isCleared ? 'quest-cleared' : ''}">
                   <div class="quest-header">
@@ -712,7 +733,7 @@ class PixelStewardApp {
                     ${questBadge}
                   </div>
                   <div class="quest-desc">
-                    มูลค่า: ${this.formatMoney(p.current + p.cashBuffer, 'Option', true)} / ${p.goalType==='numeric' ? this.formatMoney(p.goal, 'Option', true) : 'DCA ' + p.goalSchedule}
+                    มูลค่า: $${curUSD.toLocaleString(undefined,{maximumFractionDigits:2})} <span style="color:#94a3b8; font-size:0.7rem;">(฿${curTHBSub})</span> / ${p.goalType==='numeric' ? '$' + goalUSD.toLocaleString(undefined,{maximumFractionDigits:0}) + ' <span style="color:#94a3b8; font-size:0.7rem;">(฿' + goalTHBSub + ')</span>' : 'DCA ' + p.goalSchedule}
                   </div>
                   <div class="quest-progress">
                     <div class="quest-hp-bar">
@@ -980,7 +1001,6 @@ class PixelStewardApp {
     const modal = document.getElementById('asset-edit-modal');
     if (modal) modal.classList.remove('hidden');
 
-    // Live Calculate Auto-Previewใน Modal
     const updatePreview = () => {
       const shares = Number(document.getElementById('asset-edit-shares').value) || 0;
       const costPrice = Number(document.getElementById('asset-edit-cost-price').value) || 0;
@@ -1009,7 +1029,6 @@ class PixelStewardApp {
     updatePreview();
   }
 
-  /* 💾 SAVE SUB-ASSET EDIT DATA */
   handleSaveAssetEdit() {
     const portId = document.getElementById('asset-edit-port-id').value;
     const idx = Number(document.getElementById('asset-edit-index').value);
@@ -1161,7 +1180,7 @@ class PixelStewardApp {
       <div class="border-pixel" style="padding:14px 16px; background:#1f273e; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
         <div>
           <h3 style="font-family:'Press Start 2P'; font-size:0.8rem; margin:0;">🗓️ หุ้นรายไตรมาส ($ USD)</h3>
-          <p class="text-muted" style="font-size:0.78rem; margin:4px 0 0 0;">ติดตามประวัติการเติบโตของพอร์ตการลงทุนรายไตรมาส (ระบบบันทึกไตรมาสให้อัตโนมัติ 100%)</p>
+          <p class="text-muted" style="font-size:0.78rem; margin:4px 0 0 0;">ติดตามประวัติการเติบโตของพอร์ตการลงทุนรายไตรมาส</p>
         </div>
         <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
           <select id="quarterly-year-select" class="input-retro" style="width:auto; padding:6px 8px;">
@@ -1378,7 +1397,6 @@ class PixelStewardApp {
     this.refreshUI();
   }
 
-  /* 🎯 OPTION RENDERER & MANAGEMENT SYSTEM */
   renderOptionManual(container) {
     const optionPorts = Array.isArray(this.portfolios) 
       ? this.portfolios.filter(p => p && (p.category || '').toLowerCase().includes('option')) 
@@ -1788,7 +1806,7 @@ class PixelStewardApp {
     document.getElementById('tf-source').innerHTML = this.portfolios.map(p=>p?`<option value="${p.id}">${p.name} (Dry: $${p.dryPowder})</option>`:'').join('');
     document.getElementById('tf-target').innerHTML = '<option value="system">ถอนเงินออกนอกคลัง</option>'+this.portfolios.map(p=>p?`<option value="${p.id}">${p.name}</option>`:'').join('');
     document.getElementById('tf-rate').value = this.exchangeRate;
-    document.getElementById('transfer-modal').classList.remove('hidden');
+    document.getElementById('transfer-modal').classList.add('hidden');
   }
   
   closeModals() { 
@@ -2179,7 +2197,7 @@ function rtjBuildLog() {
       <div class="card-title"><span>📋 DATA LEDGER LOG</span></div>
       <div class="tabs">
         <button class="tab ${rtjState.logTab === 'TRADE' ? 'active' : ''}" data-tab-log="TRADE">TRADE</button>
-        <button class="tab ${rtjState.logTab === 'CF' ? 'active' : ''}" data-tab-log="CF">CASHFLOW</button>
+        <button class="tab ${rtjState.logTab === 'CASHFLOW' ? 'active' : ''}" data-tab-log="CASHFLOW">CASHFLOW</button>
       </div>
       ${rtjState.logTab === 'TRADE' ? rtjBuildTradeLog(symbols) : rtjBuildCFLog()}
     </div>`;
@@ -2298,7 +2316,7 @@ function rtjBuildCalendarSection(allTrades, accountFilter) {
     let pnlDisplay = "$0.00";
     if (tradeCount > 0) {
       if (totalPnl > 0) { skinClass = "skin-cal-win"; pnlDisplay = `+$${totalPnl.toFixed(0)}`; }
-      else if (totalPnl < 0) { skinClass = "skin-cal-loss"; pnlDisplay = `-$${Math.abs(totalPnl).toFixed(0)}`; }
+      else if (totalPnl < 0) { skinClass = "skin-cal-loss"; pnlDisplay = `-$${Math.abs(totalPnl.toFixed(0)}`; }
     }
     
     const isToday = currentStr === tStr;
@@ -2750,7 +2768,7 @@ function rtjBindPeriodFilter(prefix, currentPeriod, onChange) {
   if (toEl) toEl.addEventListener('change', () => onChange({ mode: 'custom', from: fromEl ? fromEl.value : '', to: toEl.value }));
 }
 
-// 🚀 AUTOMATIC INITIALIZATION ON LOAD
+// 🚀 Automatic initialization on load
 if (document.readyState === 'loading') {
   document.addEventListener('DOMContentLoaded', () => rtjInitCloudDatabase());
 } else {
