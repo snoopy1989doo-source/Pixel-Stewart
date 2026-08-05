@@ -1,8 +1,9 @@
-name: Deploy Pixel Steward Ecosystem
+name: Deploy static content to Pages
 
 on:
   push:
     branches: ["main"]
+  workflow_dispatch:
 
 permissions:
   contents: read
@@ -20,23 +21,17 @@ jobs:
       url: ${{ steps.deployment.outputs.page_url }}
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout Repository
+      - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Setup Node.js Runtime
-        uses: actions/setup-node@v4
+      - name: Setup Pages
+        uses: actions/pages-config@v3
+
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v3
         with:
-          node-version: '24'
+          path: '.' # อัปโหลดไฟล์ทั้งหมดจาก Root directory
 
-      - name: Setup GitHub Pages Environment
-        uses: actions/configure-pages@v5
-
-      - name: Upload Deployment Artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: github-pages
-          path: '.'
-
-      - name: Deploy Artifact to GitHub Pages
+      - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4
