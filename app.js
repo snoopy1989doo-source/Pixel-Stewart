@@ -1676,6 +1676,43 @@ class PixelStewardApp {
     link.click();
     document.body.removeChild(link);
   }
+
+  refreshUI() {
+    const container = document.getElementById('tab-content');
+    if (!container) return;
+
+    const pageTitles = {
+      dashboard:  { title: 'แดชบอร์ดภาพรวม', sub: 'วิเคราะห์สถานะความมั่งคั่ง กระสุนรอช้อน และแนวโน้มการเติบโตรายไตรมาส' },
+      portfolios: { title: 'พอร์ตการลงทุน', sub: 'จัดการตลับพอร์ต เพิ่มสินทรัพย์ย่อย และติดตามแต่ละเควสเป้าหมาย' },
+      journal:    { title: 'Forex — Retro Trading Journal', sub: 'สมุดบันทึกเทรด Forex แบบเรโทรอาเขตพร้อมสถิติขั้นสูง' },
+      quarterly:  { title: 'หุ้นรายไตรมาส', sub: 'สรุปผลรายงานไตรมาสทุกพอร์ตเปรียบเทียบการเติบโต' },
+      dividends:  { title: 'เงินปันผล & YOC', sub: 'ติดตามเงินปันผลที่ได้รับและ Yield on Cost' },
+      option:     { title: 'Option รายเดือน', sub: 'บันทึกผลกำไร/ขาดทุนจากสัญญาออปชันรายเดือน' },
+      comparison: { title: 'ตารางเปรียบเทียบ', sub: 'เปรียบเทียบเควสเป้าหมายทุกพอร์ตในมุมมองเดียว' },
+      settings:   { title: 'ตั้งค่าคลาวด์เซฟ', sub: 'ตั้งค่าระบบ สำรองข้อมูล นำเข้าไฟล์ และจัดการหนี้สิน' }
+    };
+
+    const info = pageTitles[this.activeTab] || pageTitles.dashboard;
+    const titleEl = document.getElementById('page-title');
+    const subEl = document.getElementById('page-subtitle');
+    if (titleEl) titleEl.textContent = info.title;
+    if (subEl) subEl.textContent = info.sub;
+
+    switch (this.activeTab) {
+      case 'dashboard':  this.renderDashboard(container); break;
+      case 'portfolios': this.renderPortfolios(container); break;
+      case 'journal':
+        container.innerHTML = '<div id="tab-content-journal-mount"></div>';
+        rtjRender();
+        break;
+      case 'quarterly':  this.renderQuarterly(container); break;
+      case 'dividends':  this.renderDividends(container); break;
+      case 'option':     this.renderOptionManual(container); break;
+      case 'comparison': this.renderComparison(container); break;
+      case 'settings':   this.renderSettings(container); break;
+      default:           this.renderDashboard(container); break;
+    }
+  }
 }
 
 window.app = new PixelStewardApp();
