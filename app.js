@@ -327,6 +327,26 @@ class PixelStewardApp {
     const divForm = document.getElementById('dividend-form');
     if (divForm) divForm.addEventListener('submit', (e) => { e.preventDefault(); this.handleSaveDividend(); });
 
+    const globalRateInput = document.getElementById('global-usd-rate');
+    if (globalRateInput) {
+      globalRateInput.value = this.exchangeRate.toFixed(2);
+      globalRateInput.addEventListener('change', (e) => {
+        const val = Number(e.target.value);
+        if (val > 0) {
+          this.exchangeRate = val;
+          this.saveState();
+          this.refreshUI();
+        }
+      });
+      globalRateInput.addEventListener('input', (e) => {
+        const val = Number(e.target.value);
+        if (val > 0) {
+          this.exchangeRate = val;
+          this.saveState();
+        }
+      });
+    }
+
     this.fetchRateOnLoad();
     this.refreshUI();
   }
@@ -350,28 +370,40 @@ class PixelStewardApp {
 
   connectCloudDatabase() {
     if (!isFirebaseActive) return;
-    firebase.database().ref('pixel_steward_data_v4').on('value', (snapshot) => {
-      const data = snapshot.val();
-      if (data) {
-        if (data.portfolios) this.portfolios = Array.isArray(data.portfolios) ? data.portfolios : Object.values(data.portfolios);
-        if (data.quarterlyRecords) this.quarterlyRecords = Array.isArray(data.quarterlyRecords) ? data.quarterlyRecords : Object.values(data.quarterlyRecords);
-        if (data.monthlyRecords) this.monthlyRecords = Array.isArray(data.monthlyRecords) ? data.monthlyRecords : Object.values(data.monthlyRecords);
-        if (data.dividendRecords) this.dividendRecords = Array.isArray(data.dividendRecords) ? data.dividendRecords : Object.values(data.dividendRecords);
-        if (data.exchangeRate) this.exchangeRate = Number(data.exchangeRate) || this.exchangeRate;
-        if (typeof data.debtStartTHB === 'number') this.debtStartTHB = data.debtStartTHB;
-        if (typeof data.debtRemainingTHB === 'number') this.debtRemainingTHB = data.debtRemainingTHB;
-        this.refreshUI();
-      }
-    });
+    try {
+      firebase.database().ref('pixel_steward_data_v4').on('value', (snapshot) => {
+        const data = snapshot.val();
+        if (data) {
+          if (data.portfolios) this.portfolios = Array.isArray(data.portfolios) ? data.portfolios : Object.values(data.portfolios);
+          if (data.quarterlyRecords) this.quarterlyRecords = Array.isArray(data.quarterlyRecords) ? data.quarterlyRecords : Object.values(data.quarterlyRecords);
+          if (data.monthlyRecords) this.monthlyRecords = Array.isArray(data.monthlyRecords) ? data.monthlyRecords : Object.values(data.monthlyRecords);
+          if (data.dividendRecords) this.dividendRecords = Array.isArray(data.dividendRecords) ? data.dividendRecords : Object.values(data.dividendRecords);
+          if (data.exchangeRate) this.exchangeRate = Number(data.exchangeRate) || this.exchangeRate;
+          if (typeof data.debtStartTHB === 'number') this.debtStartTHB = data.debtStartTHB;
+          if (typeof data.debtRemainingTHB === 'number') this.debtRemainingTHB = data.debtRemainingTHB;
+          this.refreshUI();
+        }
+      }, (error) => {
+        console.warn("⚠️ Firebase sync read permission denied or offline:", error);
+      });
+    } catch (e) {
+      console.error("Firebase sync setup failed:", e);
+    }
   }
 
   syncStateToCloud() {
     if (!isFirebaseActive) return;
-    firebase.database().ref('pixel_steward_data_v4').set({
-      portfolios: this.portfolios, quarterlyRecords: this.quarterlyRecords,
-      monthlyRecords: this.monthlyRecords, dividendRecords: this.dividendRecords, exchangeRate: this.exchangeRate,
-      debtStartTHB: this.debtStartTHB, debtRemainingTHB: this.debtRemainingTHB
-    });
+    try {
+      firebase.database().ref('pixel_steward_data_v4').set({
+        portfolios: this.portfolios, quarterlyRecords: this.quarterlyRecords,
+        monthlyRecords: this.monthlyRecords, dividendRecords: this.dividendRecords, exchangeRate: this.exchangeRate,
+        debtStartTHB: this.debtStartTHB, debtRemainingTHB: this.debtRemainingTHB
+      }).catch(err => {
+        console.warn("⚠️ Firebase sync write permission denied:", err);
+      });
+    } catch (e) {
+      console.error("Firebase sync write failed:", e);
+    }
   }
 
   autoCalculatePortfolios() {
@@ -648,10 +680,10 @@ class PixelStewardApp {
           <div class="border-pixel" style="padding:15px; background:#1f273e;">
             <h4 style="font-family:'Press Start 2P'; font-size:0.6rem; color:#3b82f6; margin-bottom:12px;">📈 สรุปความเติบโตรายไตรมาส (${yr})</h4>
             <div style="display:flex; justify-content:space-around; align-items:flex-end; height:120px; background:#111625; padding:10px; border:2px solid #000;">
-              <div style="width:20%; display:flex; flex-direction:column; align-items:center; height:100%; justify-content:flex-end;"><div style="font-size:0.55rem;">฿${q1.toLocaleString(undefined,{maximumFractionDigits:0})}</div><div style="width:100%; height:${(q1/maxQ)*100}%; background:var(--color-primary); border:1px solid #000;"></div><div style="font-size:0.6rem;">Q1</div></div>
-              <div style="width:20%; display:flex; flex-direction:column; align-items:center; height:100%; justify-content:flex-end;"><div style="font-size:0.55rem;">฿${q2.toLocaleString(undefined,{maximumFractionDigits:0})}</div><div style="width:100%; height:${(q2/maxQ)*100}%; background:var(--color-success); border:1px solid #000;"></div><div style="font-size:0.6rem;">Q2</div></div>
-              <div style="width:20%; display:flex; flex-direction:column; align-items:center; height:100%; justify-content:flex-end;"><div style="font-size:0.55rem;">฿${q3.toLocaleString(undefined,{maximumFractionDigits:0})}</div><div style="width:100%; height:${(q3/maxQ)*100}%; background:var(--color-secondary); border:1px solid #000;"></div><div style="font-size:0.6rem;">Q3</div></div>
-              <div style="width:20%; display:flex; flex-direction:column; align-items:center; height:100%; justify-content:flex-end;"><div style="font-size:0.55rem;">฿${q4.toLocaleString(undefined,{maximumFractionDigits:0})}</div><div style="width:100%; height:${(q4/maxQ)*100}%; background:var(--color-accent); border:1px solid #000;"></div><div style="font-size:0.6rem;">Q4</div></div>
+              <div style="width:20%; display:flex; flex-direction:column; align-items:center; height:100%; justify-content:flex-end;"><div style="font-size:0.55rem;">$${q1.toLocaleString(undefined,{maximumFractionDigits:0})}</div><div style="width:100%; height:${(q1/maxQ)*100}%; background:var(--color-primary); border:1px solid #000;"></div><div style="font-size:0.6rem;">Q1</div></div>
+              <div style="width:20%; display:flex; flex-direction:column; align-items:center; height:100%; justify-content:flex-end;"><div style="font-size:0.55rem;">$${q2.toLocaleString(undefined,{maximumFractionDigits:0})}</div><div style="width:100%; height:${(q2/maxQ)*100}%; background:var(--color-success); border:1px solid #000;"></div><div style="font-size:0.6rem;">Q2</div></div>
+              <div style="width:20%; display:flex; flex-direction:column; align-items:center; height:100%; justify-content:flex-end;"><div style="font-size:0.55rem;">$${q3.toLocaleString(undefined,{maximumFractionDigits:0})}</div><div style="width:100%; height:${(q3/maxQ)*100}%; background:var(--color-secondary); border:1px solid #000;"></div><div style="font-size:0.6rem;">Q3</div></div>
+              <div style="width:20%; display:flex; flex-direction:column; align-items:center; height:100%; justify-content:flex-end;"><div style="font-size:0.55rem;">$${q4.toLocaleString(undefined,{maximumFractionDigits:0})}</div><div style="width:100%; height:${(q4/maxQ)*100}%; background:var(--color-accent); border:1px solid #000;"></div><div style="font-size:0.6rem;">Q4</div></div>
             </div>
           </div>
 
@@ -778,25 +810,35 @@ class PixelStewardApp {
                   const diff = val - cost;
                   const pct = cost > 0 ? (diff / cost) * 100 : 0;
                   const isProfit = diff >= 0;
-                  const isUSD = this.isPortfolioUSD(active.category);
-                  const sym = isUSD ? '$' : '฿';
                   const plBadgeClass = isProfit ? 'badge-pl-profit' : 'badge-pl-loss';
                   const sign = isProfit ? '+' : '';
-                  
+                  const cPrice = Number(a.currentPrice) || (a.shares > 0 ? val / a.shares : val);
+                  const cCostPrice = Number(a.costPrice) || (a.shares > 0 ? cost / a.shares : cost);
+
                   return `
                   <div style="display:flex; justify-content:space-between; background:#111625; padding:8px 12px; border:2px solid #000; font-size:0.85rem; align-items:center; border-radius:6px; flex-wrap:wrap; gap:6px;">
-                    <div style="display:flex; align-items:center;">
+                    <div style="display:flex; align-items:center; gap:8px;">
                       ${this.getTickerLogoHtml(a.name, active.category)}
                       <div>
-                        <b>${a.name}</b> ${a.shares ? `<span style="font-size:0.7rem; color:#94a3b8;">(${a.shares} หุ้น)</span>` : ''}
-                        <div style="font-size:0.7rem; color:#64748b;">ทุน: ${this.formatMoney(cost, active.category)}</div>
+                        <div style="display:flex; align-items:center; gap:6px;">
+                          <b style="font-size:0.9rem; color:#fff;">${a.name}</b>
+                          <span style="font-size:0.65rem; color:#60a5fa; background:rgba(96,165,250,0.1); padding:1px 4px; border-radius:3px;">Dime Sync</span>
+                        </div>
+                        <div style="font-size:0.72rem; color:#94a3b8; margin-top:2px;">
+                          จำนวน: <b>${Number(a.shares || 1).toLocaleString(undefined, {maximumFractionDigits: 6})}</b> หุ้น
+                          | ต้นทุน: <b>$${cCostPrice.toFixed(2)}</b>/หุ้น
+                        </div>
+                        <div style="font-size:0.7rem; color:#64748b; margin-top:1px;">
+                          ทุนรวม: $${cost.toFixed(2)} | ราคาปัจจุบัน: $${cPrice.toFixed(2)}
+                        </div>
                       </div>
                     </div>
                     <div style="display:flex; gap:6px; align-items:center;">
-                      <div style="text-align:right;">
-                        <div><b>${this.formatMoney(val, active.category)}</b></div>
-                        <span class="badge-pl ${plBadgeClass}">${sign}${this.isPrivacyMode ? '***' : sym + Math.abs(diff).toLocaleString(undefined,{maximumFractionDigits:0})} (${sign}${pct.toFixed(1)}%)</span>
+                      <div style="text-align:right; margin-right:4px;">
+                        <div><b>${this.formatMoney(val, active.category, false)}</b></div>
+                        <span class="badge-pl ${plBadgeClass}">${sign}${this.isPrivacyMode ? '***' : '$' + Math.abs(diff).toLocaleString(undefined,{maximumFractionDigits:2})} (${sign}${pct.toFixed(1)}%)</span>
                       </div>
+                      <button class="btn btn-warning btn-small" onclick="app.openAssetEditModal('${active.id}', ${i})" style="padding:2px 6px; font-size:0.7rem; font-weight:bold; color:#000;" title="แก้ไขสินทรัพย์ (Dime Sync)">✏️</button>
                       <button class="btn btn-success btn-small" onclick="app.modularDepositAsset('${active.id}', ${i})" style="padding:2px 6px; font-size:0.7rem; font-weight:bold;" title="ฝากเพิ่ม">📥 ➕</button>
                       <button class="btn btn-warning btn-small" onclick="app.modularWithdrawAsset('${active.id}', ${i})" style="padding:2px 6px; font-size:0.7rem; font-weight:bold; color:#000;" title="ถอนออก">📤 ➖</button>
                       <button class="btn btn-danger btn-small" onclick="app.deleteAsset('${active.id}',${i})" style="padding:2px 6px; font-size:0.7rem;">✖</button>
@@ -916,7 +958,78 @@ class PixelStewardApp {
   }
 
   switchPortfolio(id) { this.selectedPortId = id; this.refreshUI(); }
-  
+
+  openAssetEditModal(portId, assetIdx) {
+    const p = this.portfolios.find(x => x && x.id === portId);
+    if (!p || !p.assets || !p.assets[assetIdx]) return;
+    const a = p.assets[assetIdx];
+
+    document.getElementById('asset-edit-port-id').value = portId;
+    document.getElementById('asset-edit-index').value = assetIdx;
+    document.getElementById('asset-edit-name').value = a.name || '';
+    document.getElementById('asset-edit-shares').value = a.shares !== undefined ? a.shares : 1;
+    document.getElementById('asset-edit-cost-price').value = a.costPrice !== undefined ? a.costPrice : (a.shares > 0 ? a.costBasis / a.shares : a.costBasis);
+    document.getElementById('asset-edit-market-val').value = a.value !== undefined ? a.value : 0;
+
+    const modal = document.getElementById('asset-edit-modal');
+    if (modal) modal.classList.remove('hidden');
+
+    const updatePreview = () => {
+      const shares = Number(document.getElementById('asset-edit-shares').value) || 0;
+      const costPrice = Number(document.getElementById('asset-edit-cost-price').value) || 0;
+      const marketVal = Number(document.getElementById('asset-edit-market-val').value) || 0;
+
+      const totalCost = shares * costPrice;
+      const totalPL = marketVal - totalCost;
+      const pctPL = totalCost > 0 ? (totalPL / totalCost) * 100 : 0;
+      const isProfit = totalPL >= 0;
+
+      const costEl = document.getElementById('preview-total-cost');
+      const plEl = document.getElementById('preview-total-pl');
+
+      if (costEl) costEl.textContent = `$${totalCost.toFixed(2)}`;
+      if (plEl) {
+        plEl.textContent = `${isProfit ? '+' : ''}$${totalPL.toFixed(2)} (${isProfit ? '+' : ''}${pctPL.toFixed(1)}%)`;
+        plEl.style.color = isProfit ? '#10b981' : '#ef4444';
+      }
+    };
+
+    ['asset-edit-shares', 'asset-edit-cost-price', 'asset-edit-market-val'].forEach(id => {
+      const input = document.getElementById(id);
+      if (input) input.oninput = updatePreview;
+    });
+
+    updatePreview();
+  }
+
+  handleSaveAssetEdit() {
+    const portId = document.getElementById('asset-edit-port-id').value;
+    const idx = Number(document.getElementById('asset-edit-index').value);
+    const p = this.portfolios.find(x => x && x.id === portId);
+    if (!p || !p.assets || !p.assets[idx]) return;
+
+    const name = document.getElementById('asset-edit-name').value.trim().toUpperCase();
+    const shares = Number(document.getElementById('asset-edit-shares').value) || 1;
+    const costPrice = Number(document.getElementById('asset-edit-cost-price').value) || 0;
+    const marketVal = Number(document.getElementById('asset-edit-market-val').value) || 0;
+
+    if (!name) { alert('❌ โปรดระบุชื่อ Ticker สินทรัพย์!'); return; }
+
+    p.assets[idx] = {
+      name: name,
+      shares: shares,
+      costPrice: costPrice,
+      costBasis: shares * costPrice,
+      currentPrice: shares > 0 ? marketVal / shares : marketVal,
+      value: marketVal
+    };
+
+    this.saveState();
+    this.closeModals();
+    this.refreshUI();
+    alert(`🎯 แก้ไขสินทรัพย์ย่อย "${name}" สำเร็จ!`);
+  }
+
   deleteAsset(id, idx) { 
     const p = this.portfolios.find(x => x && x.id === id);
     if (p && p.assets && p.assets[idx]) { 
@@ -1366,7 +1479,7 @@ class PixelStewardApp {
   renderSettings(container) {
     container.innerHTML = `
       <div style="display:flex; flex-direction:column; gap:20px;">
-        <div style="display:none;"><input type="number" id="global-usd-rate" value="${this.exchangeRate}"></div>
+        <div style="display:none;"><input type="number" id="settings-usd-rate-hidden" value="${this.exchangeRate}"></div>
 
         <div class="border-pixel" style="padding:20px; background:#1f273e; display:flex; flex-direction:column; gap:12px;">
           <h3 style="display:flex; align-items:center; gap:6px;">❄️ DEBT SNOWBALL (ใช้คำนวณ Portfolio Health)</h3>
@@ -1914,29 +2027,41 @@ function rtjShouldShowAlert() { return rtjGetTodayLosses() >= 2; }
 
 function rtjSyncToCloud() {
   if (!isFirebaseActive) return;
-  const legacyBalance = (rtjState.balances && rtjState.balances['Demo']) ? rtjState.balances['Demo'] : 10000;
-  firebase.database().ref('retro_trading_journal_data').set({
-    trades: rtjState.trades, cfs: rtjState.cfs, balance: legacyBalance, balances: rtjState.balances
-  });
+  try {
+    const legacyBalance = (rtjState.balances && rtjState.balances['Demo']) ? rtjState.balances['Demo'] : 10000;
+    firebase.database().ref('retro_trading_journal_data').set({
+      trades: rtjState.trades, cfs: rtjState.cfs, balance: legacyBalance, balances: rtjState.balances
+    }).catch(err => {
+      console.warn("⚠️ Firebase rtj sync write permission denied:", err);
+    });
+  } catch (e) {
+    console.error("Firebase rtj sync write failed:", e);
+  }
 }
 
 function rtjInitCloudDatabase() {
   if (!isFirebaseActive) return;
-  firebase.database().ref('retro_trading_journal_data').once('value', (snapshot) => {
-    const data = snapshot.val();
-    if (data) {
-      if (data.trades) rtjState.trades = Array.isArray(data.trades) ? data.trades : Object.values(data.trades);
-      if (data.cfs) rtjState.cfs = Array.isArray(data.cfs) ? data.cfs : Object.values(data.cfs);
-      if (data.balances) {
-        rtjState.balances = { ...rtjDEFAULT_BALANCES, ...data.balances };
-      } else if (data.balance) {
-        rtjState.balances = { ...rtjDEFAULT_BALANCES, Demo: parseFloat(data.balance) || 10000 };
-      }
-      rtjSave(rtjKEY.TRADES, rtjState.trades); rtjSave(rtjKEY.CFS, rtjState.cfs); rtjSave(rtjKEY.BALANCES, rtjState.balances);
-      rtjSyncCrtView();
-      if (app && app.activeTab === 'journal') rtjRender();
-    } else { rtjSyncToCloud(); }
-  });
+  try {
+    firebase.database().ref('retro_trading_journal_data').once('value', (snapshot) => {
+      const data = snapshot.val();
+      if (data) {
+        if (data.trades) rtjState.trades = Array.isArray(data.trades) ? data.trades : Object.values(data.trades);
+        if (data.cfs) rtjState.cfs = Array.isArray(data.cfs) ? data.cfs : Object.values(data.cfs);
+        if (data.balances) {
+          rtjState.balances = { ...rtjDEFAULT_BALANCES, ...data.balances };
+        } else if (data.balance) {
+          rtjState.balances = { ...rtjDEFAULT_BALANCES, Demo: parseFloat(data.balance) || 10000 };
+        }
+        rtjSave(rtjKEY.TRADES, rtjState.trades); rtjSave(rtjKEY.CFS, rtjState.cfs); rtjSave(rtjKEY.BALANCES, rtjState.balances);
+        rtjSyncCrtView();
+        if (app && app.activeTab === 'journal') rtjRender();
+      } else { rtjSyncToCloud(); }
+    }, (error) => {
+      console.warn("⚠️ Firebase rtj read permission denied or offline:", error);
+    });
+  } catch (e) {
+    console.error("Firebase rtj read failed:", e);
+  }
 }
 
 function rtjSyncCrtView() {
