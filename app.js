@@ -332,6 +332,17 @@ class PixelStewardApp {
 
     this.portfolios = storedPorts ? JSON.parse(storedPorts) : INITIAL_PORTFOLIOS;
     this.quarterlyRecords = storedQuarters ? JSON.parse(storedQuarters) : INITIAL_QUARTERLY_RECORDS;
+    
+    // Clean 2026 Q1 and Q2 test data as requested by user to start tracking officially from Q3 2026
+    if (Array.isArray(this.quarterlyRecords)) {
+      this.quarterlyRecords.forEach(r => {
+        if (r && (r.year === 2026 || r.year === '2026')) {
+          r.q1 = 0; r.f1 = 0; r.flowQ1 = 0;
+          r.q2 = 0; r.f2 = 0; r.flowQ2 = 0;
+        }
+      });
+    }
+
     this.monthlyRecords = storedMonthlies ? JSON.parse(storedMonthlies) : INITIAL_MONTHLY_RECORDS;
     this.dividendRecords = storedDividends ? JSON.parse(storedDividends) : [];
     this.exchangeRate = storedRate ? Number(storedRate) : 36.5;
@@ -511,6 +522,11 @@ class PixelStewardApp {
       targetQuarterField = 'q2';
     } else if (month >= 10 && month <= 12) {
       targetQuarterField = 'q3';
+    }
+
+    // Skip auto-snapshotting Q1 and Q2 for 2026 since user starts tracking from Q3 2026
+    if (targetYear === 2026 && (targetQuarterField === 'q1' || targetQuarterField === 'q2')) {
+      return;
     }
 
     let autoSnapCount = 0;
@@ -873,10 +889,11 @@ class PixelStewardApp {
           <!-- 📈 QUARTERLY GROWTH -->
           <div class="border-pixel" style="padding:15px; background:#1f273e;">
             <h4 style="font-family:'Press Start 2P'; font-size:0.6rem; color:#3b82f6; margin-bottom:12px;">📈 สรุปความเติบโตรายไตรมาส (${yr})</h4>
-              <div style="width:20%; display:flex; flex-direction:column; align-items:center; height:100%; justify-content:flex-end;"><div style="font-size:0.55rem;">$${q1.toLocaleString(undefined,{maximumFractionDigits:0})}</div><div style="width:100%; height:${(q1/maxQ)*100}%; background:var(--color-primary); border:1px solid #000;"></div><div style="font-size:0.6rem;">Q1</div></div>
-              <div style="width:20%; display:flex; flex-direction:column; align-items:center; height:100%; justify-content:flex-end;"><div style="font-size:0.55rem;">$${q2.toLocaleString(undefined,{maximumFractionDigits:0})}</div><div style="width:100%; height:${(q2/maxQ)*100}%; background:var(--color-success); border:1px solid #000;"></div><div style="font-size:0.6rem;">Q2</div></div>
-              <div style="width:20%; display:flex; flex-direction:column; align-items:center; height:100%; justify-content:flex-end;"><div style="font-size:0.55rem;">$${q3.toLocaleString(undefined,{maximumFractionDigits:0})}</div><div style="width:100%; height:${(q3/maxQ)*100}%; background:var(--color-secondary); border:1px solid #000;"></div><div style="font-size:0.6rem;">Q3</div></div>
-              <div style="width:20%; display:flex; flex-direction:column; align-items:center; height:100%; justify-content:flex-end;"><div style="font-size:0.55rem;">$${q4.toLocaleString(undefined,{maximumFractionDigits:0})}</div><div style="width:100%; height:${(q4/maxQ)*100}%; background:var(--color-accent); border:1px solid #000;"></div><div style="font-size:0.6rem;">Q4</div></div>
+            <div style="display:flex; justify-content:space-around; align-items:flex-end; height:120px; background:#111625; padding:10px; border:2px solid #000;">
+              <div style="width:20%; display:flex; flex-direction:column; align-items:center; height:100%; justify-content:flex-end;"><div style="font-size:0.55rem;">$${q1.toLocaleString(undefined,{maximumFractionDigits:0})}</div><div style="width:100%; height:${maxQ>0?(q1/maxQ)*100:0}%; background:var(--color-primary); border:1px solid #000;"></div><div style="font-size:0.6rem;">Q1</div></div>
+              <div style="width:20%; display:flex; flex-direction:column; align-items:center; height:100%; justify-content:flex-end;"><div style="font-size:0.55rem;">$${q2.toLocaleString(undefined,{maximumFractionDigits:0})}</div><div style="width:100%; height:${maxQ>0?(q2/maxQ)*100:0}%; background:var(--color-success); border:1px solid #000;"></div><div style="font-size:0.6rem;">Q2</div></div>
+              <div style="width:20%; display:flex; flex-direction:column; align-items:center; height:100%; justify-content:flex-end;"><div style="font-size:0.55rem;">$${q3.toLocaleString(undefined,{maximumFractionDigits:0})}</div><div style="width:100%; height:${maxQ>0?(q3/maxQ)*100:0}%; background:var(--color-secondary); border:1px solid #000;"></div><div style="font-size:0.6rem;">Q3</div></div>
+              <div style="width:20%; display:flex; flex-direction:column; align-items:center; height:100%; justify-content:flex-end;"><div style="font-size:0.55rem;">$${q4.toLocaleString(undefined,{maximumFractionDigits:0})}</div><div style="width:100%; height:${maxQ>0?(q4/maxQ)*100:0}%; background:var(--color-accent); border:1px solid #000;"></div><div style="font-size:0.6rem;">Q4</div></div>
             </div>
           </div>
 
