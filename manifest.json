@@ -1,0 +1,24 @@
+{
+  "name": "Pixel Steward - ผู้พิทักษ์พอร์ตมหาสมบัติ",
+  "short_name": "PixelSteward",
+  "description": "ระบบบริหารจัดการพอร์ตการลงทุน สะสมเสบียง และเทรดดิ้งเจอนัลสไตล์เรโทรพิกเซลอาร์ต",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#0c1020",
+  "theme_color": "#0c1020",
+  "icons": [
+    {
+      "src": "./assets/avatar/avatar-profile.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "./assets/avatar/avatar-profile.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}

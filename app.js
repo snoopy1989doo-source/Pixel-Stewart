@@ -205,6 +205,15 @@ const INITIAL_PORTFOLIOS = [
 const INITIAL_QUARTERLY_RECORDS = [];
 const INITIAL_MONTHLY_RECORDS = [];
 
+const DEFAULT_ACHIEVEMENTS = [
+  { id: 'ach-networth', title: '🌟 First $10,000 Net Worth', desc: 'มูลค่าคลังทรัพย์สินรวมสะสมบรรลุ $10,000', completed: false },
+  { id: 'ach-debtfree', title: '⚔️ Debt-Free Hero (ปลดหนี้กยศ.)', desc: 'ปลดภาระหนี้กยศ. ครบถ้วน ยอดคงเหลือเป็น $0 / ฿0', completed: false },
+  { id: 'ach-dca365', title: '📅 365-Day DCA Master', desc: 'รักษาวินัยการลงทุน DCA ต่อเนื่องสม่ำเสมอครบ 1 ปี', completed: false },
+  { id: 'ach-collector', title: '💎 Treasure Collector', desc: 'สะสมสินทรัพย์ย่อยในตลับพอร์ตมากกว่า 5 รายการขึ้นไป', completed: false },
+  { id: 'ach-quest', title: '🎯 First Quest Cleared', desc: 'พอร์ตการลงทุนบรรลุเป้าหมายที่ตั้งไว้ 100%', completed: false },
+  { id: 'ach-master', title: '🏆 Master Steward', desc: 'มูลค่าคลังรวมทุกพอร์ตเกิน $50,000 ขึ้นไป', completed: false }
+];
+
 class PixelStewardApp {
   constructor() {
     this.portfolios = [];
@@ -220,6 +229,8 @@ class PixelStewardApp {
     this.quarterlyViewYear = new Date().getFullYear();
     this.quarterlyViewMode = localStorage.getItem('ps_quarterly_view_mode_v4') || 'card';
     this.pendingClearQuarterly = null;
+    this.subAssetSortOption = 'default';
+    this.achievements = this.loadAchievements();
     
     this.init();
   }
@@ -331,12 +342,32 @@ class PixelStewardApp {
       this.selectedPortId = this.portfolios[0].id;
     }
 
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('./sw.js').catch(err => console.warn('PWA SW Register:', err));
+    }
+
     this.connectCloudDatabase();
     this.updatePrivacyBtnState();
 
     document.addEventListener('click', (e) => {
       if (e.target.closest('.btn-close-modal')) {
         this.closeModals();
+        return;
+      }
+
+      const trophyBtn = e.target.closest('#btn-open-achievements');
+      if (trophyBtn) {
+        this.openAchievementModal();
+        return;
+      }
+
+      const addCustomAchBtn = e.target.closest('#btn-add-custom-achievement');
+      if (addCustomAchBtn) {
+        const input = document.getElementById('new-achievement-title');
+        if (input && input.value) {
+          this.addCustomAchievement(input.value);
+          input.value = '';
+        }
         return;
       }
 
@@ -842,7 +873,6 @@ class PixelStewardApp {
           <!-- 📈 QUARTERLY GROWTH -->
           <div class="border-pixel" style="padding:15px; background:#1f273e;">
             <h4 style="font-family:'Press Start 2P'; font-size:0.6rem; color:#3b82f6; margin-bottom:12px;">📈 สรุปความเติบโตรายไตรมาส (${yr})</h4>
-            <div style="display:flex; justify-content:space-around; align-items:flex-end; height:120px; background:#111625; padding:10px; border:2px solid #000;">
               <div style="width:20%; display:flex; flex-direction:column; align-items:center; height:100%; justify-content:flex-end;"><div style="font-size:0.55rem;">$${q1.toLocaleString(undefined,{maximumFractionDigits:0})}</div><div style="width:100%; height:${(q1/maxQ)*100}%; background:var(--color-primary); border:1px solid #000;"></div><div style="font-size:0.6rem;">Q1</div></div>
               <div style="width:20%; display:flex; flex-direction:column; align-items:center; height:100%; justify-content:flex-end;"><div style="font-size:0.55rem;">$${q2.toLocaleString(undefined,{maximumFractionDigits:0})}</div><div style="width:100%; height:${(q2/maxQ)*100}%; background:var(--color-success); border:1px solid #000;"></div><div style="font-size:0.6rem;">Q2</div></div>
               <div style="width:20%; display:flex; flex-direction:column; align-items:center; height:100%; justify-content:flex-end;"><div style="font-size:0.55rem;">$${q3.toLocaleString(undefined,{maximumFractionDigits:0})}</div><div style="width:100%; height:${(q3/maxQ)*100}%; background:var(--color-secondary); border:1px solid #000;"></div><div style="font-size:0.6rem;">Q3</div></div>
@@ -885,14 +915,26 @@ class PixelStewardApp {
     const lvl = this.getPortfolioLevel(active);
     const weight = this.getCalculations().netWorthUSD > 0 ? (((active.current+active.cashBuffer))/this.getCalculations().netWorthUSD)*100 : 0;
 
+    let displayAssets = active.assets ? active.assets.map((a, i) => ({ ...a, originalIndex: i })) : [];
+    if (this.subAssetSortOption === 'value') {
+      displayAssets.sort((a, b) => (Number(b.value) || 0) - (Number(a.value) || 0));
+    } else if (this.subAssetSortOption === 'gain') {
+      displayAssets.sort((a, b) => ((Number(b.value) || 0) - (Number(b.costBasis) || Number(b.value) || 0)) - ((Number(a.value) || 0) - (Number(a.costBasis) || Number(a.value) || 0)));
+    } else if (this.subAssetSortOption === 'loss') {
+      displayAssets.sort((a, b) => ((Number(a.value) || 0) - (Number(a.costBasis) || Number(a.value) || 0)) - ((Number(b.value) || 0) - (Number(b.costBasis) || Number(b.value) || 0)));
+    }
+
     container.innerHTML = `
       <div style="display:flex; flex-direction:column; gap:20px;">
         <div class="border-pixel" style="padding:16px; background:#111625;">
-          <h3 style="font-family:'Press Start 2P'; font-size:0.75rem; color:var(--color-accent, #f59e0b); margin-bottom:14px; display:flex; align-items:center;">
-            <img src="./assets/icons/icon-briefcase.png" alt="Rack" class="card-title-icon" style="width:24px; height:24px; margin-right:8px;"> CARTRIDGE MEMORY RACK
-          </h3>
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px;">
+            <h3 style="font-family:'Press Start 2P'; font-size:0.75rem; color:var(--color-accent, #f59e0b); margin:0; display:flex; align-items:center;">
+              <img src="./assets/icons/icon-briefcase.png" alt="Rack" class="card-title-icon" style="width:24px; height:24px; margin-right:8px;"> CARTRIDGE MEMORY RACK
+            </h3>
+            <span style="font-size:0.72rem; color:#94a3b8;">✋ คลิกสลับ หรือ ลากเพื่อเรียงลำดับใหม่</span>
+          </div>
           <div class="memory-card-grid">
-            ${this.portfolios.map(p => {
+            ${this.portfolios.map((p, idx) => {
               if (!p) return '';
               const pct = p.goal > 0 ? (((p.current + p.cashBuffer) / p.goal) * 100) : 0;
               const isPurpleTier = pct >= 80;
@@ -900,7 +942,7 @@ class PixelStewardApp {
               const isActive = p.id === this.selectedPortId ? 'active' : '';
 
               return `
-                <div class="memory-card-wrapper ${tierClass} ${isActive}" onclick="app.switchPortfolio('${p.id}')">
+                <div class="memory-card-wrapper ${tierClass} ${isActive}" draggable="true" data-port-id="${p.id}" data-port-index="${idx}" onclick="app.switchPortfolio('${p.id}')">
                   <img src="./assets/cards/card-folio.png" class="memory-card-bg" alt="Memory Card">
                   <div class="memory-card-content">
                     <div>
@@ -922,7 +964,7 @@ class PixelStewardApp {
               `;
             }).join('')}
 
-            <div class="memory-card-add-new">
+            <div class="memory-card-add-new" onclick="app.openPortfolioModal()">
               <div style="font-size:1.8rem;">➕</div>
               <div style="font-family:'Press Start 2P'; font-size:0.6rem; margin-top:8px;">ADD NEW</div>
             </div>
@@ -961,12 +1003,19 @@ class PixelStewardApp {
             </div>
 
             <div style="margin-top:5px;">
-              <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:2px solid #000; padding-bottom:6px;">
+              <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:2px solid #000; padding-bottom:6px; flex-wrap:wrap; gap:6px;">
                 <span style="font-size:0.8rem; font-weight:bold; color:var(--color-success);">💎 สินทรัพย์ย่อยในตลับ:</span>
-                <button class="btn btn-primary btn-retro btn-small" id="btn-add-asset"><span>➕ เพิ่มสินทรัพย์</span></button>
+                <div style="display:flex; gap:4px; align-items:center;">
+                  <button class="sub-asset-sort-btn ${this.subAssetSortOption==='default'?'active':''}" onclick="app.setSubAssetSort('default')">📌 ตามเดิม</button>
+                  <button class="sub-asset-sort-btn ${this.subAssetSortOption==='value'?'active':''}" onclick="app.setSubAssetSort('value')">💰 มูลค่าสูงสุด</button>
+                  <button class="sub-asset-sort-btn ${this.subAssetSortOption==='gain'?'active':''}" onclick="app.setSubAssetSort('gain')">📈 กำไรสูงสุด</button>
+                  <button class="sub-asset-sort-btn ${this.subAssetSortOption==='loss'?'active':''}" onclick="app.setSubAssetSort('loss')">📉 ขาดทุนสูงสุด</button>
+                  <button class="btn btn-primary btn-retro btn-small" id="btn-add-asset" style="margin-left:4px;"><span>➕ เพิ่มสินทรัพย์</span></button>
+                </div>
               </div>
               <div style="display:flex; flex-direction:column; gap:8px; margin-top:8px; max-height:220px; overflow-y:auto;">
-                ${(!active.assets || active.assets.length===0)?'<p class="text-muted" style="font-size:0.85rem; text-align:center;">คลังว่างเปล่า กดปุ่ม ➕ ด้านบนเพื่อเพิ่ม</p>':active.assets.map((a,i)=>{
+                ${(displayAssets.length===0)?'<p class="text-muted" style="font-size:0.85rem; text-align:center;">คลังว่างเปล่า กดปุ่ม ➕ ด้านบนเพื่อเพิ่ม</p>':displayAssets.map((a)=>{
+                  const i = a.originalIndex;
                   const cost = Number(a.costBasis) || Number(a.value) || 0;
                   const val = Number(a.value) || 0;
                   const diff = val - cost;
@@ -1048,6 +1097,127 @@ class PixelStewardApp {
         this.saveState(); this.refreshUI(); alert('🎯 อัปเดตเงินช้อนสำเร็จ!'); 
       }
     });
+  }
+
+  setSubAssetSort(option) {
+    this.subAssetSortOption = option;
+    this.refreshUI();
+  }
+
+  attachMemoryCardDragEvents() {
+    const grid = document.querySelector('.memory-card-grid');
+    if (!grid) return;
+
+    let draggedItemIndex = null;
+
+    grid.querySelectorAll('.memory-card-wrapper').forEach((card) => {
+      card.addEventListener('dragstart', (e) => {
+        draggedItemIndex = parseInt(card.dataset.portIndex);
+        card.classList.add('dragging');
+        if (e.dataTransfer) {
+          e.dataTransfer.effectAllowed = 'move';
+          e.dataTransfer.setData('text/plain', draggedItemIndex);
+        }
+      });
+
+      card.addEventListener('dragend', () => {
+        card.classList.remove('dragging');
+        grid.querySelectorAll('.memory-card-wrapper').forEach(c => c.classList.remove('drag-over'));
+      });
+
+      card.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        if (e.dataTransfer) e.dataTransfer.dropEffect = 'move';
+        card.classList.add('drag-over');
+      });
+
+      card.addEventListener('dragleave', () => {
+        card.classList.remove('drag-over');
+      });
+
+      card.addEventListener('drop', (e) => {
+        e.preventDefault();
+        card.classList.remove('drag-over');
+        const targetIndex = parseInt(card.dataset.portIndex);
+        if (draggedItemIndex !== null && !isNaN(targetIndex) && draggedItemIndex !== targetIndex) {
+          const movedPort = this.portfolios.splice(draggedItemIndex, 1)[0];
+          this.portfolios.splice(targetIndex, 0, movedPort);
+          this.saveState();
+          this.refreshUI();
+        }
+      });
+    });
+  }
+
+  loadAchievements() {
+    const stored = localStorage.getItem('ps_achievements_v4');
+    return stored ? JSON.parse(stored) : DEFAULT_ACHIEVEMENTS;
+  }
+
+  saveAchievements() {
+    localStorage.setItem('ps_achievements_v4', JSON.stringify(this.achievements));
+    this.syncStateToCloud();
+  }
+
+  openAchievementModal() {
+    const modal = document.getElementById('achievement-modal');
+    if (!modal) return;
+    this.renderAchievements();
+    modal.classList.remove('hidden');
+  }
+
+  renderAchievements() {
+    const container = document.getElementById('achievement-checklist-container');
+    const countEl = document.getElementById('achievement-unlocked-count');
+    if (!container) return;
+
+    if (!Array.isArray(this.achievements)) this.achievements = DEFAULT_ACHIEVEMENTS;
+
+    const completedCount = this.achievements.filter(a => a && a.completed).length;
+    if (countEl) countEl.innerText = `🏆 สำเร็จ ${completedCount} / ${this.achievements.length} เควส`;
+
+    container.innerHTML = this.achievements.map(a => {
+      if (!a) return '';
+      return `
+        <div class="achievement-item ${a.completed ? 'completed' : ''}">
+          <input type="checkbox" class="achievement-checkbox" ${a.completed ? 'checked' : ''} onchange="app.toggleAchievement('${a.id}')">
+          <div style="flex:1;">
+            <div class="achievement-title">${a.title}</div>
+            <div class="achievement-desc">${a.desc}</div>
+          </div>
+          ${a.isCustom ? `<button class="btn btn-danger btn-small" onclick="app.deleteCustomAchievement('${a.id}')" style="padding:2px 6px; font-size:0.7rem;">✖</button>` : ''}
+        </div>
+      `;
+    }).join('');
+  }
+
+  toggleAchievement(id) {
+    const item = this.achievements.find(a => a && a.id === id);
+    if (item) {
+      item.completed = !item.completed;
+      this.saveAchievements();
+      this.renderAchievements();
+    }
+  }
+
+  addCustomAchievement(title) {
+    if (!title || !title.trim()) return;
+    const newAch = {
+      id: 'custom-' + Date.now(),
+      title: '🎯 ' + title.trim(),
+      desc: 'เควสส่วนตัวกำหนดเอง',
+      completed: false,
+      isCustom: true
+    };
+    this.achievements.push(newAch);
+    this.saveAchievements();
+    this.renderAchievements();
+  }
+
+  deleteCustomAchievement(id) {
+    this.achievements = this.achievements.filter(a => a && a.id !== id);
+    this.saveAchievements();
+    this.renderAchievements();
   }
 
   /* ✏️ OPEN SUB-ASSET EDIT MODAL (DIME SYNC SYSTEM) */

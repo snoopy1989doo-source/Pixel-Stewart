@@ -6,10 +6,16 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>Pixel Steward - ผู้พิทักษ์พอร์ตมหาสมบัติ</title>
+  <meta name="theme-color" content="#0c1020">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="PixelSteward">
+  <link rel="apple-touch-icon" href="./assets/avatar/avatar-profile.png">
+  <link rel="manifest" href="manifest.json">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Kanit:wght@300;400;500;700;900&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="style.css?v=330">
+  <link rel="stylesheet" href="style.css?v=340">
 </head>
 <body>
   <div class="app-container">
@@ -30,7 +36,7 @@
         <div class="title-container">
           <h1 class="brand-title">PIXEL</h1>
           <h1 class="brand-title highlight" style="color:#3b82f6;">STEWARD</h1>
-          <span class="badge-version" style="font-size:0.5rem; color:#10b981;">🔸 V.3.3.0</span>
+          <span class="badge-version" style="font-size:0.5rem; color:#10b981;">🔸 V.3.4.0</span>
         </div>
       </div>
       
@@ -101,6 +107,7 @@
         </div>
 
         <div class="header-buttons" style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
+          <button class="btn btn-warning btn-retro" id="btn-open-achievements" style="padding:6px 10px; background:#f59e0b; color:#000;"><span>🏆 ห้องเกียรติยศ</span></button>
           <button class="btn btn-privacy btn-retro" id="btn-toggle-privacy" style="padding:6px 10px;"><span>👁️ ซ่อนตัวเลข</span></button>
           <button class="btn btn-secondary btn-retro" id="btn-fetch-live-prices" style="padding:6px 10px; background:#0284c7; color:#fff;"><span>🔄 ดึงราคาตลาดสด</span></button>
           <button class="btn btn-primary btn-retro" id="btn-add-portfolio" style="padding:6px 10px;"><span>➕ เพิ่มพอร์ตใหม่</span></button>
@@ -124,19 +131,19 @@
           <input type="hidden" id="q-port-id">
           <input type="hidden" id="q-year">
           <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:12px;">
-            <div class="form-group"><label>ยอดสิ้นไตรมาส 1 (THB):</label><input type="number" id="q-val-q1" class="input-retro" step="any"></div>
-            <div class="form-group"><label>ทุนเติม/ถอนสุทธิ Q1:</label><input type="number" id="q-flow-q1" class="input-retro" value="0" step="any"></div>
+            <div class="form-group"><label>ยอดสิ้นไตรมาส 1 ($ USD):</label><input type="number" id="q-val-q1" class="input-retro" step="any"></div>
+            <div class="form-group"><label>ทุนเติม/ถอนสุทธิ Q1 ($):</label><input type="number" id="q-flow-q1" class="input-retro" value="0" step="any"></div>
           </div>
           <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:12px;">
-            <div class="form-group"><label>ยอดสิ้นไตรมาส 2 (THB):</label><input type="number" id="q-val-q2" class="input-retro" step="any"></div>
-            <div class="form-group"><label>ทุนเติม/ถอนสุทธิ Q2:</label><input type="number" id="q-flow-q2" class="input-retro" value="0" step="any"></div>
+            <div class="form-group"><label>ยอดสิ้นไตรมาส 2 ($ USD):</label><input type="number" id="q-val-q2" class="input-retro" step="any"></div>
+            <div class="form-group"><label>ทุนเติม/ถอนสุทธิ Q2 ($):</label><input type="number" id="q-flow-q2" class="input-retro" value="0" step="any"></div>
           </div>
           <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:12px;">
-            <div class="form-group"><label>ยอดสิ้นไตรมาส 3 (THB):</label><input type="number" id="q-val-q3" class="input-retro" step="any"></div>
-            <div class="form-group"><label>ทุนเติม/ถอนสุทธิ Q3:</label><input type="number" id="q-flow-q3" class="input-retro" value="0" step="any"></div>
+            <div class="form-group"><label>ยอดสิ้นไตรมาส 3 ($ USD):</label><input type="number" id="q-val-q3" class="input-retro" step="any"></div>
+            <div class="form-group"><label>ทุนเติม/ถอนสุทธิ Q3 ($):</label><input type="number" id="q-flow-q3" class="input-retro" value="0" step="any"></div>
           </div>
           <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:12px;">
-            <div class="form-group"><label>ยอดสิ้นไตรมาส 4 (THB):</label><input type="number" id="q-val-q4" class="input-retro" step="any"></div>
+            <div class="form-group"><label>ยอดสิ้นไตรมาส 4 ($ USD):</label><input type="number" id="q-val-q4" class="input-retro" step="any"></div>
             <div class="form-group"><label>ทุนเติม/ถอนสุทธิ Q4:</label><input type="number" id="q-flow-q4" class="input-retro" value="0" step="any"></div>
           </div>
           <div class="form-group">
@@ -340,6 +347,35 @@
     </div>
   </div>
 
-  <script src="app.js?v=330"></script>
+  <!-- 🏆 [V3.4.0 NEW] STEWARD TROPHY & ACHIEVEMENT QUEST CHECKLIST MODAL -->
+  <div id="achievement-modal" class="modal-overlay hidden">
+    <div class="modal-card border-pixel" style="max-width:620px;">
+      <div class="modal-header">
+        <h3 style="font-family:'Press Start 2P'; font-size:0.75rem; color:var(--color-accent);">🏆 STEWARD TROPHY & QUEST CHECKLIST</h3>
+        <button type="button" class="btn-close-modal">✖</button>
+      </div>
+      <div class="modal-body" style="max-height:420px; overflow-y:auto;">
+        <p class="text-muted" style="font-size:0.8rem; margin-bottom:12px;">
+          ห้องเกียรติยศบันทึกเควสและถ้วยรางวัล RPG ท่านสามารถคลิกเลือก <b>☑️ ติ๊กถูก</b> เมื่อบรรลุเป้าหมาย หรือสร้างเควสส่วนตัวเพิ่มเองได้!
+        </p>
+        
+        <div id="achievement-checklist-container" style="display:flex; flex-direction:column; gap:10px;"></div>
+
+        <div class="border-pixel-inset" style="padding:10px; background:#111625; margin-top:14px;">
+          <h5 style="font-family:'Press Start 2P'; font-size:0.55rem; color:#60a5fa; margin-bottom:8px;">➕ เพิ่มเควสเป้าหมายส่วนตัว (CUSTOM QUEST TASK)</h5>
+          <div style="display:flex; gap:8px;">
+            <input type="text" id="new-achievement-title" class="input-retro" placeholder="เช่น DCA หุ้นปันผลต่อเนื่องครบ 100 หุ้น" style="flex:1;">
+            <button type="button" class="btn btn-success btn-small" id="btn-add-custom-achievement">➕ เพิ่มเควส</button>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer" style="display:flex; justify-content:space-between; align-items:center; margin-top:12px;">
+        <span id="achievement-unlocked-count" style="font-size:0.8rem; color:#10b981; font-weight:bold;">🏆 สำเร็จ 0 / 6 เควส</span>
+        <button type="button" class="btn btn-secondary btn-close-modal"><span>ปิดหน้าต่าง</span></button>
+      </div>
+    </div>
+  </div>
+
+  <script src="app.js?v=340"></script>
 </body>
 </html> 

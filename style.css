@@ -970,3 +970,75 @@ img {
   .memory-card-grid { grid-template-columns: repeat(2, 1fr); gap: 12px; }
   .quarterly-card-grid { grid-template-columns: repeat(2, 1fr); }
 }
+
+/* --- 9. V3.4.0 DRAG & DROP, SUB-ASSET FILTERS & ACHIEVEMENT QUEST CHECKLIST --- */
+.memory-card-wrapper.dragging {
+  opacity: 0.5;
+  transform: scale(0.95);
+  border-style: dashed;
+}
+
+.memory-card-wrapper.drag-over {
+  border-color: #f59e0b !important;
+  box-shadow: 0 0 15px rgba(245, 158, 11, 0.9) !important;
+}
+
+.sub-asset-sort-btn {
+  background: #111625;
+  color: #94a3b8;
+  border: 1px solid #334155;
+  padding: 3px 8px;
+  font-size: 0.72rem;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+.sub-asset-sort-btn:hover, .sub-asset-sort-btn.active {
+  background: #3b82f6;
+  color: #fff;
+  border-color: #3b82f6;
+}
+
+.achievement-item {
+  background: #111625;
+  border: 2px solid #26304d;
+  padding: 10px 14px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  transition: border-color 0.2s ease, background 0.2s ease;
+  user-select: none;
+}
+
+.achievement-item:hover {
+  border-color: var(--color-accent);
+}
+
+.achievement-item.completed {
+  background: rgba(16, 185, 129, 0.1);
+  border-color: var(--color-success);
+}
+
+.achievement-checkbox {
+  width: 22px;
+  height: 22px;
+  accent-color: var(--color-success);
+  cursor: pointer;
+}
+
+.achievement-title {
+  font-weight: bold;
+  font-size: 0.85rem;
+  color: #fff;
+}
+
+.achievement-item.completed .achievement-title {
+  color: #10b981;
+}
+
+.achievement-desc {
+  font-size: 0.72rem;
+  color: #94a3b8;
+  margin-top: 2px;
+}
