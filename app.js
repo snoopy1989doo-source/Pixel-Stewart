@@ -576,13 +576,38 @@ class PixelStewardApp {
       firebase.database().ref('pixel_steward_data_v4').on('value', (snapshot) => {
         const data = snapshot.val();
         if (data) {
-          if (data.portfolios) this.portfolios = Array.isArray(data.portfolios) ? data.portfolios : Object.values(data.portfolios);
-          if (data.quarterlyRecords) this.quarterlyRecords = Array.isArray(data.quarterlyRecords) ? data.quarterlyRecords : Object.values(data.quarterlyRecords);
-          if (data.monthlyRecords) this.monthlyRecords = Array.isArray(data.monthlyRecords) ? data.monthlyRecords : Object.values(data.monthlyRecords);
-          if (data.dividendRecords) this.dividendRecords = Array.isArray(data.dividendRecords) ? data.dividendRecords : Object.values(data.dividendRecords);
-          if (data.exchangeRate) this.exchangeRate = Number(data.exchangeRate) || this.exchangeRate;
-          if (typeof data.debtStartTHB === 'number') this.debtStartTHB = data.debtStartTHB;
-          if (typeof data.debtRemainingTHB === 'number') this.debtRemainingTHB = data.debtRemainingTHB;
+          if (data.portfolios) {
+            this.portfolios = Array.isArray(data.portfolios) ? data.portfolios : Object.values(data.portfolios);
+            localStorage.setItem('ps_portfolios_v4', JSON.stringify(this.portfolios));
+          }
+          if (data.quarterlyRecords) {
+            this.quarterlyRecords = Array.isArray(data.quarterlyRecords) ? data.quarterlyRecords : Object.values(data.quarterlyRecords);
+            localStorage.setItem('ps_quarterly_v4', JSON.stringify(this.quarterlyRecords));
+          }
+          if (data.monthlyRecords) {
+            this.monthlyRecords = Array.isArray(data.monthlyRecords) ? data.monthlyRecords : Object.values(data.monthlyRecords);
+            localStorage.setItem('ps_monthly_v4', JSON.stringify(this.monthlyRecords));
+          }
+          if (data.dividendRecords) {
+            this.dividendRecords = Array.isArray(data.dividendRecords) ? data.dividendRecords : Object.values(data.dividendRecords);
+            localStorage.setItem('ps_dividends_v4', JSON.stringify(this.dividendRecords));
+          }
+          if (data.exchangeRate) {
+            this.exchangeRate = Number(data.exchangeRate) || this.exchangeRate;
+            localStorage.setItem('ps_ex_rate_v4', this.exchangeRate.toString());
+          }
+          if (typeof data.debtStartTHB === 'number') {
+            this.debtStartTHB = data.debtStartTHB;
+            localStorage.setItem('ps_debt_start_v4', this.debtStartTHB.toString());
+          }
+          if (typeof data.debtRemainingTHB === 'number') {
+            this.debtRemainingTHB = data.debtRemainingTHB;
+            localStorage.setItem('ps_debt_remaining_v4', this.debtRemainingTHB.toString());
+          }
+          if (data.achievements) {
+            this.achievements = Array.isArray(data.achievements) ? data.achievements : Object.values(data.achievements);
+            localStorage.setItem('ps_achievements_v4', JSON.stringify(this.achievements));
+          }
 
           // Sync consolidated Forex journal database
           if (typeof rtjState !== 'undefined' && rtjState) {
@@ -959,7 +984,7 @@ class PixelStewardApp {
               const isActive = p.id === this.selectedPortId ? 'active' : '';
 
               return `
-                <div class="memory-card-wrapper ${tierClass} ${isActive}" draggable="true" data-port-id="${p.id}" data-port-index="${idx}" onclick="app.switchPortfolio('${p.id}')">
+                <div class="memory-card-wrapper ${tierClass} ${isActive}" draggable="true" data-port-id="${p.id}" data-port-index="${idx}">
                   <img src="./assets/cards/card-folio.png" class="memory-card-bg" alt="Memory Card">
                   <div class="memory-card-content">
                     <div>
@@ -1126,9 +1151,19 @@ class PixelStewardApp {
     if (!grid) return;
 
     let draggedItemIndex = null;
+    let isDragging = false;
 
     grid.querySelectorAll('.memory-card-wrapper').forEach((card) => {
+      card.addEventListener('click', (e) => {
+        if (isDragging) return;
+        const portId = card.dataset.portId;
+        if (portId) {
+          this.switchPortfolio(portId);
+        }
+      });
+
       card.addEventListener('dragstart', (e) => {
+        isDragging = true;
         draggedItemIndex = parseInt(card.dataset.portIndex);
         card.classList.add('dragging');
         if (e.dataTransfer) {
@@ -1140,6 +1175,7 @@ class PixelStewardApp {
       card.addEventListener('dragend', () => {
         card.classList.remove('dragging');
         grid.querySelectorAll('.memory-card-wrapper').forEach(c => c.classList.remove('drag-over'));
+        setTimeout(() => { isDragging = false; }, 150);
       });
 
       card.addEventListener('dragover', (e) => {
