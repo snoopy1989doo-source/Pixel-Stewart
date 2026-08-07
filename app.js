@@ -372,6 +372,12 @@ class PixelStewardApp {
         return;
       }
 
+      const refreshRateBtn = e.target.closest('#btn-refresh-rate');
+      if (refreshRateBtn) {
+        this.manualRefreshExchangeRate();
+        return;
+      }
+
       const addCustomAchBtn = e.target.closest('#btn-add-custom-achievement');
       if (addCustomAchBtn) {
         const input = document.getElementById('new-achievement-title');
@@ -568,6 +574,34 @@ class PixelStewardApp {
         localStorage.setItem('ps_ex_rate_v4', this.exchangeRate.toString());
       }
     } catch (error) { console.warn("⚠️ API Mode ค้างชั่วคราว:", error); }
+  }
+
+  async manualRefreshExchangeRate() {
+    const btn = document.getElementById('btn-refresh-rate');
+    if (btn) btn.disabled = true;
+    const API_KEY = "ef6e99ffeeaacd06b19c0d2a";
+    const url = `https://v6.exchangerate-api.com/v6/${API_KEY}/latest/USD`;
+    try {
+      const response = await fetch(url);
+      if (!response.ok) throw new Error("API Offline");
+      const data = await response.json();
+      const rate = Number(data.conversion_rates.THB);
+      if (rate > 0) {
+        this.exchangeRate = rate;
+        const rateInput = document.getElementById('global-usd-rate');
+        if (rateInput) rateInput.value = rate.toFixed(2);
+        this.saveState();
+        this.refreshUI();
+        alert(`⚡ ดึงอัตราแลกเปลี่ยนล่าสุดสำเร็จ: ${rate.toFixed(2)} THB/USD`);
+      } else {
+        alert("⚠️ ไม่พบข้อมูลอัตราแลกเปลี่ยน THB จาก API");
+      }
+    } catch (error) {
+      console.warn("⚠️ API Refresh Error:", error);
+      alert("⚠️ ไม่สามารถดึงค่าอัตราแลกเปลี่ยนได้ในขณะนี้ กรุณากรอกตัวเลขเองหรือลองใหม่ในภายหลัง");
+    } finally {
+      if (btn) btn.disabled = false;
+    }
   }
 
   connectCloudDatabase() {
