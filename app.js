@@ -361,7 +361,7 @@ class PixelStewardApp {
     this.updatePrivacyBtnState();
 
     document.addEventListener('click', (e) => {
-      if (e.target.closest('.btn-close-modal')) {
+      if (e.target.closest('.btn-close-modal') || e.target.classList.contains('modal-overlay')) {
         this.closeModals();
         return;
       }
@@ -1219,17 +1219,25 @@ class PixelStewardApp {
     modal.classList.remove('hidden');
   }
 
+  setAchievementFilter(option) {
+    this.achievementFilterOption = option;
+    this.renderAchievements();
+  }
+
   renderAchievements() {
     const container = document.getElementById('achievement-checklist-container');
     const countEl = document.getElementById('achievement-unlocked-count');
     if (!container) return;
 
     if (!Array.isArray(this.achievements)) this.achievements = DEFAULT_ACHIEVEMENTS;
+    if (!this.achievementFilterOption) this.achievementFilterOption = 'all';
 
-    const completedCount = this.achievements.filter(a => a && a.completed).length;
-    if (countEl) countEl.innerText = `🏆 สำเร็จ ${completedCount} / ${this.achievements.length} เควส`;
+    const completedQuests = this.achievements.filter(a => a && a.completed);
+    const activeQuests = this.achievements.filter(a => a && !a.completed);
 
-    container.innerHTML = this.achievements.map(a => {
+    if (countEl) countEl.innerText = `🏆 สำเร็จ ${completedQuests.length} / ${this.achievements.length} เควส`;
+
+    const renderCard = (a) => {
       if (!a) return '';
       return `
         <div class="achievement-item ${a.completed ? 'completed' : ''}">
@@ -1241,7 +1249,43 @@ class PixelStewardApp {
           ${a.isCustom ? `<button class="btn btn-danger btn-small" onclick="app.deleteCustomAchievement('${a.id}')" style="padding:2px 6px; font-size:0.7rem;">✖</button>` : ''}
         </div>
       `;
-    }).join('');
+    };
+
+    let html = `
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; flex-wrap:wrap; gap:6px;">
+        <div style="display:flex; gap:4px; flex-wrap:wrap;">
+          <button class="sub-asset-sort-btn ${this.achievementFilterOption === 'all' ? 'active' : ''}" onclick="app.setAchievementFilter('all')">📌 ทั้งหมด (${this.achievements.length})</button>
+          <button class="sub-asset-sort-btn ${this.achievementFilterOption === 'active' ? 'active' : ''}" onclick="app.setAchievementFilter('active')">🎯 รอดำเนินการ (${activeQuests.length})</button>
+          <button class="sub-asset-sort-btn ${this.achievementFilterOption === 'completed' ? 'active' : ''}" onclick="app.setAchievementFilter('completed')">🏆 ปลดล็อกแล้ว (${completedQuests.length})</button>
+        </div>
+      </div>
+    `;
+
+    if (this.achievementFilterOption === 'active') {
+      html += `<div style="display:flex; flex-direction:column; gap:8px;">${activeQuests.length === 0 ? '<p class="text-muted" style="font-size:0.8rem; text-align:center; padding:15px;">🎉 ไม่มีเควสรอดำเนินการ (บรรลุเป้าหมายทั้งหมดแล้ว!)</p>' : activeQuests.map(renderCard).join('')}</div>`;
+    } else if (this.achievementFilterOption === 'completed') {
+      html += `<div style="display:flex; flex-direction:column; gap:8px;">${completedQuests.length === 0 ? '<p class="text-muted" style="font-size:0.8rem; text-align:center; padding:15px;">ยังไม่มีเควสที่ปลดล็อก</p>' : completedQuests.map(renderCard).join('')}</div>`;
+    } else {
+      html += `
+        <div style="display:flex; flex-direction:column; gap:8px;">
+          ${activeQuests.length > 0 ? `<h5 style="font-family:'Press Start 2P'; font-size:0.55rem; color:#60a5fa; margin:4px 0;">🎯 เควสกำลังดำเนินการ (${activeQuests.length})</h5>` : ''}
+          ${activeQuests.map(renderCard).join('')}
+          
+          ${completedQuests.length > 0 ? `
+            <details open style="margin-top:10px; border-top:2px dashed #000; padding-top:10px;">
+              <summary style="font-family:'Press Start 2P'; font-size:0.55rem; color:#10b981; cursor:pointer; user-select:none; margin-bottom:8px;">
+                🏆 เควสที่ปลดล็อกสำเร็จแล้ว (${completedQuests.length}) ▾
+              </summary>
+              <div style="display:flex; flex-direction:column; gap:8px; margin-top:6px;">
+                ${completedQuests.map(renderCard).join('')}
+              </div>
+            </details>
+          ` : ''}
+        </div>
+      `;
+    }
+
+    container.innerHTML = html;
   }
 
   toggleAchievement(id) {
