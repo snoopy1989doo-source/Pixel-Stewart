@@ -963,12 +963,20 @@ img {
   transition: width 0.4s ease;
 }
 
+.portfolio-detail-grid {
+  display: grid;
+  grid-template-columns: 1.2fr 0.8fr;
+  gap: 20px;
+}
+
 @media (max-width: 768px) {
   .app-container { flex-direction: column; }
   .sidebar { width: 100%; height: auto; }
   .sidebar:hover { width: 100%; }
-  .memory-card-grid { grid-template-columns: repeat(2, 1fr); gap: 12px; }
-  .quarterly-card-grid { grid-template-columns: repeat(2, 1fr); }
+  .memory-card-grid { grid-template-columns: repeat(2, 1fr); gap: 10px; }
+  .quarterly-card-grid { grid-template-columns: repeat(1, 1fr); }
+  .portfolio-detail-grid { grid-template-columns: 1fr; gap: 14px; }
+  .modal-card { width: 94vw !important; max-width: 94vw !important; padding: 14px !important; margin: 10px auto !important; }
 }
 
 /* --- 9. V3.4.0 DRAG & DROP, SUB-ASSET FILTERS & ACHIEVEMENT QUEST CHECKLIST --- */

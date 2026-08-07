@@ -1013,7 +1013,7 @@ class PixelStewardApp {
           </div>
         </div>
 
-        <div style="display:grid; grid-template-columns: 1.2fr 0.8fr; gap:20px;">
+        <div class="portfolio-detail-grid">
           <div class="border-pixel" style="background:#1f273e; padding:18px; display:flex; flex-direction:column; gap:12px;">
             <div style="display:flex; justify-content:space-between; border-bottom:3px solid #000; padding-bottom:10px; align-items:center;">
               <h3 style="display:flex; align-items:center; gap:8px; margin:0;">
@@ -1153,8 +1153,13 @@ class PixelStewardApp {
     if (!grid) return;
 
     let draggedItemIndex = null;
+    let touchStartX = 0;
+    let touchStartY = 0;
+    let isTouchDragging = false;
+    let touchedCard = null;
 
     grid.querySelectorAll('.memory-card-wrapper').forEach((card) => {
+      // 💻 Desktop HTML5 Drag Events
       card.addEventListener('dragstart', (e) => {
         this.isDraggingMemoryCard = true;
         draggedItemIndex = parseInt(card.dataset.portIndex);
@@ -1190,6 +1195,78 @@ class PixelStewardApp {
           this.portfolios.splice(targetIndex, 0, movedPort);
           this.saveState();
           this.refreshUI();
+        }
+      });
+
+      // 📲 Mobile Touch Events (iOS Safari & Android Chrome)
+      card.addEventListener('touchstart', (e) => {
+        if (!e.touches || e.touches.length !== 1) return;
+        const touch = e.touches[0];
+        touchStartX = touch.clientX;
+        touchStartY = touch.clientY;
+        touchedCard = card;
+        draggedItemIndex = parseInt(card.dataset.portIndex);
+        isTouchDragging = false;
+      }, { passive: true });
+
+      card.addEventListener('touchmove', (e) => {
+        if (!touchedCard || !e.touches || e.touches.length !== 1) return;
+        const touch = e.touches[0];
+        const deltaX = Math.abs(touch.clientX - touchStartX);
+        const deltaY = Math.abs(touch.clientY - touchStartY);
+
+        if (deltaX > 12 || deltaY > 12) {
+          if (!isTouchDragging) {
+            isTouchDragging = true;
+            this.isDraggingMemoryCard = true;
+            touchedCard.classList.add('dragging');
+          }
+
+          if (e.cancelable) e.preventDefault();
+
+          const targetEl = document.elementFromPoint(touch.clientX, touch.clientY);
+          const targetCard = targetEl ? targetEl.closest('.memory-card-wrapper') : null;
+
+          grid.querySelectorAll('.memory-card-wrapper').forEach(c => c.classList.remove('drag-over'));
+          if (targetCard && targetCard !== touchedCard) {
+            targetCard.classList.add('drag-over');
+          }
+        }
+      }, { passive: false });
+
+      card.addEventListener('touchend', (e) => {
+        if (isTouchDragging && touchedCard) {
+          touchedCard.classList.remove('dragging');
+          grid.querySelectorAll('.memory-card-wrapper').forEach(c => c.classList.remove('drag-over'));
+
+          if (e.changedTouches && e.changedTouches.length > 0) {
+            const touch = e.changedTouches[0];
+            const targetEl = document.elementFromPoint(touch.clientX, touch.clientY);
+            const targetCard = targetEl ? targetEl.closest('.memory-card-wrapper') : null;
+
+            if (targetCard && targetCard !== touchedCard) {
+              const targetIndex = parseInt(targetCard.dataset.portIndex);
+              if (draggedItemIndex !== null && !isNaN(targetIndex) && draggedItemIndex !== targetIndex) {
+                const movedPort = this.portfolios.splice(draggedItemIndex, 1)[0];
+                this.portfolios.splice(targetIndex, 0, movedPort);
+                this.saveState();
+                this.refreshUI();
+              }
+            }
+          }
+
+          setTimeout(() => {
+            this.isDraggingMemoryCard = false;
+            isTouchDragging = false;
+            touchedCard = null;
+          }, 200);
+        } else {
+          // Short tap on mobile touchscreen -> switch portfolio
+          const portId = card.dataset.portId;
+          if (portId && !this.isDraggingMemoryCard) {
+            this.switchPortfolio(portId);
+          }
+          touchedCard = null;
         }
       });
     });
