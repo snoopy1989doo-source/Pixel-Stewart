@@ -984,7 +984,7 @@ class PixelStewardApp {
               const isActive = p.id === this.selectedPortId ? 'active' : '';
 
               return `
-                <div class="memory-card-wrapper ${tierClass} ${isActive}" draggable="true" data-port-id="${p.id}" data-port-index="${idx}">
+                <div class="memory-card-wrapper ${tierClass} ${isActive}" draggable="true" data-port-id="${p.id}" data-port-index="${idx}" onclick="app.switchPortfolio('${p.id}')">
                   <img src="./assets/cards/card-folio.png" class="memory-card-bg" alt="Memory Card">
                   <div class="memory-card-content">
                     <div>
@@ -1139,6 +1139,8 @@ class PixelStewardApp {
         this.saveState(); this.refreshUI(); alert('🎯 อัปเดตเงินช้อนสำเร็จ!'); 
       }
     });
+
+    this.attachMemoryCardDragEvents();
   }
 
   setSubAssetSort(option) {
@@ -1151,19 +1153,10 @@ class PixelStewardApp {
     if (!grid) return;
 
     let draggedItemIndex = null;
-    let isDragging = false;
 
     grid.querySelectorAll('.memory-card-wrapper').forEach((card) => {
-      card.addEventListener('click', (e) => {
-        if (isDragging) return;
-        const portId = card.dataset.portId;
-        if (portId) {
-          this.switchPortfolio(portId);
-        }
-      });
-
       card.addEventListener('dragstart', (e) => {
-        isDragging = true;
+        this.isDraggingMemoryCard = true;
         draggedItemIndex = parseInt(card.dataset.portIndex);
         card.classList.add('dragging');
         if (e.dataTransfer) {
@@ -1175,7 +1168,7 @@ class PixelStewardApp {
       card.addEventListener('dragend', () => {
         card.classList.remove('dragging');
         grid.querySelectorAll('.memory-card-wrapper').forEach(c => c.classList.remove('drag-over'));
-        setTimeout(() => { isDragging = false; }, 150);
+        setTimeout(() => { this.isDraggingMemoryCard = false; }, 200);
       });
 
       card.addEventListener('dragover', (e) => {
@@ -1458,7 +1451,11 @@ class PixelStewardApp {
     }
   }
 
-  switchPortfolio(id) { this.selectedPortId = id; this.refreshUI(); }
+  switchPortfolio(id) {
+    if (this.isDraggingMemoryCard) return;
+    this.selectedPortId = id;
+    this.refreshUI();
+  }
 
   openAssetEditModal(portId, assetIdx) {
     const p = this.portfolios.find(x => x && x.id === portId);
