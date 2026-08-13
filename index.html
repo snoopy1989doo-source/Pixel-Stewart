@@ -305,36 +305,46 @@
           <input type="hidden" id="asset-edit-port-id">
           <input type="hidden" id="asset-edit-index">
           
-          <div class="form-group">
+          <div class="form-group" style="margin-bottom:10px;">
             <label for="asset-edit-name">Ticker / ชื่อย่อสินทรัพย์:</label>
-            <input type="text" id="asset-edit-name" class="input-retro" required placeholder="เช่น NVDA, AAPL">
+            <input type="text" id="asset-edit-name" class="input-retro" required placeholder="เช่น V, MSFT, WMT, NVDA">
           </div>
           
-          <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:12px;">
+          <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:10px;">
             <div class="form-group">
               <label for="asset-edit-shares">จำนวนหุ้นคงเหลือ (Shares):</label>
-              <input type="number" id="asset-edit-shares" class="input-retro" step="any" min="0" required placeholder="เช่น 0.065108">
+              <input type="number" id="asset-edit-shares" class="input-retro" step="any" min="0" required placeholder="เช่น 0.0026955">
             </div>
             <div class="form-group">
-              <label for="asset-edit-cost-price">ต้นทุนต่อหุ้น ($ USD):</label>
-              <input type="number" id="asset-edit-cost-price" class="input-retro" step="any" min="0" required placeholder="เช่น 199.68">
+              <label for="asset-edit-cost-price">ต้นทุนต่อหุ้น (Cost Price $ USD):</label>
+              <input type="number" id="asset-edit-cost-price" class="input-retro" step="any" min="0" required placeholder="เช่น 309.968">
             </div>
           </div>
-          
-          <div class="form-group">
-            <label for="asset-edit-market-val">มูลค่าปัจจุบันรวม ($ USD):</label>
-            <input type="number" id="asset-edit-market-val" class="input-retro" step="any" min="0" required placeholder="เช่น 13.00">
+
+          <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:10px;">
+            <div class="form-group">
+              <label for="asset-edit-curr-price">ราคาต่อหุ้นปัจจุบัน (Market Price $ USD):</label>
+              <input type="number" id="asset-edit-curr-price" class="input-retro" step="any" min="0" placeholder="เช่น 359.42">
+            </div>
+            <div class="form-group">
+              <label for="asset-edit-market-val">มูลค่าปัจจุบันรวม (Total Value $ USD):</label>
+              <input type="number" id="asset-edit-market-val" class="input-retro" step="any" min="0" required placeholder="เช่น 0.97">
+            </div>
           </div>
 
           <!-- 📊 Real-time Preview Box -->
-          <div class="border-pixel-inset" style="padding:10px; background:#111625; margin-top:12px; font-size:0.8rem;">
-            <h5 style="color:var(--color-accent); margin-bottom:6px; font-family:'Press Start 2P'; font-size:0.55rem;">📊 PREVIEW (คำนวณสด)</h5>
+          <div class="border-pixel-inset" style="padding:10px; background:#111625; margin-top:8px; font-size:0.8rem;">
+            <h5 style="color:var(--color-accent); margin-bottom:6px; font-family:'Press Start 2P'; font-size:0.55rem;">📊 PREVIEW (เปรียบเทียบตรงกับแอป Dime 100%)</h5>
             <div style="display:flex; justify-content:space-between; margin-bottom:4px;">
               <span>ต้นทุนรวมสะสม (Total Cost):</span>
               <b id="preview-total-cost" style="color:#fff;">$0.00</b>
             </div>
+            <div style="display:flex; justify-content:space-between; margin-bottom:4px;">
+              <span>มูลค่าปัจจุบันรวม (Current Value):</span>
+              <b id="preview-current-val" style="color:#38bdf8;">$0.00</b>
+            </div>
             <div style="display:flex; justify-content:space-between;">
-              <span>กำไร/ขาดทุนสะสม (P/L):</span>
+              <span>กำไร/ขาดทุนสุทธิ (P/L):</span>
               <b id="preview-total-pl" style="color:var(--color-success);">$0.00 (0.0%)</b>
             </div>
           </div>
