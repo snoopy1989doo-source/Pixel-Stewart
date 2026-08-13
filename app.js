@@ -63,7 +63,9 @@ const firebaseConfig = {
 let isFirebaseActive = false;
 if (typeof firebase !== 'undefined' && firebaseConfig.apiKey && firebaseConfig.apiKey !== "YOUR_API_KEY") {
   try {
-    firebase.initializeApp(firebaseConfig);
+    if (!firebase.apps || firebase.apps.length === 0) {
+      firebase.initializeApp(firebaseConfig);
+    }
     isFirebaseActive = true;
   } catch (e) {
     console.error("Firebase Sync Connection Failed:", e);
@@ -2211,10 +2213,20 @@ class PixelStewardApp {
             this.exchangeRate = Number(p.exchangeRate) || 36.5;
             this.debtStartTHB = Number(p.debtStartTHB) || 0;
             this.debtRemainingTHB = Number(p.debtRemainingTHB) || 0;
+            if (p.achievements) this.achievements = Array.isArray(p.achievements) ? p.achievements : Object.values(p.achievements || {});
+
+            if (typeof rtjState !== 'undefined' && rtjState) {
+              if (p.rtjTrades) { rtjState.trades = Array.isArray(p.rtjTrades) ? p.rtjTrades : Object.values(p.rtjTrades); rtjSave(rtjKEY.TRADES, rtjState.trades); }
+              if (p.rtjCfs) { rtjState.cfs = Array.isArray(p.rtjCfs) ? p.rtjCfs : Object.values(p.rtjCfs); rtjSave(rtjKEY.CFS, rtjState.cfs); }
+              if (p.rtjBalances) { rtjState.balances = { ...rtjDEFAULT_BALANCES, ...p.rtjBalances }; rtjSave(rtjKEY.BALANCES, rtjState.balances); }
+              rtjSyncCrtView();
+            }
+
             this.selectedPortId = this.portfolios.length > 0 ? this.portfolios[0].id : '';
             this.saveState();
+            this.syncStateToCloud();
             this.refreshUI();
-            alert('🎯 นำเข้าไฟล์เสร็จสิ้น ข้อมูลคาร์ทริจซิงก์เรียบร้อย!');
+            alert('🎯 นำเข้าไฟล์เสร็จสิ้น ข้อมูลคาร์ทริจซิงก์ลงคลาวด์แบบเรียลไทม์เรียบร้อย!');
           } else {
             alert('❌ โครงสร้างไฟล์ไม่ถูกต้อง');
           }
@@ -2317,7 +2329,7 @@ class PixelStewardApp {
     document.getElementById('tf-source').innerHTML = this.portfolios.map(p=>p?`<option value="${p.id}">${p.name} (Dry: $${p.dryPowder})</option>`:'').join('');
     document.getElementById('tf-target').innerHTML = '<option value="system">ถอนเงินออกนอกคลัง</option>'+this.portfolios.map(p=>p?`<option value="${p.id}">${p.name}</option>`:'').join('');
     document.getElementById('tf-rate').value = this.exchangeRate;
-    document.getElementById('transfer-modal').classList.add('hidden');
+    document.getElementById('transfer-modal').classList.remove('hidden');
   }
   
   closeModals() { 
