@@ -36,7 +36,7 @@
         <div class="title-container">
           <h1 class="brand-title">PIXEL</h1>
           <h1 class="brand-title highlight" style="color:#3b82f6;">STEWARD</h1>
-          <span class="badge-version" style="font-size:0.5rem; color:#10b981;">🔸 V.3.5.0</span>
+          <span class="badge-version" style="font-size:0.5rem; color:#10b981;">🔸 V.3.5.1</span>
         </div>
       </div>
       
@@ -451,6 +451,31 @@
     </div>
   </div>
 
-  <script src="app.js?v=350"></script>
+  <!-- 🚨 [V3.5.1 NEW] CONSECUTIVE LOSS & REVENGE TRADING WARNING MODAL -->
+  <div id="trade-warning-modal" class="modal-overlay hidden">
+    <div class="modal-card border-pixel" style="max-width:500px; border-color:#ef4444; background:#180b0b;">
+      <div class="modal-header" style="border-bottom-color:#ef4444;">
+        <h3 style="color:#ef4444; font-family:'Press Start 2P'; font-size:0.75rem; display:flex; align-items:center; gap:8px;">
+          🚨 WARN: CONSECUTIVE LOSS ALERT!
+        </h3>
+        <button type="button" class="btn-close-modal">✖</button>
+      </div>
+      <div class="modal-body" style="text-align:center; padding:15px 10px;">
+        <div style="font-size:3rem; margin-bottom:10px;">🛑</div>
+        <h4 style="color:#ef4444; margin-bottom:8px; font-weight:bold;">ท่านเทรดแพ้ติดกันครบ <span id="warn-loss-count">2</span> ไม้ในวันนี้!</h4>
+        <p style="font-size:0.85rem; color:#fca5a5; line-height:1.5; margin-bottom:14px; background:#2c1212; padding:10px; border:1px solid #7f1d1d; border-radius:6px;">
+          <b>⚠️ กฎพิทักษ์พอร์ต (No Revenge Trading Rule):</b><br>
+          สภาวะอารมณ์ของคุณเริ่มเสี่ยงที่จะเทรดแก้มือ (Revenge Trading) ซึ่งเป็นสาเหตุหลักของการล้างพอร์ต!
+          <br><br>
+          <b>💡 คำแนะนำ:</b> สั่งหยุดพักการเทรดบนพอร์ต <b><span id="warn-acc-name">Real</span></b> ทันที! ปิดกราฟ ลุกออกจากหน้าจอไปพักผ่อนอย่างน้อย 2 - 4 ชั่วโมง
+        </p>
+        <button type="button" class="btn btn-danger" onclick="document.getElementById('trade-warning-modal').classList.add('hidden')" style="width:100%; padding:10px; font-weight:bold;">
+          <span>🛑 รับทราบคำเตือน & สั่งหยุดพักเทรดชั่วคราว</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <script src="app.js?v=351"></script>
 </body>
 </html> 

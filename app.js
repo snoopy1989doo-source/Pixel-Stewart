@@ -121,6 +121,10 @@ function rtjBeep(type) {
       osc.type = 'sawtooth'; osc.frequency.setValueAtTime(220, ctx.currentTime); osc.frequency.linearRampToValueAtTime(100, ctx.currentTime + .5);
       g.gain.setValueAtTime(.08, ctx.currentTime); g.gain.exponentialRampToValueAtTime(.001, ctx.currentTime + .5);
       osc.start(); osc.stop(ctx.currentTime + .5);
+    } else if (type === 'warning') {
+      osc.type = 'sawtooth'; osc.frequency.setValueAtTime(800, ctx.currentTime); osc.frequency.linearRampToValueAtTime(300, ctx.currentTime + .3); osc.frequency.linearRampToValueAtTime(800, ctx.currentTime + .6);
+      g.gain.setValueAtTime(.15, ctx.currentTime); g.gain.exponentialRampToValueAtTime(.001, ctx.currentTime + .6);
+      osc.start(); osc.stop(ctx.currentTime + .6);
     } else if (type === 'alert') {
       osc.type = 'sawtooth'; osc.frequency.setValueAtTime(400, ctx.currentTime); osc.frequency.linearRampToValueAtTime(800, ctx.currentTime + .2); osc.frequency.linearRampToValueAtTime(400, ctx.currentTime + .4);
       g.gain.setValueAtTime(.1, ctx.currentTime); g.gain.exponentialRampToValueAtTime(.001, ctx.currentTime + .4);
@@ -3576,10 +3580,37 @@ function rtjAttachEvents() {
   if(btnTrade) btnTrade.addEventListener('click', () => {
     const f = rtjState.f; if(!f.entry || !f.exit || !f.sl || !f.lot || f.pnl === ''){ alert('กรอกตัวเลขราคาและหลอดให้ครบถ้วนก่อนส่งข้อมูล!'); return; }
     if(!Array.isArray(rtjState.trades)) rtjState.trades = [];
-    rtjState.trades.push({id:rtjUid(), date:f.date, symbol:f.symbol, dir:f.dir, entry:parseFloat(f.entry)||0, exit:parseFloat(f.exit)||0, sl:parseFloat(f.sl)||0, lot:parseFloat(f.lot)||0, pnl:parseFloat(f.pnl)||0, status:f.status, tf:f.tf, psychology:{conf:f.conf, fear:f.fear, greed:f.greed}, account:f.account});
+    const newTrade = {id:rtjUid(), date:f.date, symbol:f.symbol, dir:f.dir, entry:parseFloat(f.entry)||0, exit:parseFloat(f.exit)||0, sl:parseFloat(f.sl)||0, lot:parseFloat(f.lot)||0, pnl:parseFloat(f.pnl)||0, status:f.status, tf:f.tf, psychology:{conf:f.conf, fear:f.fear, greed:f.greed}, account:f.account, timestamp:Date.now()};
+    rtjState.trades.push(newTrade);
     rtjSave(rtjKEY.TRADES, rtjState.trades); rtjSyncToCloud();
+    
     if(f.status === 'TP') rtjBeep('win'); else if(f.status === 'SL') rtjBeep('lose'); else rtjBeep('click');
     const currentAccount = rtjState.f.account;
+
+    // 🚨 CONSECUTIVE LOSS CHECK FOR THE ACCOUNT
+    const tradesForAcc = rtjState.trades.filter(t => t && (t.account || 'Demo') === currentAccount);
+    let consecutiveLosses = 0;
+    for (let i = tradesForAcc.length - 1; i >= 0; i--) {
+      const t = tradesForAcc[i];
+      if (t.status === 'SL' || Number(t.pnl) < 0) {
+        consecutiveLosses++;
+      } else if (t.status === 'TP' || Number(t.pnl) > 0) {
+        break;
+      }
+    }
+
+    if (consecutiveLosses >= 2) {
+      setTimeout(() => {
+        const modal = document.getElementById('trade-warning-modal');
+        const countEl = document.getElementById('warn-loss-count');
+        const accEl = document.getElementById('warn-acc-name');
+        if (countEl) countEl.innerText = consecutiveLosses;
+        if (accEl) accEl.innerText = currentAccount;
+        if (modal) modal.classList.remove('hidden');
+        rtjBeep('warning');
+      }, 250);
+    }
+
     rtjState.f = {...rtjState.f, entry:'', exit:'', sl:'', lot:'', pnl:'', status:'TP', conf:false, fear:false, greed:false, account: currentAccount}; 
     rtjRender();
   });
