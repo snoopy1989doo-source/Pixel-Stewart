@@ -480,6 +480,16 @@ class PixelStewardApp {
         this.pullDataFromCloudManual();
         return;
       }
+
+      if (e.target.closest('#btn-copy-sync-code')) {
+        this.copyInstantSyncCode();
+        return;
+      }
+
+      if (e.target.closest('#btn-import-sync-code')) {
+        this.importInstantSyncCode();
+        return;
+      }
     });
 
     const goalTypeSelect = document.getElementById('port-goal-type');
@@ -686,40 +696,112 @@ class PixelStewardApp {
     }
     const btn = document.getElementById('btn-manual-pull-cloud');
     if (btn) btn.innerText = "⏳ กำลังดึง...";
-    try {
-      const snapshot = await firebase.database().ref('pixel_steward_data_v4').once('value');
-      const data = snapshot.val();
-      if (data) {
-        this.applyCloudDataSnapshot(data);
-        this.showRetroToast("☁️ ดึงข้อมูลล่าสุดจาก Cloud มาแสดงเรียบร้อยแล้ว!", "success");
+
+    const nodes = ['pixel_steward_data_v4', 'pixel_steward_data', 'pixel_steward_data_v3', 'data'];
+    let success = false;
+    let lastError = null;
+
+    for (const nodeName of nodes) {
+      try {
+        const snapshot = await firebase.database().ref(nodeName).once('value');
+        const data = snapshot.val();
+        if (data && (data.portfolios || data.rtjTrades)) {
+          this.applyCloudDataSnapshot(data);
+          this.showRetroToast(`☁️ ดึงข้อมูลล่าสุดจาก Cloud (${nodeName}) เรียบร้อยแล้ว!`, "success");
+          success = true;
+          break;
+        }
+      } catch (err) {
+        lastError = err;
+      }
+    }
+
+    if (!success) {
+      if (lastError && (lastError.message.includes('permission_denied') || lastError.code === 'PERMISSION_DENIED')) {
+        const modal = document.getElementById('firebase-fix-modal');
+        if (modal) modal.classList.remove('hidden');
+        else alert("⚠️ สิทธิ์ Firebase Rules ถูกล็อก (Permission Denied)\n\nกรุณาตั้งค่า Rules บน Firebase Console เป็น {\".read\": true, \".write\": true}\nหรือใช้วิธี '📋 คัดลอกรหัสซิงค์' ส่งไปเปิดบนมือถือได้เลยครับ!");
       } else {
-        alert("⚠️ ไม่พบข้อมูลบน Cloud");
+        alert("❌ ดึงข้อมูลไม่สำเร็จ: " + (lastError ? lastError.message : "ไม่พบข้อมูลบน Cloud"));
+      }
+    }
+
+    if (btn) btn.innerHTML = "<span>📥 ดึงข้อมูล Cloud</span>";
+  }
+
+  copyInstantSyncCode() {
+    try {
+      const payload = {
+        portfolios: this.portfolios,
+        quarterlyRecords: this.quarterlyRecords,
+        monthlyRecords: this.monthlyRecords,
+        dividendRecords: this.dividendRecords,
+        exchangeRate: this.exchangeRate,
+        debtStartTHB: this.debtStartTHB,
+        debtRemainingTHB: this.debtRemainingTHB,
+        achievements: this.achievements
+      };
+      if (typeof rtjState !== 'undefined' && rtjState) {
+        payload.rtjTrades = rtjState.trades || [];
+        payload.rtjCfs = rtjState.cfs || [];
+        payload.rtjBalances = rtjState.balances || {};
+      }
+
+      const jsonStr = JSON.stringify(payload);
+      const b64 = btoa(encodeURIComponent(jsonStr));
+
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(b64).then(() => {
+          alert("📋 คัดลอกรหัสซิงค์ด่วนเรียบร้อยแล้ว!\n\nส่งรหัสนี้ไปวางบนมือถือ (หรือส่งเข้า Line/Messenger) แล้วกด '📥 วางรหัสซิงค์' บนมือถือได้ทันทีครับ!");
+        }).catch(() => {
+          prompt("📋 รหัสซิงค์ด่วนของคุณ (คัดลอกทั้งหมดนี้ไปวางบนมือถือ):", b64);
+        });
+      } else {
+        prompt("📋 รหัสซิงค์ด่วนของคุณ (คัดลอกทั้งหมดนี้ไปวางบนมือถือ):", b64);
       }
     } catch (err) {
-      alert("❌ ดึงข้อมูลไม่สำเร็จ: " + err.message);
-    } finally {
-      if (btn) btn.innerHTML = "<span>📥 ดึงข้อมูล Cloud</span>";
+      alert("❌ สร้างรหัสซิงค์ไม่สำเร็จ: " + err.message);
+    }
+  }
+
+  importInstantSyncCode() {
+    const input = prompt("📥 วางรหัสซิงค์ด่วน (Sync Code) ที่คัดลอกจาก PC หรือมือถือที่นี่:");
+    if (!input || !input.trim()) return;
+
+    try {
+      const jsonStr = decodeURIComponent(atob(input.trim()));
+      const data = JSON.parse(jsonStr);
+      if (data) {
+        this.applyCloudDataSnapshot(data);
+        this.syncStateToCloud();
+        alert("🎉 ซิงค์ข้อมูลสำเร็จ 100%! ข้อมูลทั้งหมดบน PC ถูกนำมาอัปเดตบนเครื่องนี้เรียบร้อยแล้ว");
+      } else {
+        alert("❌ รหัสซิงค์ไม่ถูกต้อง");
+      }
+    } catch (err) {
+      alert("❌ รูปแบบรหัสซิงค์ไม่ถูกต้อง: " + err.message);
     }
   }
 
   connectCloudDatabase() {
     if (!isFirebaseActive) return;
     try {
-      // Immediate force pull on startup
-      firebase.database().ref('pixel_steward_data_v4').once('value').then((snapshot) => {
-        if (snapshot.exists()) {
-          this.applyCloudDataSnapshot(snapshot.val());
-        }
-      }).catch(err => console.warn("Initial cloud snapshot notice:", err));
+      const nodes = ['pixel_steward_data_v4', 'pixel_steward_data', 'pixel_steward_data_v3'];
+      nodes.forEach(nodeName => {
+        firebase.database().ref(nodeName).once('value').then((snapshot) => {
+          if (snapshot.exists() && snapshot.val()) {
+            this.applyCloudDataSnapshot(snapshot.val());
+          }
+        }).catch(err => console.warn(`Initial cloud snapshot notice (${nodeName}):`, err));
 
-      // Live listener
-      firebase.database().ref('pixel_steward_data_v4').on('value', (snapshot) => {
-        const data = snapshot.val();
-        if (data) {
-          this.applyCloudDataSnapshot(data);
-        }
-      }, (error) => {
-        console.warn("⚠️ Firebase sync read permission denied or offline:", error);
+        firebase.database().ref(nodeName).on('value', (snapshot) => {
+          const data = snapshot.val();
+          if (data) {
+            this.applyCloudDataSnapshot(data);
+          }
+        }, (error) => {
+          console.warn(`⚠️ Firebase sync read notice (${nodeName}):`, error);
+        });
       });
     } catch (e) {
       console.warn("Firebase connect error:", e);
@@ -745,8 +827,11 @@ class PixelStewardApp {
         payload.rtjBalances = rtjState.balances || {};
       }
 
-      firebase.database().ref('pixel_steward_data_v4').set(payload).catch(err => {
-        console.warn("⚠️ Firebase sync write permission denied:", err);
+      const nodes = ['pixel_steward_data_v4', 'pixel_steward_data'];
+      nodes.forEach(nodeName => {
+        firebase.database().ref(nodeName).set(payload).catch(err => {
+          console.warn(`⚠️ Firebase sync write notice (${nodeName}):`, err);
+        });
       });
     } catch (e) {
       console.error("Firebase sync write failed:", e);

@@ -36,7 +36,7 @@
         <div class="title-container">
           <h1 class="brand-title">PIXEL</h1>
           <h1 class="brand-title highlight" style="color:#3b82f6;">STEWARD</h1>
-          <span class="badge-version" style="font-size:0.5rem; color:#10b981;">🔸 V.3.5.1</span>
+          <span class="badge-version" style="font-size:0.5rem; color:#10b981;">🔸 V.3.5.3</span>
         </div>
       </div>
       
@@ -109,6 +109,8 @@
 
         <div class="header-buttons" style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
           <button class="btn btn-secondary btn-retro" id="btn-manual-pull-cloud" style="padding:6px 10px; background:#0ea5e9; color:#fff;" title="ดึงข้อมูลล่าสุดจาก Cloud มาลงเครื่องมือถือทันที"><span>📥 ดึงข้อมูล Cloud</span></button>
+          <button class="btn btn-primary btn-retro" id="btn-copy-sync-code" style="padding:6px 10px; background:#e11d48; color:#fff;" title="คัดลอกรหัสซิงค์ด่วนส่งไปเปิดบนมือถือ"><span>📋 คัดลอกรหัสซิงค์</span></button>
+          <button class="btn btn-success btn-retro" id="btn-import-sync-code" style="padding:6px 10px; background:#059669; color:#fff;" title="วางรหัสซิงค์ที่คัดลอกมาเพื่ออัปเดตข้อมูลสด"><span>📥 วางรหัสซิงค์</span></button>
           <button class="btn btn-warning btn-retro" id="btn-open-achievements" style="padding:6px 10px; background:#f59e0b; color:#000;"><span>🏆 ห้องเกียรติยศ</span></button>
           <button class="btn btn-privacy btn-retro" id="btn-toggle-privacy" style="padding:6px 10px;"><span>👁️ ซ่อนตัวเลข</span></button>
           <button class="btn btn-secondary btn-retro" id="btn-fetch-live-prices" style="padding:6px 10px; background:#0284c7; color:#fff;"><span>🔄 ดึงราคาตลาดสด</span></button>
@@ -477,6 +479,46 @@
     </div>
   </div>
 
-  <script src="app.js?v=351"></script>
+  <!-- 🔧 [V3.5.3 NEW] FIREBASE RULES FIX GUIDANCE MODAL -->
+  <div id="firebase-fix-modal" class="modal-overlay hidden">
+    <div class="modal-card border-pixel" style="max-width:550px; background:#111625;">
+      <div class="modal-header" style="border-bottom-color:#f59e0b;">
+        <h3 style="color:#f59e0b; font-family:'Press Start 2P'; font-size:0.75rem; display:flex; align-items:center; gap:8px;">
+          ⚠️ FIREBASE RULES PERMISSION DENIED
+        </h3>
+        <button type="button" class="btn-close-modal">✖</button>
+      </div>
+      <div class="modal-body" style="padding:15px 10px; font-size:0.85rem; line-height:1.5;">
+        <p style="color:#fcd34d; margin-bottom:10px; font-weight:bold;">
+          สิทธิ์การอ่าน/เขียนของ Firebase Cloud ถูกล็อก (Permission Denied)!
+        </p>
+        <div style="background:#0c1020; padding:10px; border:1px solid #334155; border-radius:6px; margin-bottom:12px; font-size:0.8rem;">
+          <b>🛠️ วิธีแก้ไขใน 1 นาที (บน Firebase Console):</b>
+          <ol style="margin:6px 0 0 16px; padding:0;">
+            <li>เปิดเว็บ <a href="https://console.firebase.google.com/" target="_blank" style="color:#38bdf8;">console.firebase.google.com</a></li>
+            <li>เลือกโปรเจกต์ <b>pixel-steward-db</b> -> เมนู <b>Realtime Database</b> -> แท็บ <b>Rules (กฎ)</b></li>
+            <li>เปลี่ยนสิทธิ์ในช่อง Rules เป็น:
+              <pre style="background:#111; color:#34d399; padding:6px; margin:4px 0; border-radius:4px; font-size:0.75rem;">{
+  "rules": {
+    ".read": true,
+    ".write": true
+  }
+}</pre>
+            </li>
+            <li>กด <b>Publish (เผยแพร่)</b> แล้วลองกดปุ่ม <b>📥 ดึงข้อมูล Cloud</b> อีกครั้ง!</li>
+          </ol>
+        </div>
+        <p style="font-size:0.8rem; color:#94a3b8; margin-bottom:10px;">
+          💡 <b>หรือใช้วิธีซิงค์ด่วนไม่ต้องพึ่ง Firebase:</b><br>
+          กดปุ่ม <b>📋 คัดลอกรหัสซิงค์</b> บน PC แล้วส่งไปกด <b>📥 วางรหัสซิงค์</b> บนมือถือได้ทันทีครับ!
+        </p>
+        <button type="button" class="btn btn-secondary" onclick="document.getElementById('firebase-fix-modal').classList.add('hidden')" style="width:100%;">
+          <span>ปิดหน้าต่างนี้</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <script src="app.js?v=353"></script>
 </body>
 </html> 
