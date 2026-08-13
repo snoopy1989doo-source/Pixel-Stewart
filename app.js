@@ -475,6 +475,11 @@ class PixelStewardApp {
         this.applyRebalancePlan();
         return;
       }
+
+      if (e.target.closest('#btn-manual-pull-cloud')) {
+        this.pullDataFromCloudManual();
+        return;
+      }
     });
 
     const goalTypeSelect = document.getElementById('port-goal-type');
@@ -625,61 +630,99 @@ class PixelStewardApp {
     }
   }
 
+  applyCloudDataSnapshot(data) {
+    if (!data) return;
+    if (data.portfolios) {
+      this.portfolios = Array.isArray(data.portfolios) ? data.portfolios : Object.values(data.portfolios);
+      localStorage.setItem('ps_portfolios_v4', JSON.stringify(this.portfolios));
+    }
+    if (data.quarterlyRecords) {
+      this.quarterlyRecords = Array.isArray(data.quarterlyRecords) ? data.quarterlyRecords : Object.values(data.quarterlyRecords);
+      localStorage.setItem('ps_quarterly_v4', JSON.stringify(this.quarterlyRecords));
+    }
+    if (data.monthlyRecords) {
+      this.monthlyRecords = Array.isArray(data.monthlyRecords) ? data.monthlyRecords : Object.values(data.monthlyRecords);
+      localStorage.setItem('ps_monthly_v4', JSON.stringify(this.monthlyRecords));
+    }
+    if (data.dividendRecords) {
+      this.dividendRecords = Array.isArray(data.dividendRecords) ? data.dividendRecords : Object.values(data.dividendRecords);
+      localStorage.setItem('ps_dividends_v4', JSON.stringify(this.dividendRecords));
+    }
+    if (data.exchangeRate) {
+      this.exchangeRate = Number(data.exchangeRate) || this.exchangeRate;
+      localStorage.setItem('ps_ex_rate_v4', this.exchangeRate.toString());
+    }
+    if (typeof data.debtStartTHB === 'number') {
+      this.debtStartTHB = data.debtStartTHB;
+      localStorage.setItem('ps_debt_start_v4', this.debtStartTHB.toString());
+    }
+    if (typeof data.debtRemainingTHB === 'number') {
+      this.debtRemainingTHB = data.debtRemainingTHB;
+      localStorage.setItem('ps_debt_remaining_v4', this.debtRemainingTHB.toString());
+    }
+    if (data.achievements) {
+      this.achievements = Array.isArray(data.achievements) ? data.achievements : Object.values(data.achievements);
+      localStorage.setItem('ps_achievements_v4', JSON.stringify(this.achievements));
+    }
+
+    if (typeof rtjState !== 'undefined' && rtjState) {
+      if (data.rtjTrades) { rtjState.trades = Array.isArray(data.rtjTrades) ? data.rtjTrades : Object.values(data.rtjTrades); rtjSave(rtjKEY.TRADES, rtjState.trades); }
+      if (data.rtjCfs) { rtjState.cfs = Array.isArray(data.rtjCfs) ? data.rtjCfs : Object.values(data.rtjCfs); rtjSave(rtjKEY.CFS, rtjState.cfs); }
+      if (data.rtjBalances) { rtjState.balances = { ...rtjDEFAULT_BALANCES, ...data.rtjBalances }; rtjSave(rtjKEY.BALANCES, rtjState.balances); }
+      rtjSyncCrtView();
+      if (this.activeTab === 'journal') rtjRender();
+    }
+
+    if (this.portfolios && this.portfolios.length > 0 && !this.selectedPortId) {
+      this.selectedPortId = this.portfolios[0].id;
+    }
+    this.refreshUI();
+  }
+
+  async pullDataFromCloudManual() {
+    if (!isFirebaseActive) {
+      alert("⚠️ ระบบ Firebase Cloud ไม่ได้เปิดใช้งานอยู่ หรือออฟไลน์");
+      return;
+    }
+    const btn = document.getElementById('btn-manual-pull-cloud');
+    if (btn) btn.innerText = "⏳ กำลังดึง...";
+    try {
+      const snapshot = await firebase.database().ref('pixel_steward_data_v4').once('value');
+      const data = snapshot.val();
+      if (data) {
+        this.applyCloudDataSnapshot(data);
+        this.showRetroToast("☁️ ดึงข้อมูลล่าสุดจาก Cloud มาแสดงเรียบร้อยแล้ว!", "success");
+      } else {
+        alert("⚠️ ไม่พบข้อมูลบน Cloud");
+      }
+    } catch (err) {
+      alert("❌ ดึงข้อมูลไม่สำเร็จ: " + err.message);
+    } finally {
+      if (btn) btn.innerHTML = "<span>📥 ดึงข้อมูล Cloud</span>";
+    }
+  }
+
   connectCloudDatabase() {
     if (!isFirebaseActive) return;
     try {
+      // Immediate force pull on startup
+      firebase.database().ref('pixel_steward_data_v4').once('value').then((snapshot) => {
+        if (snapshot.exists()) {
+          this.applyCloudDataSnapshot(snapshot.val());
+        }
+      }).catch(err => console.warn("Initial cloud snapshot notice:", err));
+
+      // Live listener
       firebase.database().ref('pixel_steward_data_v4').on('value', (snapshot) => {
         const data = snapshot.val();
         if (data) {
-          if (data.portfolios) {
-            this.portfolios = Array.isArray(data.portfolios) ? data.portfolios : Object.values(data.portfolios);
-            localStorage.setItem('ps_portfolios_v4', JSON.stringify(this.portfolios));
-          }
-          if (data.quarterlyRecords) {
-            this.quarterlyRecords = Array.isArray(data.quarterlyRecords) ? data.quarterlyRecords : Object.values(data.quarterlyRecords);
-            localStorage.setItem('ps_quarterly_v4', JSON.stringify(this.quarterlyRecords));
-          }
-          if (data.monthlyRecords) {
-            this.monthlyRecords = Array.isArray(data.monthlyRecords) ? data.monthlyRecords : Object.values(data.monthlyRecords);
-            localStorage.setItem('ps_monthly_v4', JSON.stringify(this.monthlyRecords));
-          }
-          if (data.dividendRecords) {
-            this.dividendRecords = Array.isArray(data.dividendRecords) ? data.dividendRecords : Object.values(data.dividendRecords);
-            localStorage.setItem('ps_dividends_v4', JSON.stringify(this.dividendRecords));
-          }
-          if (data.exchangeRate) {
-            this.exchangeRate = Number(data.exchangeRate) || this.exchangeRate;
-            localStorage.setItem('ps_ex_rate_v4', this.exchangeRate.toString());
-          }
-          if (typeof data.debtStartTHB === 'number') {
-            this.debtStartTHB = data.debtStartTHB;
-            localStorage.setItem('ps_debt_start_v4', this.debtStartTHB.toString());
-          }
-          if (typeof data.debtRemainingTHB === 'number') {
-            this.debtRemainingTHB = data.debtRemainingTHB;
-            localStorage.setItem('ps_debt_remaining_v4', this.debtRemainingTHB.toString());
-          }
-          if (data.achievements) {
-            this.achievements = Array.isArray(data.achievements) ? data.achievements : Object.values(data.achievements);
-            localStorage.setItem('ps_achievements_v4', JSON.stringify(this.achievements));
-          }
-
-          // Sync consolidated Forex journal database
-          if (typeof rtjState !== 'undefined' && rtjState) {
-            if (data.rtjTrades) { rtjState.trades = Array.isArray(data.rtjTrades) ? data.rtjTrades : Object.values(data.rtjTrades); rtjSave(rtjKEY.TRADES, rtjState.trades); }
-            if (data.rtjCfs) { rtjState.cfs = Array.isArray(data.rtjCfs) ? data.rtjCfs : Object.values(data.rtjCfs); rtjSave(rtjKEY.CFS, rtjState.cfs); }
-            if (data.rtjBalances) { rtjState.balances = { ...rtjDEFAULT_BALANCES, ...data.rtjBalances }; rtjSave(rtjKEY.BALANCES, rtjState.balances); }
-            rtjSyncCrtView();
-            if (this.activeTab === 'journal') rtjRender();
-          }
-
-          this.refreshUI();
+          this.applyCloudDataSnapshot(data);
         }
       }, (error) => {
         console.warn("⚠️ Firebase sync read permission denied or offline:", error);
       });
     } catch (e) {
-      console.error("Firebase sync setup failed:", e);
+      console.warn("Firebase connect error:", e);
     }
   }
 
