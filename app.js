@@ -183,30 +183,90 @@ const rtjState = {
    🏰 PIXEL STEWARD MAIN APPLICATION CLASS
    ========================================================================== */
 const INITIAL_PORTFOLIOS = [
-  { id: 'p-redwing', name: 'RedWing (กยศ.)', category: 'Life Goal', goalType: 'numeric', goal: 8000, goalSchedule: '', current: 0, cashBuffer: 0, dryPowder: 0, assets: [], notes: '', dcaDoneThisMonth: false },
-  { id: 'p-zero1', name: 'Zero 1', category: 'Emergency Fund', goalType: 'numeric', goal: 4500, goalSchedule: '', current: 0, cashBuffer: 0, dryPowder: 0, assets: [], notes: '', dcaDoneThisMonth: false },
-  { id: 'p-zero2', name: 'Zero 2', category: 'Global Stock', goalType: 'numeric', goal: 30000, goalSchedule: '', current: 0, cashBuffer: 0, dryPowder: 0, assets: [
-    { name: 'NVDA', shares: 0.065108, costPrice: 199.6858, costBasis: 13.00, currentPrice: 199.6858, value: 13.00 },
-    { name: 'PLTR', shares: 0, costPrice: 0, costBasis: 0, currentPrice: 0, value: 0 }
-  ], notes: '', dcaDoneThisMonth: false },
-  { id: 'p-zero3', name: 'Zero 3', category: 'Global Stock', goalType: 'numeric', goal: 15000, goalSchedule: '', current: 0, cashBuffer: 0, dryPowder: 0, assets: [
-    { name: 'SMR', shares: 0, costPrice: 0, costBasis: 0, currentPrice: 0, value: 0 },
-    { name: 'TSLA', shares: 0, costPrice: 0, costBasis: 0, currentPrice: 0, value: 0 }
-  ], notes: '', dcaDoneThisMonth: false },
-  { id: 'p-zero4', name: 'Zero 4', category: 'Global Stock', goalType: 'numeric', goal: 15000, goalSchedule: '', current: 0, cashBuffer: 0, dryPowder: 0, assets: [], notes: '', dcaDoneThisMonth: false },
-  { id: 'p-zero5', name: 'Zero 5', category: 'Global Stock', goalType: 'numeric', goal: 15000, goalSchedule: '', current: 0, cashBuffer: 0, dryPowder: 0, assets: [], notes: '', dcaDoneThisMonth: false },
-  { id: 'p-divyield', name: 'Dividend Yield', category: 'Global Stock', goalType: 'numeric', goal: 15000, goalSchedule: '', current: 0, cashBuffer: 0, dryPowder: 0, assets: [
-    { name: 'KO', shares: 0, costPrice: 0, costBasis: 0, currentPrice: 0, value: 0 },
-    { name: 'AVGO', shares: 0, costPrice: 0, costBasis: 0, currentPrice: 0, value: 0 },
-    { name: 'CVX', shares: 0, costPrice: 0, costBasis: 0, currentPrice: 0, value: 0 }
-  ], notes: '', dcaDoneThisMonth: false },
-  { id: 'p-thaidiv', name: 'THAI Dividend', category: 'THAI Dividend', goalType: 'numeric', goal: 15000, goalSchedule: '', current: 0, cashBuffer: 0, dryPowder: 0, assets: [], notes: '', dcaDoneThisMonth: false },
-  { id: 'p-nextgen', name: 'NEXT GEN', category: 'Global Stock', goalType: 'numeric', goal: 15000, goalSchedule: '', current: 0, cashBuffer: 0, dryPowder: 0, assets: [
-    { name: 'VOO', shares: 0, costPrice: 0, costBasis: 0, currentPrice: 0, value: 0 },
-    { name: 'GEV', shares: 0, costPrice: 0, costBasis: 0, currentPrice: 0, value: 0 },
-    { name: 'ISRG', shares: 0, costPrice: 0, costBasis: 0, currentPrice: 0, value: 0 }
-  ], notes: '', dcaDoneThisMonth: false },
-  { id: 'p-crypto', name: 'Crypto', category: 'Crypto', goalType: 'numeric', goal: 6000, goalSchedule: '', current: 0, cashBuffer: 0, dryPowder: 0, assets: [], notes: '', dcaDoneThisMonth: false }
+  { 
+    id: 'p-redwing', name: 'RedWing (กยศ.)', category: 'Life Goal', goalType: 'numeric', goal: 8000, goalSchedule: '', current: 0, cashBuffer: 0, dryPowder: 0, assets: [], notes: '', dcaDoneThisMonth: false 
+  },
+  { 
+    id: 'p-zero1', name: 'Zero 1 (เงินฉุกเฉิน)', category: 'Emergency Fund', goalType: 'numeric', goal: 2740, goalSchedule: '', current: 1096, cashBuffer: 0, dryPowder: 0, assets: [
+      { name: 'KEPT', shares: 1, costPrice: 1096, costBasis: 1096, currentPrice: 1096, value: 1096, targetPct: 40 },
+      { name: 'V', shares: 0.0026955, costPrice: 309.968, costBasis: 0.84, currentPrice: 359.42, value: 0.97, targetPct: 20 },
+      { name: 'MSFT', shares: 0, costPrice: 0, costBasis: 0, currentPrice: 430, value: 0, targetPct: 15 },
+      { name: 'WMT', shares: 0, costPrice: 0, costBasis: 0, currentPrice: 68, value: 0, targetPct: 12.5 },
+      { name: 'TISCO', shares: 0, costPrice: 0, costBasis: 0, currentPrice: 3.42, value: 0, targetPct: 12.5 }
+    ], notes: '', dcaDoneThisMonth: false 
+  },
+  { 
+    id: 'p-zero2', name: 'Zero 2 (พอร์ตซื้อรถ)', category: 'Global Stock', goalType: 'numeric', goal: 32876, goalSchedule: '', current: 13, cashBuffer: 6575, dryPowder: 0, assets: [
+      { name: 'NEE', shares: 0, costPrice: 0, costBasis: 0, currentPrice: 75, value: 0, targetPct: 25 },
+      { name: 'ABT', shares: 0, costPrice: 0, costBasis: 0, currentPrice: 110, value: 0, targetPct: 15 },
+      { name: 'NVDA', shares: 0.065108, costPrice: 199.6858, costBasis: 13.00, currentPrice: 199.6858, value: 13.00, targetPct: 15 },
+      { name: 'TMO', shares: 0, costPrice: 0, costBasis: 0, currentPrice: 550, value: 0, targetPct: 10 },
+      { name: 'JPM', shares: 0, costPrice: 0, costBasis: 0, currentPrice: 210, value: 0, targetPct: 10 },
+      { name: 'PLTR', shares: 0, costPrice: 0, costBasis: 0, currentPrice: 28, value: 0, targetPct: 5 }
+    ], notes: '', dcaDoneThisMonth: false 
+  },
+  { 
+    id: 'p-zero4', name: 'Zero 4 (พอร์ตแต่งงาน)', category: 'Global Stock', goalType: 'numeric', goal: 16438, goalSchedule: '', current: 0, cashBuffer: 4931, dryPowder: 0, assets: [
+      { name: 'COST', shares: 0, costPrice: 0, costBasis: 0, currentPrice: 850, value: 0, targetPct: 14 },
+      { name: 'LLY', shares: 0, costPrice: 0, costBasis: 0, currentPrice: 880, value: 0, targetPct: 14 },
+      { name: 'UNH', shares: 0, costPrice: 0, costBasis: 0, currentPrice: 560, value: 0, targetPct: 14 },
+      { name: 'HD', shares: 0, costPrice: 0, costBasis: 0, currentPrice: 370, value: 0, targetPct: 14 },
+      { name: 'MCD', shares: 0, costPrice: 0, costBasis: 0, currentPrice: 290, value: 0, targetPct: 14 }
+    ], notes: '', dcaDoneThisMonth: false 
+  },
+  { 
+    id: 'p-zero3', name: 'Zero 3 (พอร์ตเกษียณ 37 ปี)', category: 'Global Stock', goalType: 'numeric', goal: 109589, goalSchedule: '', current: 0, cashBuffer: 0, dryPowder: 0, assets: [
+      { name: 'GOOGL', shares: 0, costPrice: 0, costBasis: 0, currentPrice: 175, value: 0, targetPct: 20 },
+      { name: 'TSLA', shares: 0, costPrice: 0, costBasis: 0, currentPrice: 210, value: 0, targetPct: 20 },
+      { name: 'AMZN', shares: 0, costPrice: 0, costBasis: 0, currentPrice: 180, value: 0, targetPct: 15 },
+      { name: 'CRWD', shares: 0, costPrice: 0, costBasis: 0, currentPrice: 260, value: 0, targetPct: 10 },
+      { name: 'ABBV', shares: 0, costPrice: 0, costBasis: 0, currentPrice: 190, value: 0, targetPct: 10 },
+      { name: 'SMR', shares: 0, costPrice: 0, costBasis: 0, currentPrice: 10, value: 0, targetPct: 6 },
+      { name: 'ETN', shares: 0, costPrice: 0, costBasis: 0, currentPrice: 310, value: 0, targetPct: 6 },
+      { name: 'RKLB', shares: 0, costPrice: 0, costBasis: 0, currentPrice: 6.5, value: 0, targetPct: 5 },
+      { name: 'กอช.', shares: 0, costPrice: 0, costBasis: 0, currentPrice: 1, value: 0, targetPct: 3 }
+    ], notes: '', dcaDoneThisMonth: false 
+  },
+  { 
+    id: 'p-zero5', name: 'Zero 5 (พอร์ตซื้อบ้าน)', category: 'Global Stock', goalType: 'numeric', goal: 41095, goalSchedule: '', current: 0, cashBuffer: 8219, dryPowder: 0, assets: [
+      { name: 'TSM', shares: 0, costPrice: 0, costBasis: 0, currentPrice: 170, value: 0, targetPct: 20 },
+      { name: 'ASML', shares: 0, costPrice: 0, costBasis: 0, currentPrice: 840, value: 0, targetPct: 15 },
+      { name: 'LMT', shares: 0, costPrice: 0, costBasis: 0, currentPrice: 560, value: 0, targetPct: 15 },
+      { name: 'SPGI', shares: 0, costPrice: 0, costBasis: 0, currentPrice: 510, value: 0, targetPct: 12 },
+      { name: 'BWXT', shares: 0, costPrice: 0, costBasis: 0, currentPrice: 105, value: 0, targetPct: 10 },
+      { name: 'AMD', shares: 0, costPrice: 0, costBasis: 0, currentPrice: 140, value: 0, targetPct: 8 }
+    ], notes: '', dcaDoneThisMonth: false 
+  },
+  { 
+    id: 'p-divyield', name: 'US Dividend Yield', category: 'Global Stock', goalType: 'numeric', goal: 8219, goalSchedule: '', current: 0, cashBuffer: 0, dryPowder: 0, assets: [
+      { name: 'PG', shares: 0, costPrice: 0, costBasis: 0, currentPrice: 170, value: 0, targetPct: 25 },
+      { name: 'KO', shares: 0, costPrice: 0, costBasis: 0, currentPrice: 68, value: 0, targetPct: 25 },
+      { name: 'O', shares: 0, costPrice: 0, costBasis: 0, currentPrice: 60, value: 0, targetPct: 20 },
+      { name: 'AVGO', shares: 0, costPrice: 0, costBasis: 0, currentPrice: 160, value: 0, targetPct: 15 },
+      { name: 'CVX', shares: 0, costPrice: 0, costBasis: 0, currentPrice: 145, value: 0, targetPct: 15 }
+    ], notes: '', dcaDoneThisMonth: false 
+  },
+  { 
+    id: 'p-thaidiv', name: 'THAI Dividend', category: 'THAI Dividend', goalType: 'numeric', goal: 2740, goalSchedule: '', current: 0, cashBuffer: 0, dryPowder: 0, assets: [
+      { name: 'ADVANC', shares: 0, costPrice: 0, costBasis: 0, currentPrice: 7, value: 0, targetPct: 25 },
+      { name: 'SCB', shares: 0, costPrice: 0, costBasis: 0, currentPrice: 3, value: 0, targetPct: 20 },
+      { name: 'PTT', shares: 0, costPrice: 0, costBasis: 0, currentPrice: 0.9, value: 0, targetPct: 20 },
+      { name: 'DIF', shares: 0, costPrice: 0, costBasis: 0, currentPrice: 0.25, value: 0, targetPct: 20 },
+      { name: 'WHART', shares: 0, costPrice: 0, costBasis: 0, currentPrice: 0.26, value: 0, targetPct: 15 }
+    ], notes: '', dcaDoneThisMonth: false 
+  },
+  { 
+    id: 'p-nextgen', name: 'NEXT GEN', category: 'Global Stock', goalType: 'numeric', goal: 15000, goalSchedule: '', current: 0, cashBuffer: 0, dryPowder: 0, assets: [
+      { name: 'DE', shares: 0, costPrice: 0, costBasis: 0, currentPrice: 360, value: 0, targetPct: 20 },
+      { name: 'GEV', shares: 0, costPrice: 0, costBasis: 0, currentPrice: 175, value: 0, targetPct: 20 },
+      { name: 'ISRG', shares: 0, costPrice: 0, costBasis: 0, currentPrice: 460, value: 0, targetPct: 20 },
+      { name: 'NU', shares: 0, costPrice: 0, costBasis: 0, currentPrice: 13, value: 0, targetPct: 20 },
+      { name: 'VOO', shares: 0, costPrice: 0, costBasis: 0, currentPrice: 500, value: 0, targetPct: 20 }
+    ], notes: '', dcaDoneThisMonth: false 
+  },
+  { 
+    id: 'p-crypto', name: 'Crypto', category: 'Crypto', goalType: 'numeric', goal: 6000, goalSchedule: '', current: 0, cashBuffer: 0, dryPowder: 0, assets: [], notes: '', dcaDoneThisMonth: false 
+  }
 ];
 const INITIAL_QUARTERLY_RECORDS = [];
 const INITIAL_MONTHLY_RECORDS = [];
@@ -406,6 +466,11 @@ class PixelStewardApp {
       const livePriceBtn = e.target.closest('#btn-fetch-live-prices');
       if (livePriceBtn) {
         this.fetchLivePrices();
+        return;
+      }
+
+      if (e.target.closest('#btn-restore-master-data')) {
+        this.restoreMasterPortfolios();
         return;
       }
 
@@ -2924,6 +2989,15 @@ class PixelStewardApp {
         </tbody>
       </table>
     `;
+  }
+
+  restoreMasterPortfolios() {
+    if (!confirm("⚠️ คุณต้องการกู้คืนพอร์ตโครงสร้างหลัก (Master 10 Portfolios) ให้กลับมาเป๊ะ 100% หรือไม่?\n\n(ระบบจะเซ็ตพอร์ตและ % สัดส่วนเป้าหมายทั้งหมดให้ถูกต้องเรียบร้อยครับ)")) return;
+    this.portfolios = JSON.parse(JSON.stringify(INITIAL_PORTFOLIOS));
+    if (this.portfolios.length > 0) this.selectedPortId = this.portfolios[0].id;
+    this.saveState();
+    this.refreshUI();
+    this.showRetroToast("🔄 กู้คืนโครงสร้างพอร์ตเป๊ะ 100% เรียบร้อยแล้ว!", "success");
   }
 
   refreshUI() {
