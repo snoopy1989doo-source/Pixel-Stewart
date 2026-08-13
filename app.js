@@ -1238,9 +1238,10 @@ class PixelStewardApp {
           <div class="memory-card-grid">
             ${this.portfolios.map((p, idx) => {
               if (!p) return '';
-              const pct = p.goal > 0 ? (((p.current + p.cashBuffer) / p.goal) * 100) : 0;
+              const hasGoal = p.goalType !== 'none' && Number(p.goal) > 0;
+              const pct = hasGoal ? (((p.current + p.cashBuffer) / p.goal) * 100) : 0;
               const isPurpleTier = pct >= 80;
-              const tierClass = isPurpleTier ? 'tier-purple' : (pct >= 40 ? 'tier-gold' : 'tier-silver');
+              const tierClass = hasGoal ? (isPurpleTier ? 'tier-purple' : (pct >= 40 ? 'tier-gold' : 'tier-silver')) : 'tier-silver';
               const isActive = p.id === this.selectedPortId ? 'active' : '';
 
               return `
@@ -1253,12 +1254,13 @@ class PixelStewardApp {
                     </div>
                     <div>
                       <div class="card-val-text">${this.formatMoney(p.current + p.cashBuffer, p.category, false)}</div>
+                      ${hasGoal ? `
                       <div style="display:flex; justify-content:space-between; align-items:center; font-family:'Press Start 2P'; font-size:0.5rem; color:#94a3b8; margin-top:3px;">
                         <span>${pct.toFixed(0)}%</span>
                         <div class="card-progress-bar" style="width:70%; margin:0;">
                           <div class="card-progress-fill" style="width:${Math.min(100, pct)}%;"></div>
                         </div>
-                      </div>
+                      </div>` : '<div style="font-size:0.65rem; color:#64748b; margin-top:4px;">ไม่ตั้งเป้าหมาย</div>'}
                     </div>
                   </div>
                   <div class="card-footer-tag">MEMORY CARD</div>
@@ -1286,23 +1288,40 @@ class PixelStewardApp {
               </div>
             </div>
             
+            ${(active.goalType !== 'none' && Number(active.goal) > 0) ? `
             <div style="background:#111625; padding:10px; border:2px solid #000; font-size:0.85rem; cursor:pointer;" onclick="app.inlineEditGoal('${active.id}')">
               🎯 เป้าหมาย: ${active.goalType==='numeric'?this.formatMoney(active.goal, active.category, false):active.goalSchedule} <span style="font-size:0.7rem; color:#64748b; float:right;">✏️ แก้ไข</span>
-            </div>
+            </div>` : `
+            <div style="background:#111625; padding:10px; border:2px solid #000; font-size:0.85rem; cursor:pointer; color:#94a3b8;" onclick="app.inlineEditGoal('${active.id}')">
+              🎯 เป้าหมาย: ไม่ได้ตั้งเป้าหมาย (ซ่อนหลอดเป้าอัตโนมัติ) <span style="font-size:0.7rem; color:#64748b; float:right;">✏️ ตั้งเป้าหมาย</span>
+            </div>`}
             
             <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px;">
               <div style="background:#111625; padding:10px; border:2px solid #000; font-size:0.85rem; color:#10b981; font-weight:bold;">
-                💼 สุธิตลับพอร์ต: ${this.formatMoney(active.current+active.cashBuffer, active.category, false)}
+                💼 สุทธิพอร์ต: ${this.formatMoney(active.current+active.cashBuffer, active.category, false)}
               </div>
               <div style="background:#0c1020; padding:10px; border:2px solid #000; font-size:0.8rem; color:#94a3b8;">
                 ⚖️ Weight: <b>${weight.toFixed(1)}% ของคลังรวม</b>
               </div>
             </div>
 
+            <!-- 💵 DEDICATED CASH STORAGE SLOTS -->
+            <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px; margin-top:2px;">
+              <div style="background:#064e3b; padding:8px 12px; border:2px solid #059669; border-radius:6px; font-size:0.8rem; display:flex; justify-content:space-between; align-items:center;">
+                <span>🎯 เงินสดรอช้อน (Dry Powder):</span>
+                <b style="color:#34d399; font-size:0.9rem;">${this.formatMoney(active.dryPowder, active.category, false)}</b>
+              </div>
+              <div style="background:#1e1b4b; padding:8px 12px; border:2px solid #6366f1; border-radius:6px; font-size:0.8rem; display:flex; justify-content:space-between; align-items:center;">
+                <span>💵 เงินสดสำรอง (Cash Buffer):</span>
+                <b style="color:#a78bfa; font-size:0.9rem;">${this.formatMoney(active.cashBuffer, active.category, false)}</b>
+              </div>
+            </div>
+
+            ${(active.goalType !== 'none' && Number(active.goal) > 0) ? `
             <div>
               <div style="display:flex; justify-content:space-between; font-size:0.8rem; font-weight:bold; margin-bottom:2px;"><span>เควสโปรเกรส:</span><span>${lvl.pct.toFixed(1)}%</span></div>
               <div class="progress-container" style="height:12px; background:#111625; border:2px solid #000;"><div style="width:${Math.min(100,lvl.pct)}%; background:var(--color-success); height:100%;"></div></div>
-            </div>
+            </div>` : ''}
 
             <div style="margin-top:5px;">
               <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:2px solid #000; padding-bottom:6px; flex-wrap:wrap; gap:6px;">
@@ -1852,8 +1871,8 @@ class PixelStewardApp {
       const marketVal = Number(document.getElementById('asset-edit-market-val').value) || 0;
 
       const totalCost = shares * costPrice;
-      const totalPL = marketVal - totalCost;
-      const pctPL = totalCost > 0 ? (totalPL / totalCost) * 100 : 0;
+      const totalPL = costPrice > 0 ? (marketVal - totalCost) : 0;
+      const pctPL = (totalCost > 0 && costPrice > 0) ? (totalPL / totalCost) * 100 : 0;
       const isProfit = totalPL >= 0;
 
       const costEl = document.getElementById('preview-total-cost');
@@ -1861,8 +1880,13 @@ class PixelStewardApp {
 
       if (costEl) costEl.textContent = `$${totalCost.toFixed(2)}`;
       if (plEl) {
-        plEl.textContent = `${isProfit ? '+' : ''}$${totalPL.toFixed(2)} (${isProfit ? '+' : ''}${pctPL.toFixed(1)}%)`;
-        plEl.style.color = isProfit ? '#10b981' : '#ef4444';
+        if (costPrice > 0) {
+          plEl.textContent = `${isProfit ? '+' : ''}$${totalPL.toFixed(2)} (${isProfit ? '+' : ''}${pctPL.toFixed(1)}%)`;
+          plEl.style.color = isProfit ? '#10b981' : '#ef4444';
+        } else {
+          plEl.textContent = `$${marketVal.toFixed(2)} (ไม่ระบุต้นทุน)`;
+          plEl.style.color = '#38bdf8';
+        }
       }
     };
 

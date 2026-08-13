@@ -36,7 +36,7 @@
         <div class="title-container">
           <h1 class="brand-title">PIXEL</h1>
           <h1 class="brand-title highlight" style="color:#3b82f6;">STEWARD</h1>
-          <span class="badge-version" style="font-size:0.5rem; color:#10b981;">🔸 V.3.5.7 🟢 REALTIME ACTIVE</span>
+          <span class="badge-version" style="font-size:0.5rem; color:#10b981;">🔸 V.3.6.0 🟢 REALTIME ACTIVE</span>
         </div>
       </div>
       
@@ -257,16 +257,20 @@
         <div class="form-group">
           <label>ประเภทเป้าหมาย:</label>
           <select id="port-goal-type" class="input-retro">
+            <option value="none">none (ไม่ตั้งเป้าหมาย - ซ่อนหลอดเป้าหมายอัตโนมัติ)</option>
             <option value="numeric">numeric (เป้าหมายจำนวนเงินสะสม)</option>
             <option value="schedule">schedule (เป้าหมายแผนวินัย DCA)</option>
           </select>
         </div>
         <div class="form-group">
           <label id="port-goal-label">เป้าหมายเงินสะสม:</label>
-          <input type="number" id="port-goal-value" class="input-retro" value="100000">
+          <input type="number" id="port-goal-value" class="input-retro" value="0">
           <input type="text" id="port-goal-schedule" class="input-retro hidden" placeholder="เช่น DCA ทุกวันที่ 25 ของเดือน">
         </div>
-        <div class="form-group"><label>ระบุเงินช้อนเริ่มต้น (Dry Powder):</label><input type="number" id="port-dry-powder" class="input-retro" value="0"></div>
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:10px;">
+          <div class="form-group"><label>🎯 เงินสดรอช้อน (Dry Powder $ USD):</label><input type="number" id="port-dry-powder" class="input-retro" value="0"></div>
+          <div class="form-group"><label>💵 เงินสดสำรอง (Cash Buffer $ USD):</label><input type="number" id="port-cash-buffer" class="input-retro" value="0"></div>
+        </div>
         <div class="form-group"><label>วันเริ่มต้นเปิดพอร์ต:</label><input type="date" id="port-start-date" class="input-retro"></div>
         <div class="form-group"><label>บันทึกโน้ตเพิ่มเติม:</label><input type="text" id="port-notes" class="input-retro"></div>
         <div class="modal-footer" style="display:flex; justify-content:flex-end; gap:8px; margin-top:12px;">
@@ -517,6 +521,6 @@
     </div>
   </div>
 
-  <script src="app.js?v=357"></script>
+  <script src="app.js?v=360"></script>
 </body>
 </html> 
