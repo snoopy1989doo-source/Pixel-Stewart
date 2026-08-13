@@ -456,6 +456,21 @@ class PixelStewardApp {
         this.openTransferModal();
         return;
       }
+
+      if (e.target.closest('#btn-open-rebalance')) {
+        this.openRebalanceModal();
+        return;
+      }
+
+      if (e.target.closest('#btn-open-compound')) {
+        this.openCompoundModal();
+        return;
+      }
+
+      if (e.target.closest('#btn-apply-rebalance')) {
+        this.applyRebalancePlan();
+        return;
+      }
     });
 
     const goalTypeSelect = document.getElementById('port-goal-type');
@@ -923,6 +938,8 @@ class PixelStewardApp {
               `}
             </div>
             
+            <div style="margin-bottom:12px;" id="dashboard-donut-chart-mount"></div>
+            
             <div style="display:flex; flex-direction:column; gap:10px; font-size:0.75rem;">
               <div>
                 <div style="display:flex; justify-content:space-between;"><span>🟢 หุ้นไทย</span><b>${grandTotalUSD>0?((catAlloc.thai/grandTotalUSD)*100).toFixed(1):0}%</b></div>
@@ -966,7 +983,7 @@ class PixelStewardApp {
               <div style="text-align:left;"><div style="font-size:1.1rem; font-family:'Press Start 2P'; color:#10b981;">${healthScore}/100</div><div style="font-size:0.65rem; font-weight:bold; ${meloState.cls}">${meloState.text}</div></div>
             </div>
             <div class="health-score-breakdown" style="display:flex; flex-wrap:wrap; justify-content:center; gap:6px; font-size:0.65rem;">
-              <span class="badge" style="background:#0c1020; border:1px solid #334155; padding:2px 4px;">💳 หนี้ ${debtScore.toFixed(0)}/25</span>
+              <span class="badge" style="background:#0c1020; border:1px solid #334155; padding:2px 4px;">💳 หหนี้ ${debtScore.toFixed(0)}/25</span>
               <span class="badge" style="background:#0c1020; border:1px solid #334155; padding:2px 4px;">💵 เงินสด ${dryPowderScore.toFixed(0)}/20</span>
               <span class="badge" style="background:#0c1020; border:1px solid #334155; padding:2px 4px;">❄️ Snowball ${snowballScore.toFixed(0)}/20</span>
               <span class="badge" style="background:#0c1020; border:1px solid #334155; padding:2px 4px;">🎯 เป้าหมาย ${goalScore.toFixed(0)}/20</span>
@@ -976,6 +993,16 @@ class PixelStewardApp {
         </div>
       </div>
     `;
+
+    setTimeout(() => {
+      this.renderAssetAllocationSvgChart('dashboard-donut-chart-mount', [
+        { label: 'หุ้นไทย', value: catAlloc.thai, color: '#22c55e' },
+        { label: 'หุ้นต่างประเทศ', value: catAlloc.global, color: '#3b82f6' },
+        { label: 'ออปชัน & ฟอเร็กซ์', value: catAlloc.deriv, color: '#a855f7' },
+        { label: 'คริปโต', value: catAlloc.crypto, color: '#eab308' },
+        { label: 'อื่นๆ / เสบียง', value: catAlloc.other, color: '#64748b' }
+      ]);
+    }, 50);
   }
 
   renderPortfolios(container) {
@@ -1443,6 +1470,8 @@ class PixelStewardApp {
     const currPriceEl = document.getElementById('asset-edit-curr-price');
     if (currPriceEl) currPriceEl.value = currentPrice > 0 ? currentPrice : '';
     document.getElementById('asset-edit-market-val').value = value;
+    const targetPctEl = document.getElementById('asset-edit-target-pct');
+    if (targetPctEl) targetPctEl.value = a.targetPct !== undefined ? a.targetPct : '';
 
     const modal = document.getElementById('asset-edit-modal');
     if (modal) modal.classList.remove('hidden');
@@ -1489,7 +1518,7 @@ class PixelStewardApp {
       }
     };
 
-    ['asset-edit-shares', 'asset-edit-cost-price', 'asset-edit-curr-price', 'asset-edit-market-val'].forEach(id => {
+    ['asset-edit-shares', 'asset-edit-cost-price', 'asset-edit-curr-price', 'asset-edit-market-val', 'asset-edit-target-pct'].forEach(id => {
       const input = document.getElementById(id);
       if (input) input.oninput = updatePreview;
     });
@@ -1509,6 +1538,8 @@ class PixelStewardApp {
     const currPriceEl = document.getElementById('asset-edit-curr-price');
     const currPrice = currPriceEl ? Number(currPriceEl.value) || 0 : 0;
     const marketVal = Number(document.getElementById('asset-edit-market-val').value) || (shares * currPrice);
+    const targetPctInput = document.getElementById('asset-edit-target-pct');
+    const targetPct = targetPctInput && targetPctInput.value !== '' ? Number(targetPctInput.value) : undefined;
 
     if (!name) { alert('❌ โปรดระบุชื่อ Ticker สินทรัพย์!'); return; }
 
@@ -1518,7 +1549,8 @@ class PixelStewardApp {
       costPrice: costPrice,
       costBasis: shares * costPrice,
       currentPrice: currPrice > 0 ? currPrice : (shares > 0 ? marketVal / shares : marketVal),
-      value: marketVal
+      value: marketVal,
+      targetPct: targetPct
     };
 
     this.saveState();
@@ -2482,6 +2514,284 @@ class PixelStewardApp {
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
+  }
+
+  /* ==========================================================================
+     ⚖️ 1. ASSET REBALANCING CALCULATOR ENGINE (V3.5.0)
+     ========================================================================== */
+  openRebalanceModal() {
+    if (!Array.isArray(this.portfolios) || this.portfolios.length === 0) {
+      alert('❌ ไม่พบพอร์ตลงทุนเพื่อทำการ Rebalance');
+      return;
+    }
+    const select = document.getElementById('rebalance-port-select');
+    if (select) {
+      select.innerHTML = this.portfolios.map(p => p ? `<option value="${p.id}">${p.name} (Dry Powder: $${(p.dryPowder || 0).toFixed(2)})</option>` : '').join('');
+      select.onchange = () => this.renderRebalanceSummary();
+    }
+    const modal = document.getElementById('rebalance-modal');
+    if (modal) modal.classList.remove('hidden');
+    this.renderRebalanceSummary();
+  }
+
+  renderRebalanceSummary() {
+    const select = document.getElementById('rebalance-port-select');
+    const container = document.getElementById('rebalance-summary-container');
+    if (!select || !container) return;
+
+    const p = this.portfolios.find(x => x && x.id === select.value);
+    if (!p) { container.innerHTML = '<p class="text-muted">ไม่พบข้อมูลพอร์ต</p>'; return; }
+
+    const assets = Array.isArray(p.assets) ? p.assets : [];
+    const totalAssetsVal = assets.reduce((s, a) => s + (Number(a.value) || 0), 0);
+    const dryPowder = Number(p.dryPowder) || 0;
+    const totalPortEquity = totalAssetsVal + dryPowder;
+
+    if (assets.length === 0) {
+      container.innerHTML = '<p class="text-muted" style="padding:10px;">⚠️ ไม่พบสินทรัพย์ย่อยในพอร์ตนี้ กรุณาเพิ่มสินทรัพย์ย่อยก่อนทำ Rebalance</p>';
+      return;
+    }
+
+    let html = `
+      <div class="border-pixel-inset" style="padding:10px; background:#0c1020; font-size:0.8rem;">
+        <div style="display:flex; justify-content:space-between; margin-bottom:4px;">
+          <span>มูลค่าสินทรัพย์รวม: <b>$${totalAssetsVal.toFixed(2)}</b></span>
+          <span style="color:#38bdf8;">กระสุนเงินสด (Dry Powder): <b>$${dryPowder.toFixed(2)}</b></span>
+        </div>
+        <div style="display:flex; justify-content:space-between; font-weight:bold; color:var(--color-accent);">
+          <span>มูลค่าพอร์ตสุทธิ (Net Equity):</span>
+          <span>$${totalPortEquity.toFixed(2)}</span>
+        </div>
+      </div>
+      
+      <table class="retro-table" style="width:100%; border-collapse:collapse; font-size:0.8rem; margin-top:8px;">
+        <thead>
+          <tr style="background:#111625; text-align:left;">
+            <th style="padding:6px; border:1px solid #26304d;">Ticker</th>
+            <th style="padding:6px; border:1px solid #26304d;">มูลค่า ($)</th>
+            <th style="padding:6px; border:1px solid #26304d;">% ปัจจุบัน</th>
+            <th style="padding:6px; border:1px solid #26304d;">% เป้าหมาย</th>
+            <th style="padding:6px; border:1px solid #26304d; text-align:right;">แผนเสบียงเติม ($)</th>
+          </tr>
+        </thead>
+        <tbody>
+    `;
+
+    const totalDefinedTargetPct = assets.reduce((s, a) => s + (Number(a.targetPct) || 0), 0);
+    const defaultPct = totalDefinedTargetPct < 100 ? (100 - totalDefinedTargetPct) / Math.max(1, assets.filter(a => !a.targetPct).length) : 0;
+
+    assets.forEach((a) => {
+      const val = Number(a.value) || 0;
+      const curPct = totalAssetsVal > 0 ? (val / totalAssetsVal) * 100 : 0;
+      const targetPct = a.targetPct !== undefined ? Number(a.targetPct) : defaultPct;
+      
+      const idealTargetVal = (totalPortEquity * (targetPct / 100));
+      const diffVal = idealTargetVal - val;
+      const actionText = diffVal > 0 
+        ? `<span style="color:#10b981; font-weight:bold;">➕ ซื้อเพิ่ม $${diffVal.toFixed(2)}</span>`
+        : (diffVal < 0 ? `<span style="color:#f59e0b;">⚖️ เกินเป้า $${Math.abs(diffVal).toFixed(2)}</span>` : '<span style="color:#94a3b8;">✓ สมดุลแล้ว</span>');
+
+      html += `
+        <tr>
+          <td style="padding:6px; border:1px solid #26304d; font-weight:bold;">${a.name}</td>
+          <td style="padding:6px; border:1px solid #26304d;">$${val.toFixed(2)}</td>
+          <td style="padding:6px; border:1px solid #26304d;">${curPct.toFixed(1)}%</td>
+          <td style="padding:6px; border:1px solid #26304d; color:#a78bfa;">${targetPct.toFixed(1)}%</td>
+          <td style="padding:6px; border:1px solid #26304d; text-align:right;">${actionText}</td>
+        </tr>
+      `;
+    });
+
+    html += '</tbody></table>';
+    container.innerHTML = html;
+  }
+
+  applyRebalancePlan() {
+    const select = document.getElementById('rebalance-port-select');
+    if (!select) return;
+    const p = this.portfolios.find(x => x && x.id === select.value);
+    if (!p || !Array.isArray(p.assets) || p.assets.length === 0) return;
+
+    const assets = p.assets;
+    const totalAssetsVal = assets.reduce((s, a) => s + (Number(a.value) || 0), 0);
+    const dryPowder = Number(p.dryPowder) || 0;
+    const totalPortEquity = totalAssetsVal + dryPowder;
+
+    if (dryPowder <= 0) {
+      alert('⚠️ ไม่มีเสบียง (Dry Powder) เหลืออยู่ในพอร์ตสำหรับเติมเพิ่ม');
+      return;
+    }
+
+    const totalDefinedTargetPct = assets.reduce((s, a) => s + (Number(a.targetPct) || 0), 0);
+    const defaultPct = totalDefinedTargetPct < 100 ? (100 - totalDefinedTargetPct) / Math.max(1, assets.filter(a => !a.targetPct).length) : 0;
+
+    let remainingDry = dryPowder;
+    assets.forEach(a => {
+      const val = Number(a.value) || 0;
+      const targetPct = a.targetPct !== undefined ? Number(a.targetPct) : defaultPct;
+      const idealTargetVal = totalPortEquity * (targetPct / 100);
+      const diffVal = idealTargetVal - val;
+
+      if (diffVal > 0 && remainingDry > 0) {
+        const allocate = Math.min(diffVal, remainingDry);
+        a.value = val + allocate;
+        const shares = Number(a.shares) || 1;
+        a.currentPrice = shares > 0 ? a.value / shares : a.value;
+        remainingDry -= allocate;
+      }
+    });
+
+    p.dryPowder = Math.max(0, remainingDry);
+    this.saveState();
+    this.closeModals();
+    this.refreshUI();
+    this.showRetroToast(`⚖️ จัดสรรเสบียง Rebalance พอร์ต "${p.name}" สำเร็จ!`, 'success');
+  }
+
+  /* ==========================================================================
+     📊 2. RETRO SVG ALLOCATION DONUT CHART GENERATOR (V3.5.0)
+     ========================================================================== */
+  renderAssetAllocationSvgChart(containerId, slicesData) {
+    const container = document.getElementById(containerId);
+    if (!container) return;
+
+    if (!Array.isArray(slicesData) || slicesData.length === 0) {
+      container.innerHTML = '<p class="text-muted" style="text-align:center; padding:10px;">ไม่มีข้อมูลสัดส่วนสินทรัพย์</p>';
+      return;
+    }
+
+    const total = slicesData.reduce((s, x) => s + (Number(x.value) || 0), 0);
+    if (total <= 0) {
+      container.innerHTML = '<p class="text-muted" style="text-align:center; padding:10px;">มูลค่าสินทรัพย์เป็น 0</p>';
+      return;
+    }
+
+    const colors = ['#38bdf8', '#34d399', '#f59e0b', '#a78bfa', '#f43f5e', '#fbbf24', '#818cf8'];
+    let accumulatedAngle = 0;
+    const size = 160;
+    const center = size / 2;
+    const radius = 60;
+    const strokeWidth = 24;
+
+    let pathsSvg = '';
+    slicesData.forEach((slice, idx) => {
+      const val = Number(slice.value) || 0;
+      const pct = val / total;
+      const angle = pct * 360;
+
+      if (angle <= 0) return;
+
+      const startAngle = accumulatedAngle;
+      const endAngle = accumulatedAngle + angle;
+      accumulatedAngle = endAngle;
+
+      const x1 = center + radius * Math.cos((Math.PI * (startAngle - 90)) / 180);
+      const y1 = center + radius * Math.sin((Math.PI * (startAngle - 90)) / 180);
+      const x2 = center + radius * Math.cos((Math.PI * (endAngle - 90)) / 180);
+      const y2 = center + radius * Math.sin((Math.PI * (endAngle - 90)) / 180);
+
+      const largeArc = angle > 180 ? 1 : 0;
+      const color = slice.color || colors[idx % colors.length];
+
+      pathsSvg += `<path d="M ${x1} ${y1} A ${radius} ${radius} 0 ${largeArc} 1 ${x2} ${y2}" fill="none" stroke="${color}" stroke-width="${strokeWidth}"><title>${slice.label}: $${val.toFixed(2)} (${(pct * 100).toFixed(1)}%)</title></path>`;
+    });
+
+    let legendHtml = slicesData.map((slice, idx) => {
+      const val = Number(slice.value) || 0;
+      const pct = total > 0 ? (val / total) * 100 : 0;
+      const color = slice.color || colors[idx % colors.length];
+      return `
+        <div style="display:flex; align-items:center; justify-content:space-between; gap:6px; font-size:0.75rem; margin-bottom:3px;">
+          <span style="display:inline-block; width:10px; height:10px; background:${color}; border-radius:2px; flex-shrink:0;"></span>
+          <span style="flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${slice.label}</span>
+          <b style="color:#fff;">${pct.toFixed(1)}%</b>
+        </div>
+      `;
+    }).join('');
+
+    container.innerHTML = `
+      <div style="display:flex; align-items:center; gap:16px; flex-wrap:wrap; justify-content:center;">
+        <svg width="${size}" height="${size}" viewBox="0 0 ${size} ${size}" style="transform:rotate(-90deg); filter:drop-shadow(0 2px 6px rgba(0,0,0,0.5));">
+          ${pathsSvg}
+        </svg>
+        <div style="flex:1; min-width:140px;">
+          ${legendHtml}
+        </div>
+      </div>
+    `;
+  }
+
+  /* ==========================================================================
+     📈 4. COMPOUND GROWTH SIMULATOR ENGINE (V3.5.0)
+     ========================================================================== */
+  openCompoundModal() {
+    const totalEquity = Array.isArray(this.portfolios) 
+      ? this.portfolios.reduce((s, p) => s + (p ? Number(p.current || 0) + Number(p.dryPowder || 0) : 0), 0)
+      : 1000;
+
+    const initInput = document.getElementById('cg-initial');
+    if (initInput) initInput.value = totalEquity > 0 ? totalEquity.toFixed(0) : 1000;
+
+    ['cg-initial', 'cg-dca', 'cg-rate'].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.oninput = () => this.renderCompoundResults();
+    });
+
+    const modal = document.getElementById('compound-modal');
+    if (modal) modal.classList.remove('hidden');
+
+    this.renderCompoundResults();
+  }
+
+  renderCompoundResults() {
+    const container = document.getElementById('compound-projection-results');
+    if (!container) return;
+
+    const initial = Number(document.getElementById('cg-initial').value) || 0;
+    const monthlyDCA = Number(document.getElementById('cg-dca').value) || 0;
+    const ratePct = Number(document.getElementById('cg-rate').value) || 0;
+    const r = ratePct / 100 / 12;
+
+    const calcWealth = (years) => {
+      const months = years * 12;
+      if (r === 0) return initial + (monthlyDCA * months);
+      const fvInitial = initial * Math.pow(1 + r, months);
+      const fvDca = monthlyDCA * ((Math.pow(1 + r, months) - 1) / r);
+      return fvInitial + fvDca;
+    };
+
+    const horizons = [1, 3, 5, 10];
+    let rowsHtml = horizons.map(yrs => {
+      const totalFuture = calcWealth(yrs);
+      const totalInvested = initial + (monthlyDCA * yrs * 12);
+      const totalInterest = Math.max(0, totalFuture - totalInvested);
+      const gainPct = totalInvested > 0 ? (totalInterest / totalInvested) * 100 : 0;
+
+      return `
+        <tr>
+          <td style="padding:8px; border:1px solid #26304d; font-weight:bold; color:var(--color-accent);">${yrs} ปี</td>
+          <td style="padding:8px; border:1px solid #26304d;">$${totalInvested.toFixed(0)}</td>
+          <td style="padding:8px; border:1px solid #26304d; color:#10b981;">+$${totalInterest.toFixed(0)} (${gainPct.toFixed(0)}%)</td>
+          <td style="padding:8px; border:1px solid #26304d; font-weight:bold; color:#38bdf8; font-family:'Press Start 2P'; font-size:0.75rem;">$${totalFuture.toFixed(0)}</td>
+        </tr>
+      `;
+    }).join('');
+
+    container.innerHTML = `
+      <table class="retro-table" style="width:100%; border-collapse:collapse; font-size:0.8rem;">
+        <thead>
+          <tr style="background:#111625; text-align:left;">
+            <th style="padding:8px; border:1px solid #26304d;">ระยะเวลา</th>
+            <th style="padding:8px; border:1px solid #26304d;">เงินต้นสะสม ($)</th>
+            <th style="padding:8px; border:1px solid #26304d;">กำไรทบต้น ($)</th>
+            <th style="padding:8px; border:1px solid #26304d;">พอร์ตเป้าหมาย ($)</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${rowsHtml}
+        </tbody>
+      </table>
+    `;
   }
 
   refreshUI() {
