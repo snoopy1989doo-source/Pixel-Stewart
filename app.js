@@ -1933,41 +1933,50 @@ class PixelStewardApp {
 
   handleSaveCashEdit(e) {
     if (e && typeof e.preventDefault === 'function') e.preventDefault();
-    const portIdInput = document.getElementById('cash-edit-port-id');
-    const editTypeInput = document.getElementById('cash-edit-type');
-    
-    if (!portIdInput || !editTypeInput) return;
-    const portId = portIdInput.value;
-    const editType = editTypeInput.value;
+    try {
+      const portIdInput = document.getElementById('cash-edit-port-id');
+      const editTypeInput = document.getElementById('cash-edit-type');
+      
+      if (!portIdInput || !editTypeInput) return;
+      const portId = portIdInput.value;
+      const editType = editTypeInput.value;
 
-    let p = this.portfolios.find(x => x && (x.id === portId || (x.id || '').toLowerCase() === (portId || '').toLowerCase()));
-    if (!p && this.portfolios.length > 0) {
-      p = this.portfolios.find(x => x && x.id === this.selectedPortId) || this.portfolios[0];
+      let p = this.portfolios.find(x => x && (x.id === portId || (x.id || '').toLowerCase() === (portId || '').toLowerCase()));
+      if (!p && this.portfolios.length > 0) {
+        p = this.portfolios.find(x => x && x.id === this.selectedPortId) || this.portfolios[0];
+      }
+      if (!p) {
+        alert('❌ ไม่พบตลับพอร์ตเพื่อบันทึก');
+        return;
+      }
+
+      let usdVal = Number(document.getElementById('cash-edit-usd-input')?.value);
+      if (isNaN(usdVal) || usdVal < 0) {
+        const thbVal = Number(document.getElementById('cash-edit-thb-input')?.value) || 0;
+        const rate = this.exchangeRate || 33.16;
+        usdVal = thbVal > 0 ? (thbVal / rate) : 0;
+      }
+
+      if (editType === 'cashBuffer') {
+        p.cashBuffer = usdVal;
+        this.showRetroToast(`💵 บันทึกเงินสดสำรอง "${p.name}" เป็น $${usdVal.toFixed(2)} เรียบร้อย!`, 'success');
+      } else if (editType === 'dryPowder') {
+        p.dryPowder = usdVal;
+        this.showRetroToast(`🎯 บันทึกเงินสดรอช้อน "${p.name}" เป็น $${usdVal.toFixed(2)} เรียบร้อย!`, 'success');
+      } else if (editType === 'goal') {
+        p.goal = usdVal;
+        if (usdVal > 0) p.goalType = 'numeric';
+        this.showRetroToast(`🎯 บันทึกเป้าหมาย "${p.name}" เป็น $${usdVal.toFixed(2)} เรียบร้อย!`, 'success');
+      }
+    } catch (err) {
+      console.error('Error in handleSaveCashEdit:', err);
+    } finally {
+      this.saveState();
+      const modal = document.getElementById('cash-edit-modal');
+      if (modal) modal.classList.add('hidden');
+      this.closeModals();
+      this.refreshUI();
     }
-    if (!p) {
-      alert('❌ ไม่พบตลับพอร์ตเพื่อบันทึก');
-      return;
-    }
-
-    const usdVal = Number(document.getElementById('cash-edit-usd-input').value) || 0;
-
-    if (editType === 'cashBuffer') {
-      p.cashBuffer = usdVal;
-      this.showRetroToast(`💵 บันทึกเงินสดสำรอง "${p.name}" เป็น $${usdVal.toFixed(2)} เรียบร้อย!`, 'success');
-    } else if (editType === 'dryPowder') {
-      p.dryPowder = usdVal;
-      this.showRetroToast(`🎯 บันทึกเงินสดรอช้อน "${p.name}" เป็น $${usdVal.toFixed(2)} เรียบร้อย!`, 'success');
-    } else if (editType === 'goal') {
-      p.goal = usdVal;
-      if (usdVal > 0) p.goalType = 'numeric';
-      this.showRetroToast(`🎯 บันทึกเป้าหมาย "${p.name}" เป็น $${usdVal.toFixed(2)} เรียบร้อย!`, 'success');
-    }
-
-    this.saveState();
-    const modal = document.getElementById('cash-edit-modal');
-    if (modal) modal.classList.add('hidden');
-    this.closeModals();
-    this.refreshUI();
   }
 
   modularDepositAsset(portId, assetIdx) {
@@ -2783,6 +2792,37 @@ class PixelStewardApp {
   
   closeModals() { 
     document.querySelectorAll('.modal-overlay').forEach(m => m.classList.add('hidden')); 
+  }
+
+  showRetroToast(msg, type = 'info') {
+    try {
+      let toastContainer = document.getElementById('retro-toast-container');
+      if (!toastContainer) {
+        toastContainer = document.createElement('div');
+        toastContainer.id = 'retro-toast-container';
+        toastContainer.style.cssText = 'position:fixed; bottom:24px; right:24px; z-index:999999; display:flex; flex-direction:column; gap:8px; pointer-events:none;';
+        document.body.appendChild(toastContainer);
+      }
+      const item = document.createElement('div');
+      const borderCol = type === 'success' ? '#10b981' : (type === 'error' ? '#ef4444' : '#38bdf8');
+      const bgCol = type === 'success' ? '#064e3b' : (type === 'error' ? '#7f1d1d' : '#0c4a6e');
+      item.style.cssText = `background:${bgCol}; color:#fff; border:2px solid ${borderCol}; padding:10px 14px; border-radius:6px; font-size:0.8rem; font-family:sans-serif; font-weight:bold; box-shadow:0 4px 12px rgba(0,0,0,0.5); opacity:0; transition:all 0.3s ease; transform:translateY(10px);`;
+      item.textContent = msg;
+      toastContainer.appendChild(item);
+
+      setTimeout(() => {
+        item.style.opacity = '1';
+        item.style.transform = 'translateY(0)';
+      }, 10);
+
+      setTimeout(() => {
+        item.style.opacity = '0';
+        item.style.transform = 'translateY(10px)';
+        setTimeout(() => item.remove(), 300);
+      }, 3000);
+    } catch (e) {
+      console.log('Toast output:', msg);
+    }
   }
 
   updatePrivacyBtnState() {
