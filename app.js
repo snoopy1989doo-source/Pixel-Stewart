@@ -1929,11 +1929,23 @@ class PixelStewardApp {
     if (modal) modal.classList.remove('hidden');
   }
 
-  handleSaveCashEdit() {
-    const portId = document.getElementById('cash-edit-port-id').value;
-    const editType = document.getElementById('cash-edit-type').value;
-    const p = this.portfolios.find(x => x && x.id === portId);
-    if (!p) return;
+  handleSaveCashEdit(e) {
+    if (e && typeof e.preventDefault === 'function') e.preventDefault();
+    const portIdInput = document.getElementById('cash-edit-port-id');
+    const editTypeInput = document.getElementById('cash-edit-type');
+    
+    if (!portIdInput || !editTypeInput) return;
+    const portId = portIdInput.value;
+    const editType = editTypeInput.value;
+
+    let p = this.portfolios.find(x => x && (x.id === portId || (x.id || '').toLowerCase() === (portId || '').toLowerCase()));
+    if (!p && this.portfolios.length > 0) {
+      p = this.portfolios.find(x => x && x.id === this.selectedPortId) || this.portfolios[0];
+    }
+    if (!p) {
+      alert('❌ ไม่พบตลับพอร์ตเพื่อบันทึก');
+      return;
+    }
 
     const usdVal = Number(document.getElementById('cash-edit-usd-input').value) || 0;
 
