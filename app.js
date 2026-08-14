@@ -1307,13 +1307,13 @@ class PixelStewardApp {
 
             <!-- 💵 DEDICATED CASH STORAGE SLOTS -->
             <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px; margin-top:2px;">
-              <div style="background:#064e3b; padding:8px 12px; border:2px solid #059669; border-radius:6px; font-size:0.8rem; display:flex; justify-content:space-between; align-items:center;">
+              <div style="background:#064e3b; padding:8px 12px; border:2px solid #059669; border-radius:6px; font-size:0.8rem; display:flex; justify-content:space-between; align-items:center; cursor:pointer;" onclick="app.inlineEditDryPowder('${active.id}')" title="คลิกเพื่อแก้ไขเงินสดรอช้อน">
                 <span>🎯 เงินสดรอช้อน (Dry Powder):</span>
-                <b style="color:#34d399; font-size:0.9rem;">${this.formatMoney(active.dryPowder, active.category, false)}</b>
+                <b style="color:#34d399; font-size:0.9rem;">${this.formatMoney(active.dryPowder, active.category, false)} ✏️</b>
               </div>
-              <div style="background:#1e1b4b; padding:8px 12px; border:2px solid #6366f1; border-radius:6px; font-size:0.8rem; display:flex; justify-content:space-between; align-items:center;">
+              <div style="background:#1e1b4b; padding:8px 12px; border:2px solid #6366f1; border-radius:6px; font-size:0.8rem; display:flex; justify-content:space-between; align-items:center; cursor:pointer;" onclick="app.inlineEditCashBuffer('${active.id}')" title="คลิกเพื่อแก้ไขเงินสดสำรอง">
                 <span>💵 เงินสดสำรอง (Cash Buffer):</span>
-                <b style="color:#a78bfa; font-size:0.9rem;">${this.formatMoney(active.cashBuffer, active.category, false)}</b>
+                <b style="color:#a78bfa; font-size:0.9rem;">${this.formatMoney(active.cashBuffer, active.category, false)} ✏️</b>
               </div>
             </div>
 
@@ -1811,6 +1811,26 @@ class PixelStewardApp {
         p.goalSchedule = newSched.trim();
         this.saveState(); this.refreshUI();
       }
+    }
+  }
+
+  inlineEditCashBuffer(id) {
+    const p = this.portfolios.find(x => x && x.id === id);
+    if (!p) return;
+    const val = prompt(`✏️ ระบุเงินสดสำรอง (Cash Buffer $ USD) ใหม่ของพอร์ต "${p.name}":`, p.cashBuffer || 0);
+    if (val !== null && !isNaN(Number(val)) && Number(val) >= 0) {
+      p.cashBuffer = Number(val);
+      this.saveState(); this.refreshUI();
+    }
+  }
+
+  inlineEditDryPowder(id) {
+    const p = this.portfolios.find(x => x && x.id === id);
+    if (!p) return;
+    const val = prompt(`✏️ ระบุเงินสดรอช้อน (Dry Powder $ USD) ใหม่ของพอร์ต "${p.name}":`, p.dryPowder || 0);
+    if (val !== null && !isNaN(Number(val)) && Number(val) >= 0) {
+      p.dryPowder = Number(val);
+      this.saveState(); this.refreshUI();
     }
   }
 
