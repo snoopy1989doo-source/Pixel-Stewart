@@ -1376,7 +1376,8 @@ class PixelStewardApp {
               <div style="display:flex; flex-direction:column; gap:8px; margin-top:8px; max-height:220px; overflow-y:auto;">
                 ${(displayAssets.length===0)?'<p class="text-muted" style="font-size:0.85rem; text-align:center;">คลังว่างเปล่า กดปุ่ม ➕ ด้านบนเพื่อเพิ่ม</p>':displayAssets.map((a)=>{
                   const i = a.originalIndex;
-                  const cost = Number(a.costBasis) || Number(a.value) || 0;
+                  const val = Number(a.value) || 0;
+                  const cost = Number(a.costBasis) || val;
                   const cPrice = Number(a.currentPrice) || (a.shares > 0 ? val / a.shares : val);
                   const cCostPrice = Number(a.costPrice) || (a.shares > 0 ? cost / a.shares : cost);
                   const diff = val - cost;
