@@ -1390,9 +1390,10 @@ class PixelStewardApp {
                     <div style="display:flex; align-items:center; gap:8px;">
                       ${this.getTickerLogoHtml(a.name, active.category)}
                       <div>
-                        <div style="display:flex; align-items:center; gap:6px;">
+                        <div style="display:flex; align-items:center; gap:6px; flex-wrap:wrap;">
                           <b style="font-size:0.9rem; color:#fff;">${a.name}</b>
                           <span style="font-size:0.65rem; color:#60a5fa; background:rgba(96,165,250,0.1); padding:1px 4px; border-radius:3px;">Dime Sync</span>
+                          ${(a.targetPct !== undefined && a.targetPct !== null && a.targetPct !== '') ? `<span style="font-size:0.65rem; color:#f59e0b; background:rgba(245,158,11,0.15); padding:1px 5px; border-radius:3px; border:1px solid #f59e0b;" title="เป้าหมายสัดส่วนในพอร์ต">🎯 เป้าหมาย ${a.targetPct}%</span>` : ''}
                         </div>
                         <div style="font-size:0.72rem; color:#94a3b8; margin-top:2px;">
                           จำนวน: <b>${Number(a.shares || 1).toLocaleString(undefined, {maximumFractionDigits: 6})}</b> หุ้น
@@ -1828,6 +1829,7 @@ class PixelStewardApp {
     const costInput = document.getElementById('asset-add-cost');
     const thbInput = document.getElementById('asset-add-thb');
     const valInput = document.getElementById('asset-add-value');
+    const targetPctInput = document.getElementById('asset-add-target-pct');
 
     if (nameInput) nameInput.value = '';
     if (sharesInput) sharesInput.value = '1';
@@ -1835,6 +1837,7 @@ class PixelStewardApp {
     if (costInput) costInput.value = '';
     if (thbInput) thbInput.value = '';
     if (valInput) valInput.value = '';
+    if (targetPctInput) targetPctInput.value = '';
 
     const rate = this.exchangeRate || 33.16;
 
@@ -1929,6 +1932,9 @@ class PixelStewardApp {
       if (!name) { alert('❌ โปรดระบุชื่อ Ticker สินทรัพย์ย่อย!'); return; }
       if (val < 0) { alert('❌ โปรดระบุมูลค่าสินทรัพย์ให้ถูกต้อง!'); return; }
 
+      const targetPctVal = document.getElementById('asset-add-target-pct')?.value;
+      const targetPct = targetPctVal !== undefined && targetPctVal !== '' ? Number(targetPctVal) : undefined;
+
       if (!Array.isArray(p.assets)) p.assets = [];
 
       p.assets.push({
@@ -1937,7 +1943,8 @@ class PixelStewardApp {
         costPrice: costPrice,
         costBasis: costBasis,
         currentPrice: shares > 0 ? val / shares : val,
-        value: val
+        value: val,
+        targetPct: targetPct
       });
 
       this.showRetroToast(`💎 เพิ่มสินทรัพย์ย่อย "${name}" เข้าพอร์ต "${p.name}" สำเร็จ!`, 'success');
