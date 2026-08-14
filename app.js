@@ -584,7 +584,9 @@ class PixelStewardApp {
     const assetEditForm = document.getElementById('asset-edit-form');
     if (assetEditForm) assetEditForm.addEventListener('submit', (e) => { e.preventDefault(); this.handleSaveAssetEdit(); });
     const cashEditForm = document.getElementById('cash-edit-form');
-    if (cashEditForm) cashEditForm.addEventListener('submit', (e) => { e.preventDefault(); this.handleSaveCashEdit(); });
+    if (cashEditForm) cashEditForm.addEventListener('submit', (e) => { e.preventDefault(); this.handleSaveCashEdit(e); });
+    const btnSaveCash = document.getElementById('btn-save-cash-edit');
+    if (btnSaveCash) btnSaveCash.addEventListener('click', (e) => { e.preventDefault(); this.handleSaveCashEdit(e); });
 
     const globalRateInput = document.getElementById('global-usd-rate');
     if (globalRateInput) {
@@ -1962,6 +1964,8 @@ class PixelStewardApp {
     }
 
     this.saveState();
+    const modal = document.getElementById('cash-edit-modal');
+    if (modal) modal.classList.add('hidden');
     this.closeModals();
     this.refreshUI();
   }
