@@ -1377,14 +1377,13 @@ class PixelStewardApp {
                 ${(displayAssets.length===0)?'<p class="text-muted" style="font-size:0.85rem; text-align:center;">คลังว่างเปล่า กดปุ่ม ➕ ด้านบนเพื่อเพิ่ม</p>':displayAssets.map((a)=>{
                   const i = a.originalIndex;
                   const cost = Number(a.costBasis) || Number(a.value) || 0;
-                  const val = Number(a.value) || 0;
+                  const cPrice = Number(a.currentPrice) || (a.shares > 0 ? val / a.shares : val);
+                  const cCostPrice = Number(a.costPrice) || (a.shares > 0 ? cost / a.shares : cost);
                   const diff = val - cost;
-                  const pct = cost > 0 ? (diff / cost) * 100 : 0;
+                  const pct = (cCostPrice > 0 && cPrice > 0) ? (((cPrice - cCostPrice) / cCostPrice) * 100) : (cost > 0 ? (diff / cost) * 100 : 0);
                   const isProfit = diff >= 0;
                   const plBadgeClass = isProfit ? 'badge-pl-profit' : 'badge-pl-loss';
                   const sign = isProfit ? '+' : '';
-                  const cPrice = Number(a.currentPrice) || (a.shares > 0 ? val / a.shares : val);
-                  const cCostPrice = Number(a.costPrice) || (a.shares > 0 ? cost / a.shares : cost);
 
                   return `
                   <div style="display:flex; justify-content:space-between; background:#111625; padding:8px 12px; border:2px solid #000; font-size:0.85rem; align-items:center; border-radius:6px; flex-wrap:wrap; gap:6px;">
@@ -1825,58 +1824,73 @@ class PixelStewardApp {
 
     const nameInput = document.getElementById('asset-add-name');
     const sharesInput = document.getElementById('asset-add-shares');
+    const costPriceInput = document.getElementById('asset-add-cost-price');
     const costInput = document.getElementById('asset-add-cost');
     const thbInput = document.getElementById('asset-add-thb');
     const valInput = document.getElementById('asset-add-value');
 
     if (nameInput) nameInput.value = '';
     if (sharesInput) sharesInput.value = '1';
+    if (costPriceInput) costPriceInput.value = '';
     if (costInput) costInput.value = '';
     if (thbInput) thbInput.value = '';
     if (valInput) valInput.value = '';
 
     const rate = this.exchangeRate || 33.16;
 
-    const updateAddPreview = () => {
+    const updateAddPreview = (e) => {
       const sh = Number(document.getElementById('asset-add-shares')?.value) || 1;
+      const cp = Number(document.getElementById('asset-add-cost-price')?.value);
       let cost = Number(document.getElementById('asset-add-cost')?.value);
       let val = Number(document.getElementById('asset-add-value')?.value) || 0;
       const thb = Number(document.getElementById('asset-add-thb')?.value) || 0;
+
+      if (e && e.target && e.target.id === 'asset-add-cost-price' && !isNaN(cp) && cp > 0 && sh > 0) {
+        cost = sh * cp;
+        if (costInput) costInput.value = cost.toFixed(4);
+      } else if (e && e.target && e.target.id === 'asset-add-cost' && !isNaN(cost) && cost > 0 && sh > 0 && costPriceInput) {
+        costPriceInput.value = (cost / sh).toFixed(4);
+      }
 
       if (thb > 0 && val === 0) {
         val = thb / rate;
         if (valInput) valInput.value = val.toFixed(2);
       }
 
-      if (isNaN(cost) || cost <= 0) cost = val;
+      if (isNaN(cost) || cost <= 0) {
+        if (!isNaN(cp) && cp > 0 && sh > 0) cost = sh * cp;
+        else cost = val;
+      }
 
+      const cCostPrice = (!isNaN(cp) && cp > 0) ? cp : (sh > 0 ? cost / sh : cost);
+      const cPrice = sh > 0 ? val / sh : val;
       const diff = val - cost;
-      const pct = cost > 0 ? (diff / cost) * 100 : 0;
+      const pct = (cCostPrice > 0 && cPrice > 0) ? (((cPrice - cCostPrice) / cCostPrice) * 100) : (cost > 0 ? (diff / cost) * 100 : 0);
       const isProfit = diff >= 0;
 
       const pVal = document.getElementById('asset-add-preview-val');
       const pCost = document.getElementById('asset-add-preview-cost');
       const pPl = document.getElementById('asset-add-preview-pl');
 
-      if (pVal) pVal.textContent = `$${val.toFixed(2)}`;
-      if (pCost) pCost.textContent = `$${cost.toFixed(2)}`;
+      if (pVal) pVal.textContent = `$${val.toFixed(2)} (${(val * rate).toFixed(2)} ฿)`;
+      if (pCost) pCost.textContent = `$${cost.toFixed(4)}`;
       if (pPl) {
-        pPl.textContent = `${isProfit ? '+' : ''}$${diff.toFixed(2)} (${isProfit ? '+' : ''}${pct.toFixed(1)}%)`;
+        pPl.textContent = `${isProfit ? '+' : ''}$${diff.toFixed(2)} (${isProfit ? '+' : ''}${pct.toFixed(2)}%)`;
         pPl.style.color = isProfit ? '#10b981' : '#ef4444';
       }
     };
 
-    if (thbInput) thbInput.oninput = () => {
+    if (thbInput) thbInput.oninput = (e) => {
       const thb = Number(thbInput.value) || 0;
       if (thb > 0) {
         const usd = thb / rate;
         if (valInput) valInput.value = usd.toFixed(2);
         if (costInput && !costInput.value) costInput.value = usd.toFixed(2);
       }
-      updateAddPreview();
+      updateAddPreview(e);
     };
 
-    ['asset-add-shares', 'asset-add-cost', 'asset-add-value'].forEach(id => {
+    ['asset-add-shares', 'asset-add-cost-price', 'asset-add-cost', 'asset-add-value'].forEach(id => {
       const el = document.getElementById(id);
       if (el) el.oninput = updateAddPreview;
     });
@@ -1904,8 +1918,13 @@ class PixelStewardApp {
         val = thb / (this.exchangeRate || 33.16);
       }
 
+      let costPrice = Number(document.getElementById('asset-add-cost-price')?.value);
       let costStr = document.getElementById('asset-add-cost')?.value;
-      let costBasis = costStr !== '' && costStr !== undefined && !isNaN(Number(costStr)) ? Number(costStr) : val;
+      let costBasis = costStr !== '' && costStr !== undefined && !isNaN(Number(costStr)) ? Number(costStr) : (!isNaN(costPrice) && costPrice > 0 ? shares * costPrice : val);
+
+      if (isNaN(costPrice) || costPrice <= 0) {
+        costPrice = shares > 0 ? costBasis / shares : costBasis;
+      }
 
       if (!name) { alert('❌ โปรดระบุชื่อ Ticker สินทรัพย์ย่อย!'); return; }
       if (val < 0) { alert('❌ โปรดระบุมูลค่าสินทรัพย์ให้ถูกต้อง!'); return; }
@@ -1915,7 +1934,7 @@ class PixelStewardApp {
       p.assets.push({
         name: name,
         shares: shares,
-        costPrice: shares > 0 ? costBasis / shares : costBasis,
+        costPrice: costPrice,
         costBasis: costBasis,
         currentPrice: shares > 0 ? val / shares : val,
         value: val
