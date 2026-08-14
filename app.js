@@ -469,8 +469,8 @@ class PixelStewardApp {
         return;
       }
 
-      if (e.target.closest('#btn-restore-master-data')) {
-        this.restoreMasterPortfolios();
+      if (e.target.closest('#btn-open-converter')) {
+        this.openCurrencyConverterModal();
         return;
       }
 
@@ -601,6 +601,60 @@ class PixelStewardApp {
           this.exchangeRate = val;
           this.saveState();
         }
+      });
+    }
+
+    // 🇹🇭 THB ➔ USD Helper Box in Portfolio Modal
+    const thbHelperInput = document.getElementById('port-thb-helper-input');
+    const thbHelperPreview = document.getElementById('port-thb-helper-preview');
+    const btnFillBuffer = document.getElementById('btn-fill-cash-buffer-from-thb');
+
+    if (thbHelperInput) {
+      thbHelperInput.addEventListener('input', (e) => {
+        const thbVal = Number(e.target.value) || 0;
+        const rate = this.exchangeRate || 33.16;
+        const usdVal = thbVal > 0 ? (thbVal / rate) : 0;
+        if (thbHelperPreview) {
+          thbHelperPreview.textContent = `≈ $${usdVal.toFixed(2)} USD (@${rate.toFixed(2)} ฿/$)`;
+        }
+      });
+    }
+
+    if (btnFillBuffer) {
+      btnFillBuffer.addEventListener('click', () => {
+        const thbVal = Number(document.getElementById('port-thb-helper-input')?.value) || 0;
+        const rate = this.exchangeRate || 33.16;
+        const usdVal = thbVal > 0 ? (thbVal / rate) : 0;
+        const cashBufferInput = document.getElementById('port-cash-buffer');
+        if (cashBufferInput) {
+          cashBufferInput.value = usdVal.toFixed(2);
+          this.showRetroToast(`🇹🇭 เติมช่องเงินสดสำรอง: $${usdVal.toFixed(2)} USD (จาก ฿${thbVal.toLocaleString()}) เรียบร้อย!`, "success");
+        }
+      });
+    }
+
+    // 🧮 Standalone THB ↔ USD Converter Modal Inputs
+    const calcThb = document.getElementById('calc-thb-input');
+    const calcUsd = document.getElementById('calc-usd-input');
+    const calcRes = document.getElementById('calc-result-text');
+
+    if (calcThb) {
+      calcThb.addEventListener('input', (e) => {
+        const thb = Number(e.target.value) || 0;
+        const rate = this.exchangeRate || 33.16;
+        const usd = thb > 0 ? (thb / rate) : 0;
+        if (calcUsd) calcUsd.value = usd > 0 ? usd.toFixed(2) : '';
+        if (calcRes) calcRes.textContent = `${thb.toLocaleString()} บาท = $${usd.toFixed(2)} USD`;
+      });
+    }
+
+    if (calcUsd) {
+      calcUsd.addEventListener('input', (e) => {
+        const usd = Number(e.target.value) || 0;
+        const rate = this.exchangeRate || 33.16;
+        const thb = usd * rate;
+        if (calcThb) calcThb.value = thb > 0 ? thb.toFixed(2) : '';
+        if (calcRes) calcRes.textContent = `$${usd.toLocaleString()} USD = ${thb.toLocaleString(undefined, {maximumFractionDigits:2})} บาท`;
       });
     }
 
@@ -1814,12 +1868,34 @@ class PixelStewardApp {
     }
   }
 
+  parseCurrencyInput(inputStr) {
+    if (inputStr === null || inputStr === undefined) return null;
+    let str = inputStr.toString().trim().toLowerCase();
+    if (!str) return null;
+
+    const isTHB = str.includes('b') || str.includes('thb') || str.includes('บาท') || str.includes('บ');
+    const cleanStr = str.replace(/[^0-9.]/g, '');
+    const num = Number(cleanStr);
+
+    if (isNaN(num) || num < 0) return null;
+
+    if (isTHB) {
+      const rate = this.exchangeRate || 33.16;
+      const usdVal = num / rate;
+      this.showRetroToast(`🇹🇭 แปลงเงินบาท ฿${num.toLocaleString()} ➔ $${usdVal.toFixed(2)} USD (@${rate.toFixed(2)})`, "success");
+      return usdVal;
+    }
+
+    return num;
+  }
+
   inlineEditCashBuffer(id) {
     const p = this.portfolios.find(x => x && x.id === id);
     if (!p) return;
-    const val = prompt(`✏️ ระบุเงินสดสำรอง (Cash Buffer $ USD) ใหม่ของพอร์ต "${p.name}":`, p.cashBuffer || 0);
-    if (val !== null && !isNaN(Number(val)) && Number(val) >= 0) {
-      p.cashBuffer = Number(val);
+    const raw = prompt(`✏️ ระบุเงินสดสำรองของพอร์ต "${p.name}":\n\n(💡 เคล็ดลับ: สามารถพิมพ์เป็นเงินบาทได้เลย เช่น "90000b" หรือ "90000 บาท" ระบบจะแปลงเป็น USD อัตโนมัติ!):`, p.cashBuffer || 0);
+    const parsed = this.parseCurrencyInput(raw);
+    if (parsed !== null) {
+      p.cashBuffer = parsed;
       this.saveState(); this.refreshUI();
     }
   }
@@ -1827,9 +1903,10 @@ class PixelStewardApp {
   inlineEditDryPowder(id) {
     const p = this.portfolios.find(x => x && x.id === id);
     if (!p) return;
-    const val = prompt(`✏️ ระบุเงินสดรอช้อน (Dry Powder $ USD) ใหม่ของพอร์ต "${p.name}":`, p.dryPowder || 0);
-    if (val !== null && !isNaN(Number(val)) && Number(val) >= 0) {
-      p.dryPowder = Number(val);
+    const raw = prompt(`✏️ ระบุเงินสดรอช้อน (Dry Powder) ของพอร์ต "${p.name}":\n\n(💡 เคล็ดลับ: พิมพ์เงินบาทได้เลย เช่น "10000b" หรือ "10000 บาท"):`, p.dryPowder || 0);
+    const parsed = this.parseCurrencyInput(raw);
+    if (parsed !== null) {
+      p.dryPowder = parsed;
       this.saveState(); this.refreshUI();
     }
   }
@@ -2627,6 +2704,14 @@ class PixelStewardApp {
   openPortfolioModal() { 
     const m = document.getElementById('portfolio-modal');
     if (m) m.classList.remove('hidden'); 
+  }
+
+  openCurrencyConverterModal() {
+    const modal = document.getElementById('currency-converter-modal');
+    if (!modal) return;
+    const rateLbl = document.getElementById('modal-live-rate-display');
+    if (rateLbl) rateLbl.textContent = `1 USD = ${(this.exchangeRate || 33.16).toFixed(2)} THB`;
+    modal.classList.remove('hidden');
   }
   
   openTransferModal() {
