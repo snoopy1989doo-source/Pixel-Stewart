@@ -488,31 +488,7 @@ class PixelStewardApp {
         let active = this.portfolios.find(p => p.id === this.selectedPortId);
         if (!active && this.portfolios.length > 0) active = this.portfolios[0];
         if (!active) { alert('❌ โปรดเพิ่มตลับพอร์ตหลักก่อนจัดการสินทรัพย์ย่อยครับ'); return; }
-        
-        const rawName = prompt('กรอก Ticker/ชื่อสินทรัพย์ย่อย (เช่น NVDA, PTT, AAPL, BTC):');
-        if (!rawName) return;
-        const name = rawName.trim().toUpperCase();
-        
-        const sharesStr = prompt(`ระบุจำนวนหุ้น/หน่วย (ถ้าไม่ต้องการระบุ ให้เว้นว่างหรือพิมพ์ 1):`, '1');
-        const shares = Number(sharesStr) || 1;
-
-        const valStr = prompt(`ระบุมูลค่าปัจจุบันรวม ($ USD) ในสกุลเงินพอร์ต:`);
-        const val = Number(valStr);
-        if (isNaN(val) || val < 0) { alert('❌ โปรดกรอกตัวเลขมูลค่าให้ถูกต้อง'); return; }
-
-        const costStr = prompt(`ระบุราคาทุนรวมทั้งหมด ($ USD) (ถ้าเท่ากับมูลค่าปัจจุบัน ให้พิมพ์ ${val}):`, val.toString());
-        const costBasis = Number(costStr) >= 0 ? Number(costStr) : val;
-
-        if (!active.assets) active.assets = [];
-        active.assets.push({
-          name: name,
-          shares: shares,
-          costPrice: shares > 0 ? costBasis / shares : costBasis,
-          costBasis: costBasis,
-          currentPrice: shares > 0 ? val / shares : val,
-          value: val
-        });
-        this.saveState(); this.refreshUI();
+        this.openAssetAddModal(active.id);
         return;
       }
 
@@ -587,6 +563,11 @@ class PixelStewardApp {
     if (cashEditForm) cashEditForm.addEventListener('submit', (e) => { e.preventDefault(); this.handleSaveCashEdit(e); });
     const btnSaveCash = document.getElementById('btn-save-cash-edit');
     if (btnSaveCash) btnSaveCash.addEventListener('click', (e) => { e.preventDefault(); this.handleSaveCashEdit(e); });
+
+    const assetAddForm = document.getElementById('asset-add-form');
+    if (assetAddForm) assetAddForm.addEventListener('submit', (e) => { e.preventDefault(); this.handleSaveAssetAdd(e); });
+    const btnSaveAssetAdd = document.getElementById('btn-save-asset-add');
+    if (btnSaveAssetAdd) btnSaveAssetAdd.addEventListener('click', (e) => { e.preventDefault(); this.handleSaveAssetAdd(e); });
 
     const globalRateInput = document.getElementById('global-usd-rate');
     if (globalRateInput) {
@@ -1831,6 +1812,125 @@ class PixelStewardApp {
     this.closeModals();
     this.refreshUI();
     this.showRetroToast(`🎯 แก้ไขสินทรัพย์ย่อย "${name}" สำเร็จ!`, 'success');
+  }
+
+  openAssetAddModal(portId) {
+    let p = this.portfolios.find(x => x && x.id === portId);
+    if (!p && this.portfolios.length > 0) p = this.portfolios.find(x => x && x.id === this.selectedPortId) || this.portfolios[0];
+    if (!p) return;
+
+    document.getElementById('asset-add-port-id').value = p.id;
+    const nameEl = document.getElementById('asset-add-port-name');
+    if (nameEl) nameEl.textContent = p.name;
+
+    const nameInput = document.getElementById('asset-add-name');
+    const sharesInput = document.getElementById('asset-add-shares');
+    const costInput = document.getElementById('asset-add-cost');
+    const thbInput = document.getElementById('asset-add-thb');
+    const valInput = document.getElementById('asset-add-value');
+
+    if (nameInput) nameInput.value = '';
+    if (sharesInput) sharesInput.value = '1';
+    if (costInput) costInput.value = '';
+    if (thbInput) thbInput.value = '';
+    if (valInput) valInput.value = '';
+
+    const rate = this.exchangeRate || 33.16;
+
+    const updateAddPreview = () => {
+      const sh = Number(document.getElementById('asset-add-shares')?.value) || 1;
+      let cost = Number(document.getElementById('asset-add-cost')?.value);
+      let val = Number(document.getElementById('asset-add-value')?.value) || 0;
+      const thb = Number(document.getElementById('asset-add-thb')?.value) || 0;
+
+      if (thb > 0 && val === 0) {
+        val = thb / rate;
+        if (valInput) valInput.value = val.toFixed(2);
+      }
+
+      if (isNaN(cost) || cost <= 0) cost = val;
+
+      const diff = val - cost;
+      const pct = cost > 0 ? (diff / cost) * 100 : 0;
+      const isProfit = diff >= 0;
+
+      const pVal = document.getElementById('asset-add-preview-val');
+      const pCost = document.getElementById('asset-add-preview-cost');
+      const pPl = document.getElementById('asset-add-preview-pl');
+
+      if (pVal) pVal.textContent = `$${val.toFixed(2)}`;
+      if (pCost) pCost.textContent = `$${cost.toFixed(2)}`;
+      if (pPl) {
+        pPl.textContent = `${isProfit ? '+' : ''}$${diff.toFixed(2)} (${isProfit ? '+' : ''}${pct.toFixed(1)}%)`;
+        pPl.style.color = isProfit ? '#10b981' : '#ef4444';
+      }
+    };
+
+    if (thbInput) thbInput.oninput = () => {
+      const thb = Number(thbInput.value) || 0;
+      if (thb > 0) {
+        const usd = thb / rate;
+        if (valInput) valInput.value = usd.toFixed(2);
+        if (costInput && !costInput.value) costInput.value = usd.toFixed(2);
+      }
+      updateAddPreview();
+    };
+
+    ['asset-add-shares', 'asset-add-cost', 'asset-add-value'].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.oninput = updateAddPreview;
+    });
+
+    updateAddPreview();
+    const modal = document.getElementById('asset-add-modal');
+    if (modal) modal.classList.remove('hidden');
+    if (nameInput) setTimeout(() => nameInput.focus(), 100);
+  }
+
+  handleSaveAssetAdd(e) {
+    if (e && typeof e.preventDefault === 'function') e.preventDefault();
+    try {
+      const portId = document.getElementById('asset-add-port-id')?.value;
+      let p = this.portfolios.find(x => x && x.id === portId);
+      if (!p && this.portfolios.length > 0) p = this.portfolios.find(x => x && x.id === this.selectedPortId) || this.portfolios[0];
+      if (!p) { alert('❌ ไม่พบตลับพอร์ตเพื่อบันทึก'); return; }
+
+      const name = (document.getElementById('asset-add-name')?.value || '').trim().toUpperCase();
+      const shares = Number(document.getElementById('asset-add-shares')?.value) || 1;
+      let val = Number(document.getElementById('asset-add-value')?.value) || 0;
+      const thb = Number(document.getElementById('asset-add-thb')?.value) || 0;
+
+      if (val <= 0 && thb > 0) {
+        val = thb / (this.exchangeRate || 33.16);
+      }
+
+      let costStr = document.getElementById('asset-add-cost')?.value;
+      let costBasis = costStr !== '' && costStr !== undefined && !isNaN(Number(costStr)) ? Number(costStr) : val;
+
+      if (!name) { alert('❌ โปรดระบุชื่อ Ticker สินทรัพย์ย่อย!'); return; }
+      if (val < 0) { alert('❌ โปรดระบุมูลค่าสินทรัพย์ให้ถูกต้อง!'); return; }
+
+      if (!Array.isArray(p.assets)) p.assets = [];
+
+      p.assets.push({
+        name: name,
+        shares: shares,
+        costPrice: shares > 0 ? costBasis / shares : costBasis,
+        costBasis: costBasis,
+        currentPrice: shares > 0 ? val / shares : val,
+        value: val
+      });
+
+      this.showRetroToast(`💎 เพิ่มสินทรัพย์ย่อย "${name}" เข้าพอร์ต "${p.name}" สำเร็จ!`, 'success');
+    } catch (err) {
+      console.error('Error in handleSaveAssetAdd:', err);
+    } finally {
+      this.saveState();
+      const modal = document.getElementById('asset-add-modal');
+      if (modal) modal.classList.add('hidden');
+      this.closeModals();
+      this.refreshUI();
+    }
   }
 
   deletePortfolio(portId) {

@@ -36,7 +36,7 @@
         <div class="title-container">
           <h1 class="brand-title">PIXEL</h1>
           <h1 class="brand-title highlight" style="color:#3b82f6;">STEWARD</h1>
-          <span class="badge-version" style="font-size:0.5rem; color:#10b981;">🔸 V.4.0.0 🟢 REALTIME ACTIVE</span>
+          <span class="badge-version" style="font-size:0.5rem; color:#10b981;">🔸 V.4.1.0 🟢 REALTIME ACTIVE</span>
         </div>
       </div>
       
@@ -619,6 +619,73 @@
     </div>
   </div>
 
-  <script src="app.js?v=400"></script>
+  <!-- 💎 [V4.1.0 NEW] BEAUTIFUL RETRO ADD SUB-ASSET MODAL (SINGLE STEP) -->
+  <div id="asset-add-modal" class="modal-overlay hidden">
+    <div class="modal-card border-pixel" style="max-width:500px;">
+      <div class="modal-header">
+        <h3 style="font-family:'Press Start 2P'; font-size:0.75rem; color:#60a5fa;">💎 เพิ่มสินทรัพย์ย่อยใหม่ (Add Sub-Asset)</h3>
+        <button type="button" class="btn-close-modal">✖</button>
+      </div>
+      <form id="asset-add-form" class="modal-body" style="display:flex; flex-direction:column; gap:12px;">
+        <input type="hidden" id="asset-add-port-id">
+
+        <div style="background:#0f172a; padding:10px; border-radius:6px; font-size:0.8rem; color:#94a3b8; display:flex; justify-content:space-between; align-items:center;">
+          <span>ตลับพอร์ตปลายทาง:</span>
+          <b style="color:#38bdf8; font-size:0.9rem;" id="asset-add-port-name">Zero 1</b>
+        </div>
+
+        <div class="form-group">
+          <label>Ticker / ชื่อย่อสินทรัพย์:</label>
+          <input type="text" id="asset-add-name" class="input-retro" placeholder="เช่น NVDA, PTT, AAPL, BTC" required style="text-transform:uppercase;">
+        </div>
+
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
+          <div class="form-group">
+            <label>จำนวนหุ้นคงเหลือ (Shares):</label>
+            <input type="number" id="asset-add-shares" class="input-retro" placeholder="เช่น 10" step="any" value="1" required>
+          </div>
+          <div class="form-group">
+            <label>ต้นทุนรวมทั้งหมด ($ USD):</label>
+            <input type="number" id="asset-add-cost" class="input-retro" placeholder="เช่น 500" step="any">
+          </div>
+        </div>
+
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
+          <div class="form-group">
+            <label>🇹🇭 เติมด้วยเงินบาท (THB):</label>
+            <input type="number" id="asset-add-thb" class="input-retro" placeholder="เช่น 17000" step="any">
+          </div>
+          <div class="form-group">
+            <label>🇺🇸 มูลค่าปัจจุบันรวม ($ USD):</label>
+            <input type="number" id="asset-add-value" class="input-retro" placeholder="เช่น 500" step="any" required>
+          </div>
+        </div>
+
+        <!-- 📊 Real-time Preview Summary Box -->
+        <div class="border-pixel-inset" style="padding:10px; background:#111625; font-size:0.8rem;">
+          <h5 style="color:var(--color-accent); margin-bottom:6px; font-family:'Press Start 2P'; font-size:0.55rem;">📊 PREVIEW SUMMARY</h5>
+          <div style="display:flex; justify-content:space-between; margin-bottom:3px;">
+            <span>มูลค่าปัจจุบันรวม:</span>
+            <b id="asset-add-preview-val" style="color:#38bdf8;">$0.00</b>
+          </div>
+          <div style="display:flex; justify-content:space-between; margin-bottom:3px;">
+            <span>ต้นทุนรวม (Cost Basis):</span>
+            <b id="asset-add-preview-cost" style="color:#94a3b8;">$0.00</b>
+          </div>
+          <div style="display:flex; justify-content:space-between;">
+            <span>กำไร/ขาดทุนคาดการณ์ (P/L):</span>
+            <b id="asset-add-preview-pl" style="color:#10b981;">+$0.00 (0.0%)</b>
+          </div>
+        </div>
+
+        <div class="modal-footer" style="display:flex; justify-content:flex-end; gap:8px; margin-top:12px;">
+          <button type="button" class="btn btn-secondary btn-close-modal"><span>ยกเลิก</span></button>
+          <button type="button" class="btn btn-success" id="btn-save-asset-add" onclick="app.handleSaveAssetAdd()"><span>💾 บันทึกเพิ่มสินทรัพย์</span></button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script src="app.js?v=410"></script>
 </body>
 </html> 

@@ -1,9 +1,9 @@
-const CACHE_NAME = 'pixel-steward-v400';
+const CACHE_NAME = 'pixel-steward-v410';
 const ASSETS_TO_CACHE = [
   './',
   './index.html',
-  './style.css?v=400',
-  './app.js?v=400',
+  './style.css?v=410',
+  './app.js?v=410',
   './manifest.json',
   './assets/avatar/avatar-profile.png',
   './assets/icons/icon-home.png',
