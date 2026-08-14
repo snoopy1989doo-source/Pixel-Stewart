@@ -583,6 +583,8 @@ class PixelStewardApp {
     if (divForm) divForm.addEventListener('submit', (e) => { e.preventDefault(); this.handleSaveDividend(); });
     const assetEditForm = document.getElementById('asset-edit-form');
     if (assetEditForm) assetEditForm.addEventListener('submit', (e) => { e.preventDefault(); this.handleSaveAssetEdit(); });
+    const cashEditForm = document.getElementById('cash-edit-form');
+    if (cashEditForm) cashEditForm.addEventListener('submit', (e) => { e.preventDefault(); this.handleSaveCashEdit(); });
 
     const globalRateInput = document.getElementById('global-usd-rate');
     if (globalRateInput) {
@@ -1851,64 +1853,105 @@ class PixelStewardApp {
   }
 
   inlineEditGoal(id) {
-    const p = this.portfolios.find(x => x && x.id === id);
-    if (!p) return;
-    if (p.goalType === 'numeric') {
-      const newGoal = prompt(`✏️ แก้ไขเป้าหมายตัวเลขเงินสะสม ($ USD) ของพอร์ต "${p.name}" เป็น:`, p.goal);
-      if (newGoal !== null && !isNaN(Number(newGoal)) && Number(newGoal) >= 0) {
-        p.goal = Number(newGoal);
-        this.saveState(); this.refreshUI();
-      }
-    } else {
-      const newSched = prompt(`✏️ แก้ไขเป้าหมายตาราง DCA ของพอร์ต "${p.name}" เป็น:`, p.goalSchedule);
-      if (newSched !== null && newSched.trim() !== "") {
-        p.goalSchedule = newSched.trim();
-        this.saveState(); this.refreshUI();
-      }
-    }
-  }
-
-  parseCurrencyInput(inputStr) {
-    if (inputStr === null || inputStr === undefined) return null;
-    let str = inputStr.toString().trim().toLowerCase();
-    if (!str) return null;
-
-    const isTHB = str.includes('b') || str.includes('thb') || str.includes('บาท') || str.includes('บ');
-    const cleanStr = str.replace(/[^0-9.]/g, '');
-    const num = Number(cleanStr);
-
-    if (isNaN(num) || num < 0) return null;
-
-    if (isTHB) {
-      const rate = this.exchangeRate || 33.16;
-      const usdVal = num / rate;
-      this.showRetroToast(`🇹🇭 แปลงเงินบาท ฿${num.toLocaleString()} ➔ $${usdVal.toFixed(2)} USD (@${rate.toFixed(2)})`, "success");
-      return usdVal;
-    }
-
-    return num;
+    this.openCashEditModal(id, 'goal');
   }
 
   inlineEditCashBuffer(id) {
-    const p = this.portfolios.find(x => x && x.id === id);
-    if (!p) return;
-    const raw = prompt(`✏️ ระบุเงินสดสำรองของพอร์ต "${p.name}":\n\n(💡 เคล็ดลับ: สามารถพิมพ์เป็นเงินบาทได้เลย เช่น "90000b" หรือ "90000 บาท" ระบบจะแปลงเป็น USD อัตโนมัติ!):`, p.cashBuffer || 0);
-    const parsed = this.parseCurrencyInput(raw);
-    if (parsed !== null) {
-      p.cashBuffer = parsed;
-      this.saveState(); this.refreshUI();
-    }
+    this.openCashEditModal(id, 'cashBuffer');
   }
 
   inlineEditDryPowder(id) {
-    const p = this.portfolios.find(x => x && x.id === id);
+    this.openCashEditModal(id, 'dryPowder');
+  }
+
+  openCashEditModal(portId, editType) {
+    const p = this.portfolios.find(x => x && x.id === portId);
     if (!p) return;
-    const raw = prompt(`✏️ ระบุเงินสดรอช้อน (Dry Powder) ของพอร์ต "${p.name}":\n\n(💡 เคล็ดลับ: พิมพ์เงินบาทได้เลย เช่น "10000b" หรือ "10000 บาท"):`, p.dryPowder || 0);
-    const parsed = this.parseCurrencyInput(raw);
-    if (parsed !== null) {
-      p.dryPowder = parsed;
-      this.saveState(); this.refreshUI();
+
+    const rate = this.exchangeRate || 33.16;
+    document.getElementById('cash-edit-port-id').value = portId;
+    document.getElementById('cash-edit-type').value = editType;
+
+    const rateLbl = document.getElementById('cash-edit-rate-label');
+    if (rateLbl) rateLbl.textContent = `1 USD = ${rate.toFixed(2)} THB`;
+
+    const titleEl = document.getElementById('cash-edit-modal-title');
+    let currentUsd = 0;
+
+    if (editType === 'cashBuffer') {
+      if (titleEl) titleEl.textContent = `💵 แก้ไขเงินสดสำรอง (Cash Buffer): ${p.name}`;
+      currentUsd = Number(p.cashBuffer) || 0;
+    } else if (editType === 'dryPowder') {
+      if (titleEl) titleEl.textContent = `🎯 แก้ไขเงินสดรอช้อน (Dry Powder): ${p.name}`;
+      currentUsd = Number(p.dryPowder) || 0;
+    } else if (editType === 'goal') {
+      if (titleEl) titleEl.textContent = `🎯 แก้ไขเป้าหมายเงินสะสม (Goal): ${p.name}`;
+      currentUsd = Number(p.goal) || 0;
     }
+
+    const currentThb = currentUsd * rate;
+    const usdInput = document.getElementById('cash-edit-usd-input');
+    const thbInput = document.getElementById('cash-edit-thb-input');
+
+    if (usdInput) usdInput.value = currentUsd > 0 ? currentUsd : '';
+    if (thbInput) thbInput.value = currentThb > 0 ? Math.round(currentThb) : '';
+
+    const updateCashPreview = () => {
+      const usdVal = Number(document.getElementById('cash-edit-usd-input').value) || 0;
+      const thbVal = usdVal * rate;
+      const previewUsd = document.getElementById('cash-edit-preview-usd');
+      const previewThb = document.getElementById('cash-edit-preview-thb');
+
+      if (previewUsd) previewUsd.textContent = `$${usdVal.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
+      if (previewThb) previewThb.textContent = `฿${Math.round(thbVal).toLocaleString()} บาท`;
+    };
+
+    if (thbInput) {
+      thbInput.oninput = () => {
+        const thb = Number(thbInput.value) || 0;
+        const usd = thb > 0 ? (thb / rate) : 0;
+        if (usdInput) usdInput.value = usd > 0 ? usd.toFixed(2) : '';
+        updateCashPreview();
+      };
+    }
+
+    if (usdInput) {
+      usdInput.oninput = () => {
+        const usd = Number(usdInput.value) || 0;
+        const thb = usd * rate;
+        if (thbInput) thbInput.value = thb > 0 ? Math.round(thb) : '';
+        updateCashPreview();
+      };
+    }
+
+    updateCashPreview();
+    const modal = document.getElementById('cash-edit-modal');
+    if (modal) modal.classList.remove('hidden');
+  }
+
+  handleSaveCashEdit() {
+    const portId = document.getElementById('cash-edit-port-id').value;
+    const editType = document.getElementById('cash-edit-type').value;
+    const p = this.portfolios.find(x => x && x.id === portId);
+    if (!p) return;
+
+    const usdVal = Number(document.getElementById('cash-edit-usd-input').value) || 0;
+
+    if (editType === 'cashBuffer') {
+      p.cashBuffer = usdVal;
+      this.showRetroToast(`💵 บันทึกเงินสดสำรอง "${p.name}" เป็น $${usdVal.toFixed(2)} เรียบร้อย!`, 'success');
+    } else if (editType === 'dryPowder') {
+      p.dryPowder = usdVal;
+      this.showRetroToast(`🎯 บันทึกเงินสดรอช้อน "${p.name}" เป็น $${usdVal.toFixed(2)} เรียบร้อย!`, 'success');
+    } else if (editType === 'goal') {
+      p.goal = usdVal;
+      if (usdVal > 0) p.goalType = 'numeric';
+      this.showRetroToast(`🎯 บันทึกเป้าหมาย "${p.name}" เป็น $${usdVal.toFixed(2)} เรียบร้อย!`, 'success');
+    }
+
+    this.saveState();
+    this.closeModals();
+    this.refreshUI();
   }
 
   modularDepositAsset(portId, assetIdx) {
