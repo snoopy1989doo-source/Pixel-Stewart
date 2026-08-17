@@ -415,6 +415,29 @@ class PixelStewardApp {
     this.debtStartTHB = storedDebtStart ? Number(storedDebtStart) : 0;
     this.debtRemainingTHB = storedDebtRemaining ? Number(storedDebtRemaining) : 0;
 
+    // Auto-clean duplicate sub-assets if any exist in storage
+    if (Array.isArray(this.portfolios)) {
+      this.portfolios.forEach(p => {
+        if (p && Array.isArray(p.assets)) {
+          const uniqueMap = new Map();
+          p.assets.forEach(a => {
+            if (a && a.name) {
+              const key = a.name.trim().toUpperCase();
+              if (!uniqueMap.has(key)) {
+                uniqueMap.set(key, a);
+              } else {
+                const prev = uniqueMap.get(key);
+                if ((Number(a.shares) || 0) > (Number(prev.shares) || 0) || (Number(a.value) || 0) > (Number(prev.value) || 0)) {
+                  uniqueMap.set(key, a);
+                }
+              }
+            }
+          });
+          p.assets = Array.from(uniqueMap.values());
+        }
+      });
+    }
+
     if (Array.isArray(this.portfolios) && this.portfolios.length > 0 && !this.selectedPortId) {
       this.selectedPortId = this.portfolios[0].id;
     }
@@ -566,8 +589,6 @@ class PixelStewardApp {
 
     const assetAddForm = document.getElementById('asset-add-form');
     if (assetAddForm) assetAddForm.addEventListener('submit', (e) => { e.preventDefault(); this.handleSaveAssetAdd(e); });
-    const btnSaveAssetAdd = document.getElementById('btn-save-asset-add');
-    if (btnSaveAssetAdd) btnSaveAssetAdd.addEventListener('click', (e) => { e.preventDefault(); this.handleSaveAssetAdd(e); });
 
     const globalRateInput = document.getElementById('global-usd-rate');
     if (globalRateInput) {
@@ -1964,6 +1985,9 @@ class PixelStewardApp {
 
   handleSaveAssetAdd(e) {
     if (e && typeof e.preventDefault === 'function') e.preventDefault();
+    if (this._isSavingAsset) return;
+    this._isSavingAsset = true;
+
     try {
       const portId = document.getElementById('asset-add-port-id')?.value;
       let p = this.portfolios.find(x => x && x.id === portId);
@@ -2003,17 +2027,30 @@ class PixelStewardApp {
 
       if (!Array.isArray(p.assets)) p.assets = [];
 
-      p.assets.push({
-        name: name,
-        shares: shares,
-        costPrice: costPrice,
-        costBasis: costBasis,
-        currentPrice: currPrice,
-        value: val,
-        targetPct: targetPct
-      });
-
-      this.showRetroToast(`💎 เพิ่มสินทรัพย์ย่อย "${name}" เข้าพอร์ต "${p.name}" สำเร็จ!`, 'success');
+      const existingIdx = p.assets.findIndex(a => a && a.name && a.name.trim().toUpperCase() === name);
+      if (existingIdx >= 0) {
+        p.assets[existingIdx] = {
+          name: name,
+          shares: shares,
+          costPrice: costPrice,
+          costBasis: costBasis,
+          currentPrice: currPrice,
+          value: val,
+          targetPct: targetPct !== undefined ? targetPct : p.assets[existingIdx].targetPct
+        };
+        this.showRetroToast(`🎯 อัปเดตข้อมูลสินทรัพย์ "${name}" ในพอร์ต "${p.name}" เรียบร้อย!`, 'success');
+      } else {
+        p.assets.push({
+          name: name,
+          shares: shares,
+          costPrice: costPrice,
+          costBasis: costBasis,
+          currentPrice: currPrice,
+          value: val,
+          targetPct: targetPct
+        });
+        this.showRetroToast(`💎 เพิ่มสินทรัพย์ย่อย "${name}" เข้าพอร์ต "${p.name}" สำเร็จ!`, 'success');
+      }
     } catch (err) {
       console.error('Error in handleSaveAssetAdd:', err);
     } finally {
@@ -2022,6 +2059,7 @@ class PixelStewardApp {
       if (modal) modal.classList.add('hidden');
       this.closeModals();
       this.refreshUI();
+      setTimeout(() => { this._isSavingAsset = false; }, 300);
     }
   }
 
