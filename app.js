@@ -1921,6 +1921,41 @@ class PixelStewardApp {
       if (el) el.oninput = updateAddPreview;
     });
 
+    const btnFetchAdd = document.getElementById('btn-fetch-add-price');
+    if (btnFetchAdd) {
+      btnFetchAdd.onclick = async () => {
+        const sym = (nameInput?.value || '').trim().toUpperCase();
+        if (!sym) {
+          alert('❌ โปรดระบุชื่อย่อ Ticker ก่อนกดดึงราคาครับ (เช่น WMT, NVDA, BTC)');
+          return;
+        }
+        btnFetchAdd.innerText = '⏳ กำลังดึง...';
+        const price = await this.fetchSingleTickerPrice(sym);
+        btnFetchAdd.innerText = '🔄 ดึงราคาตลาดสด';
+        if (price && price > 0) {
+          if (currPriceInput) currPriceInput.value = price;
+          updateAddPreview({ target: currPriceInput });
+          this.showRetroToast(`🎯 ดึงราคาตลาดสด ${sym} สำเร็จ: $${price.toFixed(2)}`, 'success');
+        } else {
+          this.showRetroToast(`⚠️ ไม่สามารถดึงราคาตลาดสด ${sym} ได้ในขณะนี้ โปรดกรอกราคาเองครับ`, 'error');
+        }
+      };
+    }
+
+    if (nameInput) {
+      nameInput.onchange = async () => {
+        const sym = (nameInput.value || '').trim().toUpperCase();
+        if (sym && !currPriceInput.value) {
+          const price = await this.fetchSingleTickerPrice(sym);
+          if (price && price > 0) {
+            currPriceInput.value = price;
+            updateAddPreview({ target: currPriceInput });
+            this.showRetroToast(`🎯 ดึงราคาตลาดสด ${sym} อัตโนมัติ: $${price.toFixed(2)}`, 'success');
+          }
+        }
+      };
+    }
+
     updateAddPreview();
     const modal = document.getElementById('asset-add-modal');
     if (modal) modal.classList.remove('hidden');
@@ -2241,6 +2276,28 @@ class PixelStewardApp {
       const input = document.getElementById(id);
       if (input) input.oninput = updatePreview;
     });
+
+    const btnFetchEdit = document.getElementById('btn-fetch-edit-price');
+    if (btnFetchEdit) {
+      btnFetchEdit.onclick = async () => {
+        const sym = (document.getElementById('asset-edit-name')?.value || '').trim().toUpperCase();
+        if (!sym) {
+          alert('❌ โปรดระบุชื่อย่อ Ticker ก่อนกดดึงราคาครับ');
+          return;
+        }
+        btnFetchEdit.innerText = '⏳...';
+        const price = await this.fetchSingleTickerPrice(sym);
+        btnFetchEdit.innerText = '🔄 ดึงราคาตลาดสด';
+        if (price && price > 0) {
+          const currPriceInput = document.getElementById('asset-edit-curr-price');
+          if (currPriceInput) currPriceInput.value = price;
+          updatePreview({ target: currPriceInput });
+          this.showRetroToast(`🎯 ดึงราคาตลาดสด ${sym} สำเร็จ: $${price.toFixed(2)}`, 'success');
+        } else {
+          this.showRetroToast(`⚠️ ไม่สามารถดึงราคา ${sym} ได้ โปรดกรอกราคาเองครับ`, 'error');
+        }
+      };
+    }
 
     updatePreview();
     const modal = document.getElementById('asset-edit-modal');
@@ -3030,6 +3087,58 @@ class PixelStewardApp {
     }
   }
 
+  async fetchSingleTickerPrice(rawSymbol) {
+    let symbol = (rawSymbol || '').trim().toUpperCase();
+    if (!symbol) return null;
+
+    // 1. Crypto support via Binance API (Fast & Direct)
+    const cryptoMap = {
+      'BTC': 'BTCUSDT', 'ETH': 'ETHUSDT', 'BNB': 'BNBUSDT', 'SOL': 'SOLUSDT',
+      'ADA': 'ADAUSDT', 'XRP': 'XRPUSDT', 'DOGE': 'DOGEUSDT'
+    };
+    if (cryptoMap[symbol] || symbol.endsWith('USDT')) {
+      const pair = cryptoMap[symbol] || symbol;
+      try {
+        const res = await fetch(`https://api.binance.com/api/v3/ticker/price?symbol=${pair}`);
+        if (res.ok) {
+          const data = await res.json();
+          const p = Number(data?.price);
+          if (p > 0) return p;
+        }
+      } catch (err) {
+        console.warn('Crypto fetch skipped:', err);
+      }
+    }
+
+    // 2. Stock support (US & Thai stocks)
+    let querySymbol = symbol;
+    const thaiTickers = ['PTT', 'CPALL', 'BDMS', 'KBANK', 'SCB', 'AOT', 'ADVANC', 'DELTA', 'SCC', 'CPN', 'GULF', 'OR', 'TRUE', 'BANPU', 'MINT', 'TISCO', 'WHART'];
+    if (thaiTickers.includes(querySymbol) && !querySymbol.endsWith('.BK')) {
+      querySymbol += '.BK';
+    }
+
+    const proxies = [
+      (url) => `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`,
+      (url) => `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(url)}`,
+      (url) => `https://thingproxy.freeboard.io/fetch/${url}`
+    ];
+
+    const targetUrl = `https://query1.finance.yahoo.com/v8/finance/chart/${querySymbol}?interval=1d&range=1d`;
+    for (const wrapProxy of proxies) {
+      try {
+        const res = await fetch(wrapProxy(targetUrl));
+        if (res.ok) {
+          const data = await res.json();
+          const p = data?.chart?.result?.[0]?.meta?.regularMarketPrice;
+          if (p && p > 0) return p;
+        }
+      } catch (e) {
+        // try next proxy
+      }
+    }
+    return null;
+  }
+
   async fetchLivePrices() {
     if (!Array.isArray(this.portfolios) || this.portfolios.length === 0) {
       alert('❌ ไม่พบสินทรัพย์ย่อยในพอร์ตเพื่อดึงราคา');
@@ -3044,29 +3153,14 @@ class PixelStewardApp {
       for (const p of this.portfolios) {
         if (p && Array.isArray(p.assets)) {
           for (const a of p.assets) {
-            let symbol = (a.name || '').trim().toUpperCase();
-            if (!symbol) continue;
-            
-            let querySymbol = symbol;
-            const thaiTickers = ['PTT', 'CPALL', 'BDMS', 'KBANK', 'SCB', 'AOT', 'ADVANC', 'DELTA', 'SCC', 'CPN', 'GULF', 'OR', 'TRUE', 'BANPU', 'MINT'];
-            if (thaiTickers.includes(querySymbol) && !querySymbol.endsWith('.BK')) {
-              querySymbol += '.BK';
-            }
+            const sym = (a.name || '').trim().toUpperCase();
+            if (!sym) continue;
 
-            try {
-              const res = await fetch(`https://proxy.cors.sh/https://query1.finance.yahoo.com/v8/finance/chart/${querySymbol}?interval=1d&range=1d`);
-              if (res.ok) {
-                const data = await res.json();
-                const meta = data?.chart?.result?.[0]?.meta;
-                const price = meta?.regularMarketPrice;
-                if (price && price > 0) {
-                  a.currentPrice = price;
-                  a.value = (a.shares || 1) * price;
-                  updatedCount++;
-                }
-              }
-            } catch (err) {
-              console.warn(`Price fetch skipped for ${querySymbol}:`, err);
+            const price = await this.fetchSingleTickerPrice(sym);
+            if (price && price > 0) {
+              a.currentPrice = price;
+              a.value = (Number(a.shares) || 1) * price;
+              updatedCount++;
             }
           }
         }

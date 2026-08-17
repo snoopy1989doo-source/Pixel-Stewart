@@ -36,7 +36,7 @@
         <div class="title-container">
           <h1 class="brand-title">PIXEL</h1>
           <h1 class="brand-title highlight" style="color:#3b82f6;">STEWARD</h1>
-          <span class="badge-version" style="font-size:0.5rem; color:#10b981;">🔸 V.4.5.0 🟢 REALTIME ACTIVE</span>
+          <span class="badge-version" style="font-size:0.5rem; color:#10b981;">🔸 V.4.6.0 🟢 REALTIME ACTIVE</span>
         </div>
       </div>
       
@@ -326,8 +326,11 @@
           <input type="hidden" id="asset-edit-index">
           
           <div class="form-group" style="margin-bottom:10px;">
-            <label for="asset-edit-name">Ticker / ชื่อย่อสินทรัพย์:</label>
-            <input type="text" id="asset-edit-name" class="input-retro" required placeholder="เช่น V, MSFT, WMT, NVDA">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
+              <label for="asset-edit-name" style="margin:0;">Ticker / ชื่อย่อสินทรัพย์:</label>
+              <button type="button" class="btn btn-secondary btn-small" id="btn-fetch-edit-price" style="padding:2px 8px; font-size:0.7rem; color:#38bdf8;" title="ดึงราคาตลาดสดอัตโนมัติ">🔄 ดึงราคาตลาดสด</button>
+            </div>
+            <input type="text" id="asset-edit-name" class="input-retro" required placeholder="เช่น V, MSFT, WMT, NVDA" style="text-transform:uppercase;">
           </div>
           
           <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:10px;">
@@ -635,8 +638,11 @@
         </div>
 
         <div class="form-group">
-          <label>Ticker / ชื่อย่อสินทรัพย์:</label>
-          <input type="text" id="asset-add-name" class="input-retro" placeholder="เช่น WMT, V, MSFT, NVDA" required style="text-transform:uppercase;">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
+            <label style="margin:0;">Ticker / ชื่อย่อสินทรัพย์:</label>
+            <button type="button" class="btn btn-secondary btn-small" id="btn-fetch-add-price" style="padding:2px 8px; font-size:0.7rem; color:#38bdf8;" title="ดึงราคาตลาดสดอัตโนมัติ">🔄 ดึงราคาตลาดสด</button>
+          </div>
+          <input type="text" id="asset-add-name" class="input-retro" placeholder="เช่น WMT, V, MSFT, NVDA, BTC, PTT" required style="text-transform:uppercase;">
         </div>
 
         <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
@@ -702,6 +708,6 @@
     </div>
   </div>
 
-  <script src="app.js?v=450"></script>
+  <script src="app.js?v=460"></script>
 </body>
 </html> 
