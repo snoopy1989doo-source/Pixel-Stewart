@@ -1826,6 +1826,7 @@ class PixelStewardApp {
 
     const nameInput = document.getElementById('asset-add-name');
     const sharesInput = document.getElementById('asset-add-shares');
+    const currPriceInput = document.getElementById('asset-add-curr-price');
     const costPriceInput = document.getElementById('asset-add-cost-price');
     const costInput = document.getElementById('asset-add-cost');
     const thbInput = document.getElementById('asset-add-thb');
@@ -1834,67 +1835,88 @@ class PixelStewardApp {
 
     if (nameInput) nameInput.value = '';
     if (sharesInput) sharesInput.value = '1';
+    if (currPriceInput) currPriceInput.value = '';
     if (costPriceInput) costPriceInput.value = '';
     if (costInput) costInput.value = '';
     if (thbInput) thbInput.value = '';
     if (valInput) valInput.value = '';
     if (targetPctInput) targetPctInput.value = '';
 
-    const rate = this.exchangeRate || 33.16;
+    const rate = this.exchangeRate || 32.90;
 
     const updateAddPreview = (e) => {
-      const sh = Number(document.getElementById('asset-add-shares')?.value) || 1;
-      const cp = Number(document.getElementById('asset-add-cost-price')?.value);
-      let cost = Number(document.getElementById('asset-add-cost')?.value);
+      const targetId = e && e.target ? e.target.id : '';
+      const sh = Number(document.getElementById('asset-add-shares')?.value) || 0;
+      let currP = Number(document.getElementById('asset-add-curr-price')?.value) || 0;
+      let costP = Number(document.getElementById('asset-add-cost-price')?.value) || 0;
+      let cost = Number(document.getElementById('asset-add-cost')?.value) || 0;
       let val = Number(document.getElementById('asset-add-value')?.value) || 0;
-      const thb = Number(document.getElementById('asset-add-thb')?.value) || 0;
+      let thb = Number(document.getElementById('asset-add-thb')?.value) || 0;
 
-      if (e && e.target && e.target.id === 'asset-add-cost-price' && !isNaN(cp) && cp > 0 && sh > 0) {
-        cost = sh * cp;
-        if (costInput) costInput.value = cost.toFixed(4);
-      } else if (e && e.target && e.target.id === 'asset-add-cost' && !isNaN(cost) && cost > 0 && sh > 0 && costPriceInput) {
-        costPriceInput.value = (cost / sh).toFixed(4);
+      // 1. Two-way binding for Market Price ↔ Total Value ↔ THB
+      if (targetId === 'asset-add-curr-price' || (targetId === 'asset-add-shares' && currP > 0)) {
+        if (sh > 0 && currP > 0) {
+          val = sh * currP;
+          if (valInput) valInput.value = val.toFixed(2);
+          if (thbInput) thbInput.value = (val * rate).toFixed(2);
+        }
+      } else if (targetId === 'asset-add-value') {
+        if (sh > 0 && val > 0) {
+          currP = val / sh;
+          if (currPriceInput) currPriceInput.value = currP.toFixed(2);
+          if (thbInput) thbInput.value = (val * rate).toFixed(2);
+        }
+      } else if (targetId === 'asset-add-thb') {
+        if (thb > 0) {
+          val = thb / rate;
+          if (valInput) valInput.value = val.toFixed(2);
+          if (sh > 0) {
+            currP = val / sh;
+            if (currPriceInput) currPriceInput.value = currP.toFixed(2);
+          }
+        }
       }
 
-      if (thb > 0 && val === 0) {
-        val = thb / rate;
-        if (valInput) valInput.value = val.toFixed(2);
+      // 2. Two-way binding for Cost Price ↔ Total Cost
+      if (targetId === 'asset-add-cost-price' || (targetId === 'asset-add-shares' && costP > 0)) {
+        if (sh > 0 && costP > 0) {
+          cost = sh * costP;
+          if (costInput) costInput.value = cost.toFixed(4);
+        }
+      } else if (targetId === 'asset-add-cost') {
+        if (sh > 0 && cost > 0) {
+          costP = cost / sh;
+          if (costPriceInput) costPriceInput.value = costP.toFixed(4);
+        }
       }
 
-      if (isNaN(cost) || cost <= 0) {
-        if (!isNaN(cp) && cp > 0 && sh > 0) cost = sh * cp;
-        else cost = val;
-      }
+      // Fallbacks
+      if (val <= 0 && sh > 0 && currP > 0) val = sh * currP;
+      if (cost <= 0 && sh > 0 && costP > 0) cost = sh * costP;
+      if (cost <= 0) cost = val;
 
-      const cCostPrice = (!isNaN(cp) && cp > 0) ? cp : (sh > 0 ? cost / sh : cost);
-      const cPrice = sh > 0 ? val / sh : val;
+      const cCostPrice = costP > 0 ? costP : (sh > 0 ? cost / sh : cost);
+      const cPrice = currP > 0 ? currP : (sh > 0 ? val / sh : val);
       const diff = val - cost;
       const pct = (cCostPrice > 0 && cPrice > 0) ? (((cPrice - cCostPrice) / cCostPrice) * 100) : (cost > 0 ? (diff / cost) * 100 : 0);
       const isProfit = diff >= 0;
+      const diffTHB = diff * rate;
 
       const pVal = document.getElementById('asset-add-preview-val');
       const pCost = document.getElementById('asset-add-preview-cost');
       const pPl = document.getElementById('asset-add-preview-pl');
 
       if (pVal) pVal.textContent = `$${val.toFixed(2)} (${(val * rate).toFixed(2)} ฿)`;
-      if (pCost) pCost.textContent = `$${cost.toFixed(4)}`;
+      if (pCost) pCost.textContent = `$${cost.toFixed(4)} (${(cost * rate).toFixed(2)} ฿)`;
       if (pPl) {
-        pPl.textContent = `${isProfit ? '+' : ''}$${diff.toFixed(2)} (${isProfit ? '+' : ''}${pct.toFixed(2)}%)`;
+        const sign = isProfit ? '+' : '';
+        const arrow = isProfit ? '↗ ' : '↘ ';
+        pPl.textContent = `${sign}$${diff.toFixed(2)} (${sign}${diffTHB.toFixed(2)} ฿) ${arrow}${sign}${pct.toFixed(2)}%`;
         pPl.style.color = isProfit ? '#10b981' : '#ef4444';
       }
     };
 
-    if (thbInput) thbInput.oninput = (e) => {
-      const thb = Number(thbInput.value) || 0;
-      if (thb > 0) {
-        const usd = thb / rate;
-        if (valInput) valInput.value = usd.toFixed(2);
-        if (costInput && !costInput.value) costInput.value = usd.toFixed(2);
-      }
-      updateAddPreview(e);
-    };
-
-    ['asset-add-shares', 'asset-add-cost-price', 'asset-add-cost', 'asset-add-value'].forEach(id => {
+    ['asset-add-shares', 'asset-add-curr-price', 'asset-add-cost-price', 'asset-add-cost', 'asset-add-value', 'asset-add-thb'].forEach(id => {
       const el = document.getElementById(id);
       if (el) el.oninput = updateAddPreview;
     });
@@ -1915,19 +1937,27 @@ class PixelStewardApp {
 
       const name = (document.getElementById('asset-add-name')?.value || '').trim().toUpperCase();
       const shares = Number(document.getElementById('asset-add-shares')?.value) || 1;
+      let currPrice = Number(document.getElementById('asset-add-curr-price')?.value) || 0;
+      let costPrice = Number(document.getElementById('asset-add-cost-price')?.value) || 0;
       let val = Number(document.getElementById('asset-add-value')?.value) || 0;
       const thb = Number(document.getElementById('asset-add-thb')?.value) || 0;
 
-      if (val <= 0 && thb > 0) {
-        val = thb / (this.exchangeRate || 33.16);
+      if (val <= 0 && currPrice > 0 && shares > 0) {
+        val = shares * currPrice;
+      } else if (val <= 0 && thb > 0) {
+        val = thb / (this.exchangeRate || 32.90);
       }
 
-      let costPrice = Number(document.getElementById('asset-add-cost-price')?.value);
       let costStr = document.getElementById('asset-add-cost')?.value;
-      let costBasis = costStr !== '' && costStr !== undefined && !isNaN(Number(costStr)) ? Number(costStr) : (!isNaN(costPrice) && costPrice > 0 ? shares * costPrice : val);
+      let costBasis = costStr !== '' && costStr !== undefined && !isNaN(Number(costStr)) && Number(costStr) > 0 
+        ? Number(costStr) 
+        : (costPrice > 0 ? shares * costPrice : val);
 
       if (isNaN(costPrice) || costPrice <= 0) {
         costPrice = shares > 0 ? costBasis / shares : costBasis;
+      }
+      if (isNaN(currPrice) || currPrice <= 0) {
+        currPrice = shares > 0 ? val / shares : val;
       }
 
       if (!name) { alert('❌ โปรดระบุชื่อ Ticker สินทรัพย์ย่อย!'); return; }
@@ -1943,7 +1973,7 @@ class PixelStewardApp {
         shares: shares,
         costPrice: costPrice,
         costBasis: costBasis,
-        currentPrice: shares > 0 ? val / shares : val,
+        currentPrice: currPrice,
         value: val,
         targetPct: targetPct
       });
@@ -2147,47 +2177,74 @@ class PixelStewardApp {
     if (!p || !p.assets || !p.assets[assetIdx]) return;
     const a = p.assets[assetIdx];
 
+    const shares = a.shares !== undefined ? Number(a.shares) : 1;
+    const costBasis = Number(a.costBasis) || Number(a.value) || 0;
+    const costPrice = Number(a.costPrice) || (shares > 0 ? costBasis / shares : costBasis);
+    const val = Number(a.value) || 0;
+    const currPrice = Number(a.currentPrice) || (shares > 0 ? val / shares : val);
+
     document.getElementById('asset-edit-port-id').value = portId;
     document.getElementById('asset-edit-index').value = assetIdx;
     document.getElementById('asset-edit-name').value = a.name || '';
-    document.getElementById('asset-edit-shares').value = a.shares !== undefined ? a.shares : 1;
-    document.getElementById('asset-edit-cost-price').value = a.costPrice !== undefined ? a.costPrice : (a.shares > 0 ? a.costBasis / a.shares : a.costBasis);
-    document.getElementById('asset-edit-market-val').value = a.value !== undefined ? a.value : 0;
+    document.getElementById('asset-edit-shares').value = shares;
+    document.getElementById('asset-edit-cost-price').value = costPrice > 0 ? costPrice : '';
+    document.getElementById('asset-edit-curr-price').value = currPrice > 0 ? currPrice : '';
+    document.getElementById('asset-edit-market-val').value = val > 0 ? val : '';
+    const targetPctEl = document.getElementById('asset-edit-target-pct');
+    if (targetPctEl) targetPctEl.value = (a.targetPct !== undefined && a.targetPct !== null) ? a.targetPct : '';
 
-    const modal = document.getElementById('asset-edit-modal');
-    if (modal) modal.classList.remove('hidden');
+    const rate = this.exchangeRate || 32.90;
 
-    const updatePreview = () => {
-      const shares = Number(document.getElementById('asset-edit-shares').value) || 0;
-      const costPrice = Number(document.getElementById('asset-edit-cost-price').value) || 0;
-      const marketVal = Number(document.getElementById('asset-edit-market-val').value) || 0;
+    const updatePreview = (e) => {
+      const targetId = e && e.target ? e.target.id : '';
+      const sh = Number(document.getElementById('asset-edit-shares')?.value) || 0;
+      let currP = Number(document.getElementById('asset-edit-curr-price')?.value) || 0;
+      let costP = Number(document.getElementById('asset-edit-cost-price')?.value) || 0;
+      let marketVal = Number(document.getElementById('asset-edit-market-val')?.value) || 0;
 
-      const totalCost = shares * costPrice;
-      const totalPL = costPrice > 0 ? (marketVal - totalCost) : 0;
-      const pctPL = (totalCost > 0 && costPrice > 0) ? (totalPL / totalCost) * 100 : 0;
+      if (targetId === 'asset-edit-curr-price' || (targetId === 'asset-edit-shares' && currP > 0)) {
+        if (sh > 0 && currP > 0) {
+          marketVal = sh * currP;
+          const valInput = document.getElementById('asset-edit-market-val');
+          if (valInput) valInput.value = marketVal.toFixed(2);
+        }
+      } else if (targetId === 'asset-edit-market-val') {
+        if (sh > 0 && marketVal > 0) {
+          currP = marketVal / sh;
+          const currInput = document.getElementById('asset-edit-curr-price');
+          if (currInput) currInput.value = currP.toFixed(2);
+        }
+      }
+
+      if (marketVal <= 0 && sh > 0 && currP > 0) marketVal = sh * currP;
+      const totalCost = costP > 0 ? sh * costP : marketVal;
+      const totalPL = marketVal - totalCost;
+      const pctPL = (costP > 0 && currP > 0) ? (((currP - costP) / costP) * 100) : (totalCost > 0 ? (totalPL / totalCost) * 100 : 0);
       const isProfit = totalPL >= 0;
+      const totalPLTHB = totalPL * rate;
 
       const costEl = document.getElementById('preview-total-cost');
+      const valEl = document.getElementById('preview-current-val');
       const plEl = document.getElementById('preview-total-pl');
 
-      if (costEl) costEl.textContent = `$${totalCost.toFixed(2)}`;
+      if (costEl) costEl.textContent = `$${totalCost.toFixed(2)} (${(totalCost * rate).toFixed(2)} ฿)`;
+      if (valEl) valEl.textContent = `$${marketVal.toFixed(2)} (${(marketVal * rate).toFixed(2)} ฿)`;
       if (plEl) {
-        if (costPrice > 0) {
-          plEl.textContent = `${isProfit ? '+' : ''}$${totalPL.toFixed(2)} (${isProfit ? '+' : ''}${pctPL.toFixed(1)}%)`;
-          plEl.style.color = isProfit ? '#10b981' : '#ef4444';
-        } else {
-          plEl.textContent = `$${marketVal.toFixed(2)} (ไม่ระบุต้นทุน)`;
-          plEl.style.color = '#38bdf8';
-        }
+        const sign = isProfit ? '+' : '';
+        const arrow = isProfit ? '↗ ' : '↘ ';
+        plEl.textContent = `${sign}$${totalPL.toFixed(2)} (${sign}${totalPLTHB.toFixed(2)} ฿) ${arrow}${sign}${pctPL.toFixed(2)}%`;
+        plEl.style.color = isProfit ? '#10b981' : '#ef4444';
       }
     };
 
-    ['asset-edit-shares', 'asset-edit-cost-price', 'asset-edit-market-val'].forEach(id => {
+    ['asset-edit-shares', 'asset-edit-curr-price', 'asset-edit-cost-price', 'asset-edit-market-val'].forEach(id => {
       const input = document.getElementById(id);
       if (input) input.oninput = updatePreview;
     });
 
     updatePreview();
+    const modal = document.getElementById('asset-edit-modal');
+    if (modal) modal.classList.remove('hidden');
   }
 
   handleSaveAssetEdit() {
@@ -2198,8 +2255,15 @@ class PixelStewardApp {
 
     const name = document.getElementById('asset-edit-name').value.trim().toUpperCase();
     const shares = Number(document.getElementById('asset-edit-shares').value) || 1;
-    const costPrice = Number(document.getElementById('asset-edit-cost-price').value) || 0;
-    const marketVal = Number(document.getElementById('asset-edit-market-val').value) || 0;
+    let currPrice = Number(document.getElementById('asset-edit-curr-price').value) || 0;
+    let costPrice = Number(document.getElementById('asset-edit-cost-price').value) || 0;
+    let marketVal = Number(document.getElementById('asset-edit-market-val').value) || 0;
+
+    if (marketVal <= 0 && currPrice > 0 && shares > 0) marketVal = shares * currPrice;
+    if (currPrice <= 0 && marketVal > 0 && shares > 0) currPrice = marketVal / shares;
+
+    const targetPctVal = document.getElementById('asset-edit-target-pct')?.value;
+    const targetPct = (targetPctVal !== undefined && targetPctVal !== '') ? Number(targetPctVal) : p.assets[idx].targetPct;
 
     if (!name) { alert('❌ โปรดระบุชื่อ Ticker สินทรัพย์!'); return; }
 
@@ -2207,15 +2271,16 @@ class PixelStewardApp {
       name: name,
       shares: shares,
       costPrice: costPrice,
-      costBasis: shares * costPrice,
-      currentPrice: shares > 0 ? marketVal / shares : marketVal,
-      value: marketVal
+      costBasis: costPrice > 0 ? shares * costPrice : (p.assets[idx].costBasis || marketVal),
+      currentPrice: currPrice,
+      value: marketVal,
+      targetPct: targetPct
     };
 
     this.saveState();
     this.closeModals();
     this.refreshUI();
-    alert(`🎯 แก้ไขสินทรัพย์ย่อย "${name}" สำเร็จ!`);
+    this.showRetroToast(`🎯 แก้ไขสินทรัพย์ย่อย "${name}" สำเร็จ!`, 'success');
   }
 
   deleteAsset(id, idx) { 
