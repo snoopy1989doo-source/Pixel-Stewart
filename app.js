@@ -73,113 +73,6 @@ if (typeof firebase !== 'undefined' && firebaseConfig.apiKey && firebaseConfig.a
 }
 
 /* ==========================================================================
-   🕹️ RETRO TRADER JOURNAL ENGINE (DECLARED FIRST TO PREVENT TDZ BUG)
-   ========================================================================== */
-const rtjKEY = {
-  TRADES:       'rtj_trades_v2',
-  CFS:          'rtj_cfs_v2',
-  BALANCES:     'rtj_balances_v3',
-  SOUND:        'rtj_sound_v2',
-  CRT:          'rtj_crt_v2',
-  LAST_ACCOUNT: 'rtj_last_account_v1'
-};
-
-const rtjDEFAULT_BALANCES = {
-  Demo: 10000,
-  LIFE: 1000,
-  RISK: 500,
-  Swingtrade: 2000
-};
-
-function rtjLoad(key, def) { 
-  try { 
-    const v = localStorage.getItem(key); 
-    if (v === null || v === 'undefined') return def;
-    if (key === rtjKEY.BALANCES) {
-      const parsed = JSON.parse(v);
-      if (typeof parsed === 'number') {
-        return { ...rtjDEFAULT_BALANCES, Demo: parsed };
-      }
-      return { ...rtjDEFAULT_BALANCES, ...parsed };
-    }
-    return JSON.parse(v);
-  } catch { return def; } 
-}
-
-function rtjSave(key, val) { try { localStorage.setItem(key, JSON.stringify(val)); } catch {} }
-
-function rtjBeep(type) {
-  if (!rtjState || !rtjState.sound) return;
-  try {
-    const AC = window.AudioContext || window.webkitAudioContext; if (!AC) return;
-    const ctx = new AC(), osc = ctx.createOscillator(), g = ctx.createGain(); osc.connect(g); g.connect(ctx.destination);
-    if (type === 'win') {
-      osc.type = 'square'; osc.frequency.setValueAtTime(523, ctx.currentTime); osc.frequency.setValueAtTime(659, ctx.currentTime + .09);
-      g.gain.setValueAtTime(.07, ctx.currentTime); g.gain.exponentialRampToValueAtTime(.001, ctx.currentTime + .3);
-      osc.start(); osc.stop(ctx.currentTime + .3);
-    } else if (type === 'lose') {
-      osc.type = 'sawtooth'; osc.frequency.setValueAtTime(220, ctx.currentTime); osc.frequency.linearRampToValueAtTime(100, ctx.currentTime + .5);
-      g.gain.setValueAtTime(.08, ctx.currentTime); g.gain.exponentialRampToValueAtTime(.001, ctx.currentTime + .5);
-      osc.start(); osc.stop(ctx.currentTime + .5);
-    } else if (type === 'warning') {
-      osc.type = 'sawtooth'; osc.frequency.setValueAtTime(800, ctx.currentTime); osc.frequency.linearRampToValueAtTime(300, ctx.currentTime + .3); osc.frequency.linearRampToValueAtTime(800, ctx.currentTime + .6);
-      g.gain.setValueAtTime(.15, ctx.currentTime); g.gain.exponentialRampToValueAtTime(.001, ctx.currentTime + .6);
-      osc.start(); osc.stop(ctx.currentTime + .6);
-    } else if (type === 'alert') {
-      osc.type = 'sawtooth'; osc.frequency.setValueAtTime(400, ctx.currentTime); osc.frequency.linearRampToValueAtTime(800, ctx.currentTime + .2); osc.frequency.linearRampToValueAtTime(400, ctx.currentTime + .4);
-      g.gain.setValueAtTime(.1, ctx.currentTime); g.gain.exponentialRampToValueAtTime(.001, ctx.currentTime + .4);
-      osc.start(); osc.stop(ctx.currentTime + .4);
-    } else {
-      osc.type = 'triangle'; osc.frequency.setValueAtTime(600, ctx.currentTime); g.gain.setValueAtTime(.04, ctx.currentTime); g.gain.exponentialRampToValueAtTime(.001, ctx.currentTime + .06);
-      osc.start(); osc.stop(ctx.currentTime + .06);
-    }
-  } catch {}
-}
-
-function rtjToday() { return new Date().toISOString().split('T')[0]; }
-function rtjFmt(n, d = 2) { return Number(n || 0).toFixed(d); }
-function rtjFmtDate(s) { if (!s) return ''; const [y, m, d] = s.split('-'); return `${d}/${m}/${y.slice(2)}`; }
-function rtjUid() { return Date.now().toString(36) + Math.random().toString(36).slice(2, 5); }
-
-function rtjWeekStart(dateStr) { const d = new Date(dateStr); const day = d.getDay(); const diff = day === 0 ? -6 : 1 - day; d.setDate(d.getDate() + diff); return d.toISOString().split('T')[0]; }
-function rtjWeekEnd(dateStr) { const ws = rtjWeekStart(dateStr); const d = new Date(ws); d.setDate(d.getDate() + 6); return d.toISOString().split('T')[0]; }
-function rtjMonthStart(dateStr) { return dateStr.slice(0, 7) + '-01'; }
-function rtjMonthEnd(dateStr) { const [y, m] = dateStr.split('-'); const last = new Date(+y, +m, 0); return `${y}-${m}-${String(last.getDate()).padStart(2, '0')}`; }
-
-function rtjFilterByPeriod(trades, period) {
-  const safeTrades = Array.isArray(trades) ? trades : [];
-  const safePeriod = period || { mode: 'all' };
-  if (!safePeriod || safePeriod.mode === 'all') return safeTrades;
-  const t = rtjToday();
-  if (safePeriod.mode === 'daily') { return safeTrades.filter(tr => tr && tr.date === (safePeriod.date || t)); }
-  if (safePeriod.mode === 'weekly') { return safeTrades.filter(tr => tr && tr.date >= rtjWeekStart(t) && tr.date <= rtjWeekEnd(t)); }
-  if (safePeriod.mode === 'monthly') { return safeTrades.filter(tr => tr && tr.date >= rtjMonthStart(t) && tr.date <= rtjMonthEnd(t)); }
-  if (safePeriod.mode === 'custom') { return safeTrades.filter(tr => tr && tr.date >= (safePeriod.from || '') && tr.date <= (safePeriod.to || '9999-12-31')); }
-  return safeTrades;
-}
-
-const rtjSavedLastAccount = rtjLoad(rtjKEY.LAST_ACCOUNT, 'Demo');
-
-const rtjState = {
-  page:     'HOME', inputTab: 'TRADE', logTab: 'TRADE',
-  sound:    rtjLoad(rtjKEY.SOUND, true), 
-  balances: rtjLoad(rtjKEY.BALANCES, rtjDEFAULT_BALANCES),
-  trades:   rtjLoad(rtjKEY.TRADES, []), 
-  cfs:      rtjLoad(rtjKEY.CFS, []),
-  crt:      rtjLoad(rtjKEY.CRT, false),
-  calYear:  new Date().getFullYear(),
-  calMonth: new Date().getMonth(),
-  f: {
-    date: rtjToday(), symbol: 'GOLD', dir: 'Buy', entry: '', exit: '',
-    sl: '', lot: '', pnl: '', status: 'TP', tf: '1H',
-    conf: false, fear: false, greed: false, account: rtjSavedLastAccount
-  },
-  cf: { date: rtjToday(), type: 'Deposit', amount: '', desc: '', account: rtjSavedLastAccount },
-  filter: { symbol: 'ALL', status: 'ALL', period: { mode: 'all' }, account: rtjSavedLastAccount },
-  statsPeriod: { mode: 'all', account: rtjSavedLastAccount }
-};
-
-/* ==========================================================================
    🏰 PIXEL STEWARD MAIN APPLICATION CLASS
    ========================================================================== */
 const INITIAL_PORTFOLIOS = [
@@ -305,7 +198,6 @@ class PixelStewardApp {
     if (!category) return false;
     const cat = category.toLowerCase();
     return cat.includes('option') || 
-           cat.includes('forex') || 
            cat.includes('global') || 
            cat.includes('growth') || 
            cat.includes('foreign') ||
@@ -313,31 +205,6 @@ class PixelStewardApp {
            cat.includes('next gen') || 
            cat.includes('nextgen') ||
            cat.includes('crypto');
-  }
-
-  getForexAccountEquity(accountName) {
-    if (typeof rtjState === 'undefined' || !rtjState) return 0;
-    const safeBalances = rtjState.balances || rtjDEFAULT_BALANCES;
-    const key = Object.keys(safeBalances).find(k => k.toLowerCase() === (accountName || '').trim().toLowerCase());
-    const targetAcc = key || 'ALL';
-
-    let accStartBal = 0;
-    if (targetAcc === 'ALL') {
-      accStartBal = Object.values(safeBalances).reduce((a, b) => a + (Number(b) || 0), 0);
-    } else {
-      accStartBal = Number(safeBalances[targetAcc]) || 0;
-    }
-
-    const safeCFs = Array.isArray(rtjState.cfs) ? rtjState.cfs : [];
-    const netDeposit = safeCFs
-      .filter(c => c && (targetAcc === 'ALL' || (c.account || 'Demo') === targetAcc))
-      .reduce((s, c) => s + (c.type === 'Deposit' ? Number(c.amount || 0) : -Number(c.amount || 0)), 0);
-
-    const safeTrades = Array.isArray(rtjState.trades) ? rtjState.trades : [];
-    const filteredTrades = safeTrades.filter(t => t && (targetAcc === 'ALL' || (t.account || 'Demo') === targetAcc));
-    const netPnl = filteredTrades.reduce((s, t) => s + (Number(t.pnl) || 0), 0);
-
-    return accStartBal + netDeposit + netPnl;
   }
 
   formatMoney(valUSD, category, showBoth = true) {
@@ -697,7 +564,7 @@ class PixelStewardApp {
     }
 
     let autoSnapCount = 0;
-    const stockPorts = this.portfolios.filter(p => p && (p.category || '').toLowerCase() !== 'option' && (p.category || '').toLowerCase() !== 'forex');
+    const stockPorts = this.portfolios.filter(p => p && (p.category || '').toLowerCase() !== 'option');
 
     stockPorts.forEach(p => {
       let rec = this.quarterlyRecords.find(r => r && r.portfolioId === p.id && r.year === targetYear);
@@ -800,14 +667,6 @@ class PixelStewardApp {
       localStorage.setItem('ps_achievements_v4', JSON.stringify(this.achievements));
     }
 
-    if (typeof rtjState !== 'undefined' && rtjState) {
-      if (data.rtjTrades) { rtjState.trades = Array.isArray(data.rtjTrades) ? data.rtjTrades : Object.values(data.rtjTrades); rtjSave(rtjKEY.TRADES, rtjState.trades); }
-      if (data.rtjCfs) { rtjState.cfs = Array.isArray(data.rtjCfs) ? data.rtjCfs : Object.values(data.rtjCfs); rtjSave(rtjKEY.CFS, rtjState.cfs); }
-      if (data.rtjBalances) { rtjState.balances = { ...rtjDEFAULT_BALANCES, ...data.rtjBalances }; rtjSave(rtjKEY.BALANCES, rtjState.balances); }
-      rtjSyncCrtView();
-      if (this.activeTab === 'journal') rtjRender();
-    }
-
     if (this.portfolios && this.portfolios.length > 0 && !this.selectedPortId) {
       this.selectedPortId = this.portfolios[0].id;
     }
@@ -830,7 +689,7 @@ class PixelStewardApp {
       try {
         const snapshot = await firebase.database().ref(nodeName).once('value');
         const data = snapshot.val();
-        if (data && (data.portfolios || data.rtjTrades)) {
+        if (data && data.portfolios) {
           this.applyCloudDataSnapshot(data);
           this.showRetroToast(`☁️ ดึงข้อมูลล่าสุดจาก Cloud (${nodeName}) เรียบร้อยแล้ว!`, "success");
           success = true;
@@ -866,11 +725,6 @@ class PixelStewardApp {
         debtRemainingTHB: this.debtRemainingTHB,
         achievements: this.achievements
       };
-      if (typeof rtjState !== 'undefined' && rtjState) {
-        payload.rtjTrades = rtjState.trades || [];
-        payload.rtjCfs = rtjState.cfs || [];
-        payload.rtjBalances = rtjState.balances || {};
-      }
 
       const jsonStr = JSON.stringify(payload);
       const b64 = btoa(encodeURIComponent(jsonStr));
@@ -946,12 +800,6 @@ class PixelStewardApp {
         debtRemainingTHB: this.debtRemainingTHB
       };
 
-      if (typeof rtjState !== 'undefined' && rtjState) {
-        payload.rtjTrades = rtjState.trades || [];
-        payload.rtjCfs = rtjState.cfs || [];
-        payload.rtjBalances = rtjState.balances || {};
-      }
-
       const nodes = ['pixel_steward_data_v4', 'pixel_steward_data'];
       nodes.forEach(nodeName => {
         firebase.database().ref(nodeName).set(payload).catch(err => {
@@ -971,8 +819,6 @@ class PixelStewardApp {
       if (cat.includes('option')) {
         const records = Array.isArray(this.monthlyRecords) ? this.monthlyRecords.filter(r => r && r.portfolioId === p.id) : [];
         p.current = records.reduce((sum, r) => sum + (Number(r.profitLossUSD) || 0), 0);
-      } else if (cat.includes('forex')) {
-        p.current = this.getForexAccountEquity(p.name);
       } else {
         p.current = Array.isArray(p.assets) ? p.assets.reduce((sum, asset) => sum + (Number(asset.value) || 0), 0) : 0;
       }
@@ -1064,7 +910,7 @@ class PixelStewardApp {
           catAlloc.thai += valUSD;
         } else if(cat.includes('global') || cat.includes('growth') || cat.includes('foreign') || cat.includes('ต่างประเทศ') || cat.includes('next')) {
           catAlloc.global += valUSD;
-        } else if(cat.includes('option') || cat.includes('forex') || cat.includes('ฟอเร็กซ์') || cat.includes('ออปชัน')) {
+        } else if(cat.includes('option')) {
           catAlloc.deriv += valUSD;
         } else if(cat.includes('crypto') || cat.includes('คริปโต')) {
           catAlloc.crypto += valUSD;
@@ -1189,7 +1035,7 @@ class PixelStewardApp {
               ${grandTotalUSD === 0 ? '<div style="width:100%; text-align:center; font-size:0.7rem; color:#64748b; line-height:20px;">คลังว่างเปล่า</div>' : `
                 <div style="width:${(catAlloc.thai/grandTotalUSD)*100}%; background:#22c55e; height:100%;" title="หุ้นไทย"></div>
                 <div style="width:${(catAlloc.global/grandTotalUSD)*100}%; background:#3b82f6; height:100%;" title="หุ้นต่างประเทศ"></div>
-                <div style="width:${(catAlloc.deriv/grandTotalUSD)*100}%; background:#a855f7; height:100%;" title="ออปชัน & ฟอเร็กซ์"></div>
+                <div style="width:${(catAlloc.deriv/grandTotalUSD)*100}%; background:#a855f7; height:100%;" title="ออปชัน"></div>
                 <div style="width:${(catAlloc.crypto/grandTotalUSD)*100}%; background:#eab308; height:100%;" title="คริปโต"></div>
                 <div style="width:${(catAlloc.other/grandTotalUSD)*100}%; background:#64748b; height:100%;" title="อื่นๆ"></div>
               `}
@@ -1207,7 +1053,7 @@ class PixelStewardApp {
                 <div class="bar-mini"><div class="bar-mini-fill" style="width:${grandTotalUSD>0?(catAlloc.global/grandTotalUSD)*100:0}%; background:#3b82f6;"></div></div>
               </div>
               <div>
-                <div style="display:flex; justify-content:space-between;"><span>🟣 ออปชัน & ฟอเร็กซ์</span><b>${grandTotalUSD>0?((catAlloc.deriv/grandTotalUSD)*100).toFixed(1):0}%</b></div>
+                <div style="display:flex; justify-content:space-between;"><span>🟣 ออปชัน</span><b>${grandTotalUSD>0?((catAlloc.deriv/grandTotalUSD)*100).toFixed(1):0}%</b></div>
                 <div class="bar-mini"><div class="bar-mini-fill" style="width:${grandTotalUSD>0?(catAlloc.deriv/grandTotalUSD)*100:0}%; background:#a855f7;"></div></div>
               </div>
               <div>
@@ -1255,7 +1101,7 @@ class PixelStewardApp {
       this.renderAssetAllocationSvgChart('dashboard-donut-chart-mount', [
         { label: 'หุ้นไทย', value: catAlloc.thai, color: '#22c55e' },
         { label: 'หุ้นต่างประเทศ', value: catAlloc.global, color: '#3b82f6' },
-        { label: 'ออปชัน & ฟอเร็กซ์', value: catAlloc.deriv, color: '#a855f7' },
+        { label: 'ออปชัน', value: catAlloc.deriv, color: '#a855f7' },
         { label: 'คริปโต', value: catAlloc.crypto, color: '#eab308' },
         { label: 'อื่นๆ / เสบียง', value: catAlloc.other, color: '#64748b' }
       ]);
@@ -1733,74 +1579,96 @@ class PixelStewardApp {
     if (!p || !p.assets || !p.assets[assetIdx]) return;
     const a = p.assets[assetIdx];
 
-    const shares = a.shares !== undefined ? a.shares : 1;
-    const costPrice = a.costPrice !== undefined ? a.costPrice : (shares > 0 ? a.costBasis / shares : a.costBasis);
-    const value = a.value !== undefined ? a.value : 0;
-    const currentPrice = a.currentPrice !== undefined ? a.currentPrice : (shares > 0 ? value / shares : 0);
+    const shares = a.shares !== undefined ? Number(a.shares) : 1;
+    const costBasis = Number(a.costBasis) || Number(a.value) || 0;
+    const costPrice = Number(a.costPrice) || (shares > 0 ? costBasis / shares : costBasis);
+    const val = Number(a.value) || 0;
+    const currPrice = Number(a.currentPrice) || (shares > 0 ? val / shares : val);
 
     document.getElementById('asset-edit-port-id').value = portId;
     document.getElementById('asset-edit-index').value = assetIdx;
     document.getElementById('asset-edit-name').value = a.name || '';
     document.getElementById('asset-edit-shares').value = shares;
-    document.getElementById('asset-edit-cost-price').value = costPrice;
-    
-    const currPriceEl = document.getElementById('asset-edit-curr-price');
-    if (currPriceEl) currPriceEl.value = currentPrice > 0 ? currentPrice : '';
-    document.getElementById('asset-edit-market-val').value = value;
+    document.getElementById('asset-edit-cost-price').value = costPrice > 0 ? costPrice : '';
+    document.getElementById('asset-edit-curr-price').value = currPrice > 0 ? currPrice : '';
+    document.getElementById('asset-edit-market-val').value = val > 0 ? val : '';
     const targetPctEl = document.getElementById('asset-edit-target-pct');
-    if (targetPctEl) targetPctEl.value = a.targetPct !== undefined ? a.targetPct : '';
+    if (targetPctEl) targetPctEl.value = (a.targetPct !== undefined && a.targetPct !== null) ? a.targetPct : '';
 
-    const modal = document.getElementById('asset-edit-modal');
-    if (modal) modal.classList.remove('hidden');
+    const rate = this.exchangeRate || 32.90;
 
     const updatePreview = (e) => {
-      const sh = Number(document.getElementById('asset-edit-shares').value) || 0;
-      const cp = Number(document.getElementById('asset-edit-cost-price').value) || 0;
-      let currPriceInput = document.getElementById('asset-edit-curr-price');
-      let mktValInput = document.getElementById('asset-edit-market-val');
+      const targetId = e && e.target ? e.target.id : '';
+      const sh = Number(document.getElementById('asset-edit-shares')?.value) || 0;
+      let currP = Number(document.getElementById('asset-edit-curr-price')?.value) || 0;
+      let costP = Number(document.getElementById('asset-edit-cost-price')?.value) || 0;
+      let marketVal = Number(document.getElementById('asset-edit-market-val')?.value) || 0;
 
-      if (e && e.target && e.target.id === 'asset-edit-curr-price') {
-        const currP = Number(currPriceInput.value) || 0;
+      if (targetId === 'asset-edit-curr-price' || (targetId === 'asset-edit-shares' && currP > 0)) {
         if (sh > 0 && currP > 0) {
-          mktValInput.value = (sh * currP).toFixed(2);
+          marketVal = sh * currP;
+          const valInput = document.getElementById('asset-edit-market-val');
+          if (valInput) valInput.value = marketVal.toFixed(2);
         }
-      } else if (e && e.target && e.target.id === 'asset-edit-market-val') {
-        const mv = Number(mktValInput.value) || 0;
-        if (sh > 0 && mv > 0 && currPriceInput) {
-          currPriceInput.value = (mv / sh).toFixed(4);
-        }
-      } else {
-        const currP = Number(currPriceInput ? currPriceInput.value : 0) || 0;
-        const mv = Number(mktValInput.value) || 0;
-        if (sh > 0 && currP > 0 && mv === 0) {
-          mktValInput.value = (sh * currP).toFixed(2);
+      } else if (targetId === 'asset-edit-market-val') {
+        if (sh > 0 && marketVal > 0) {
+          currP = marketVal / sh;
+          const currInput = document.getElementById('asset-edit-curr-price');
+          if (currInput) currInput.value = currP.toFixed(2);
         }
       }
 
-      const totalCost = sh * cp;
-      const marketVal = Number(document.getElementById('asset-edit-market-val').value) || 0;
+      if (marketVal <= 0 && sh > 0 && currP > 0) marketVal = sh * currP;
+      const totalCost = costP > 0 ? sh * costP : marketVal;
       const totalPL = marketVal - totalCost;
-      const pctPL = totalCost > 0 ? (totalPL / totalCost) * 100 : 0;
+      const pctPL = (costP > 0 && currP > 0) ? (((currP - costP) / costP) * 100) : (totalCost > 0 ? (totalPL / totalCost) * 100 : 0);
       const isProfit = totalPL >= 0;
+      const totalPLTHB = totalPL * rate;
 
       const costEl = document.getElementById('preview-total-cost');
       const valEl = document.getElementById('preview-current-val');
       const plEl = document.getElementById('preview-total-pl');
 
-      if (costEl) costEl.textContent = `$${totalCost.toFixed(2)}`;
-      if (valEl) valEl.textContent = `$${marketVal.toFixed(2)}`;
+      if (costEl) costEl.textContent = `$${totalCost.toFixed(2)} (${(totalCost * rate).toFixed(2)} ฿)`;
+      if (valEl) valEl.textContent = `$${marketVal.toFixed(2)} (${(marketVal * rate).toFixed(2)} ฿)`;
       if (plEl) {
-        plEl.textContent = `${isProfit ? '+' : ''}$${totalPL.toFixed(2)} (${isProfit ? '+' : ''}${pctPL.toFixed(2)}%)`;
+        const sign = isProfit ? '+' : '';
+        const arrow = isProfit ? '↗ ' : '↘ ';
+        plEl.textContent = `${sign}$${totalPL.toFixed(2)} (${sign}${totalPLTHB.toFixed(2)} ฿) ${arrow}${sign}${pctPL.toFixed(2)}%`;
         plEl.style.color = isProfit ? '#10b981' : '#ef4444';
       }
     };
 
-    ['asset-edit-shares', 'asset-edit-cost-price', 'asset-edit-curr-price', 'asset-edit-market-val', 'asset-edit-target-pct'].forEach(id => {
+    ['asset-edit-shares', 'asset-edit-curr-price', 'asset-edit-cost-price', 'asset-edit-market-val'].forEach(id => {
       const input = document.getElementById(id);
       if (input) input.oninput = updatePreview;
     });
 
+    const btnFetchEdit = document.getElementById('btn-fetch-edit-price');
+    if (btnFetchEdit) {
+      btnFetchEdit.onclick = async () => {
+        const sym = (document.getElementById('asset-edit-name')?.value || '').trim().toUpperCase();
+        if (!sym) {
+          alert('❌ โปรดระบุชื่อย่อ Ticker ก่อนกดดึงราคาครับ');
+          return;
+        }
+        btnFetchEdit.innerText = '⏳...';
+        const price = await this.fetchSingleTickerPrice(sym);
+        btnFetchEdit.innerText = '🔄 ดึงราคาตลาดสด';
+        if (price && price > 0) {
+          const currPriceInput = document.getElementById('asset-edit-curr-price');
+          if (currPriceInput) currPriceInput.value = price;
+          updatePreview({ target: currPriceInput });
+          this.showRetroToast(`🎯 ดึงราคาตลาดสด ${sym} สำเร็จ: $${price.toFixed(2)}`, 'success');
+        } else {
+          this.showRetroToast(`⚠️ ไม่สามารถดึงราคา ${sym} ได้ โปรดกรอกราคาเองครับ`, 'error');
+        }
+      };
+    }
+
     updatePreview();
+    const modal = document.getElementById('asset-edit-modal');
+    if (modal) modal.classList.remove('hidden');
   }
 
   handleSaveAssetEdit() {
@@ -1811,12 +1679,15 @@ class PixelStewardApp {
 
     const name = document.getElementById('asset-edit-name').value.trim().toUpperCase();
     const shares = Number(document.getElementById('asset-edit-shares').value) || 1;
-    const costPrice = Number(document.getElementById('asset-edit-cost-price').value) || 0;
-    const currPriceEl = document.getElementById('asset-edit-curr-price');
-    const currPrice = currPriceEl ? Number(currPriceEl.value) || 0 : 0;
-    const marketVal = Number(document.getElementById('asset-edit-market-val').value) || (shares * currPrice);
-    const targetPctInput = document.getElementById('asset-edit-target-pct');
-    const targetPct = targetPctInput && targetPctInput.value !== '' ? Number(targetPctInput.value) : undefined;
+    let currPrice = Number(document.getElementById('asset-edit-curr-price').value) || 0;
+    let costPrice = Number(document.getElementById('asset-edit-cost-price').value) || 0;
+    let marketVal = Number(document.getElementById('asset-edit-market-val').value) || 0;
+
+    if (marketVal <= 0 && currPrice > 0 && shares > 0) marketVal = shares * currPrice;
+    if (currPrice <= 0 && marketVal > 0 && shares > 0) currPrice = marketVal / shares;
+
+    const targetPctVal = document.getElementById('asset-edit-target-pct')?.value;
+    const targetPct = (targetPctVal !== undefined && targetPctVal !== '') ? Number(targetPctVal) : p.assets[idx].targetPct;
 
     if (!name) { alert('❌ โปรดระบุชื่อ Ticker สินทรัพย์!'); return; }
 
@@ -1824,8 +1695,8 @@ class PixelStewardApp {
       name: name,
       shares: shares,
       costPrice: costPrice,
-      costBasis: shares * costPrice,
-      currentPrice: currPrice > 0 ? currPrice : (shares > 0 ? marketVal / shares : marketVal),
+      costBasis: costPrice > 0 ? shares * costPrice : (p.assets[idx].costBasis || marketVal),
+      currentPrice: currPrice,
       value: marketVal,
       targetPct: targetPct
     };
@@ -2245,139 +2116,6 @@ class PixelStewardApp {
     this.refreshUI();
   }
 
-  openAssetEditModal(portId, assetIdx) {
-    const p = this.portfolios.find(x => x && x.id === portId);
-    if (!p || !p.assets || !p.assets[assetIdx]) return;
-    const a = p.assets[assetIdx];
-
-    const shares = a.shares !== undefined ? Number(a.shares) : 1;
-    const costBasis = Number(a.costBasis) || Number(a.value) || 0;
-    const costPrice = Number(a.costPrice) || (shares > 0 ? costBasis / shares : costBasis);
-    const val = Number(a.value) || 0;
-    const currPrice = Number(a.currentPrice) || (shares > 0 ? val / shares : val);
-
-    document.getElementById('asset-edit-port-id').value = portId;
-    document.getElementById('asset-edit-index').value = assetIdx;
-    document.getElementById('asset-edit-name').value = a.name || '';
-    document.getElementById('asset-edit-shares').value = shares;
-    document.getElementById('asset-edit-cost-price').value = costPrice > 0 ? costPrice : '';
-    document.getElementById('asset-edit-curr-price').value = currPrice > 0 ? currPrice : '';
-    document.getElementById('asset-edit-market-val').value = val > 0 ? val : '';
-    const targetPctEl = document.getElementById('asset-edit-target-pct');
-    if (targetPctEl) targetPctEl.value = (a.targetPct !== undefined && a.targetPct !== null) ? a.targetPct : '';
-
-    const rate = this.exchangeRate || 32.90;
-
-    const updatePreview = (e) => {
-      const targetId = e && e.target ? e.target.id : '';
-      const sh = Number(document.getElementById('asset-edit-shares')?.value) || 0;
-      let currP = Number(document.getElementById('asset-edit-curr-price')?.value) || 0;
-      let costP = Number(document.getElementById('asset-edit-cost-price')?.value) || 0;
-      let marketVal = Number(document.getElementById('asset-edit-market-val')?.value) || 0;
-
-      if (targetId === 'asset-edit-curr-price' || (targetId === 'asset-edit-shares' && currP > 0)) {
-        if (sh > 0 && currP > 0) {
-          marketVal = sh * currP;
-          const valInput = document.getElementById('asset-edit-market-val');
-          if (valInput) valInput.value = marketVal.toFixed(2);
-        }
-      } else if (targetId === 'asset-edit-market-val') {
-        if (sh > 0 && marketVal > 0) {
-          currP = marketVal / sh;
-          const currInput = document.getElementById('asset-edit-curr-price');
-          if (currInput) currInput.value = currP.toFixed(2);
-        }
-      }
-
-      if (marketVal <= 0 && sh > 0 && currP > 0) marketVal = sh * currP;
-      const totalCost = costP > 0 ? sh * costP : marketVal;
-      const totalPL = marketVal - totalCost;
-      const pctPL = (costP > 0 && currP > 0) ? (((currP - costP) / costP) * 100) : (totalCost > 0 ? (totalPL / totalCost) * 100 : 0);
-      const isProfit = totalPL >= 0;
-      const totalPLTHB = totalPL * rate;
-
-      const costEl = document.getElementById('preview-total-cost');
-      const valEl = document.getElementById('preview-current-val');
-      const plEl = document.getElementById('preview-total-pl');
-
-      if (costEl) costEl.textContent = `$${totalCost.toFixed(2)} (${(totalCost * rate).toFixed(2)} ฿)`;
-      if (valEl) valEl.textContent = `$${marketVal.toFixed(2)} (${(marketVal * rate).toFixed(2)} ฿)`;
-      if (plEl) {
-        const sign = isProfit ? '+' : '';
-        const arrow = isProfit ? '↗ ' : '↘ ';
-        plEl.textContent = `${sign}$${totalPL.toFixed(2)} (${sign}${totalPLTHB.toFixed(2)} ฿) ${arrow}${sign}${pctPL.toFixed(2)}%`;
-        plEl.style.color = isProfit ? '#10b981' : '#ef4444';
-      }
-    };
-
-    ['asset-edit-shares', 'asset-edit-curr-price', 'asset-edit-cost-price', 'asset-edit-market-val'].forEach(id => {
-      const input = document.getElementById(id);
-      if (input) input.oninput = updatePreview;
-    });
-
-    const btnFetchEdit = document.getElementById('btn-fetch-edit-price');
-    if (btnFetchEdit) {
-      btnFetchEdit.onclick = async () => {
-        const sym = (document.getElementById('asset-edit-name')?.value || '').trim().toUpperCase();
-        if (!sym) {
-          alert('❌ โปรดระบุชื่อย่อ Ticker ก่อนกดดึงราคาครับ');
-          return;
-        }
-        btnFetchEdit.innerText = '⏳...';
-        const price = await this.fetchSingleTickerPrice(sym);
-        btnFetchEdit.innerText = '🔄 ดึงราคาตลาดสด';
-        if (price && price > 0) {
-          const currPriceInput = document.getElementById('asset-edit-curr-price');
-          if (currPriceInput) currPriceInput.value = price;
-          updatePreview({ target: currPriceInput });
-          this.showRetroToast(`🎯 ดึงราคาตลาดสด ${sym} สำเร็จ: $${price.toFixed(2)}`, 'success');
-        } else {
-          this.showRetroToast(`⚠️ ไม่สามารถดึงราคา ${sym} ได้ โปรดกรอกราคาเองครับ`, 'error');
-        }
-      };
-    }
-
-    updatePreview();
-    const modal = document.getElementById('asset-edit-modal');
-    if (modal) modal.classList.remove('hidden');
-  }
-
-  handleSaveAssetEdit() {
-    const portId = document.getElementById('asset-edit-port-id').value;
-    const idx = Number(document.getElementById('asset-edit-index').value);
-    const p = this.portfolios.find(x => x && x.id === portId);
-    if (!p || !p.assets || !p.assets[idx]) return;
-
-    const name = document.getElementById('asset-edit-name').value.trim().toUpperCase();
-    const shares = Number(document.getElementById('asset-edit-shares').value) || 1;
-    let currPrice = Number(document.getElementById('asset-edit-curr-price').value) || 0;
-    let costPrice = Number(document.getElementById('asset-edit-cost-price').value) || 0;
-    let marketVal = Number(document.getElementById('asset-edit-market-val').value) || 0;
-
-    if (marketVal <= 0 && currPrice > 0 && shares > 0) marketVal = shares * currPrice;
-    if (currPrice <= 0 && marketVal > 0 && shares > 0) currPrice = marketVal / shares;
-
-    const targetPctVal = document.getElementById('asset-edit-target-pct')?.value;
-    const targetPct = (targetPctVal !== undefined && targetPctVal !== '') ? Number(targetPctVal) : p.assets[idx].targetPct;
-
-    if (!name) { alert('❌ โปรดระบุชื่อ Ticker สินทรัพย์!'); return; }
-
-    p.assets[idx] = {
-      name: name,
-      shares: shares,
-      costPrice: costPrice,
-      costBasis: costPrice > 0 ? shares * costPrice : (p.assets[idx].costBasis || marketVal),
-      currentPrice: currPrice,
-      value: marketVal,
-      targetPct: targetPct
-    };
-
-    this.saveState();
-    this.closeModals();
-    this.refreshUI();
-    this.showRetroToast(`🎯 แก้ไขสินทรัพย์ย่อย "${name}" สำเร็จ!`, 'success');
-  }
-
   deleteAsset(id, idx) { 
     const p = this.portfolios.find(x => x && x.id === id);
     if (p && p.assets && p.assets[idx]) { 
@@ -2418,7 +2156,7 @@ class PixelStewardApp {
   }
 
   renderQuarterly(container) {
-    const stockPorts = Array.isArray(this.portfolios) ? this.portfolios.filter(p => p && (p.category || '').toLowerCase() !== 'option' && (p.category || '').toLowerCase() !== 'forex') : [];
+    const stockPorts = Array.isArray(this.portfolios) ? this.portfolios.filter(p => p && (p.category || '').toLowerCase() !== 'option') : [];
     if (stockPorts.length === 0) { container.innerHTML = '<div class="border-pixel" style="padding:20px; background:#1f273e;">ไม่มีรายการหุ้นรายไตรมาส (โปรดตั้งค่าเปิดตลับพอร์ตหลักก่อนครับ)</div>'; return; }
 
     const year = this.quarterlyViewYear;
@@ -2951,13 +2689,6 @@ class PixelStewardApp {
             this.debtStartTHB = Number(p.debtStartTHB) || 0;
             this.debtRemainingTHB = Number(p.debtRemainingTHB) || 0;
             if (p.achievements) this.achievements = Array.isArray(p.achievements) ? p.achievements : Object.values(p.achievements || {});
-
-            if (typeof rtjState !== 'undefined' && rtjState) {
-              if (p.rtjTrades) { rtjState.trades = Array.isArray(p.rtjTrades) ? p.rtjTrades : Object.values(p.rtjTrades); rtjSave(rtjKEY.TRADES, rtjState.trades); }
-              if (p.rtjCfs) { rtjState.cfs = Array.isArray(p.rtjCfs) ? p.rtjCfs : Object.values(p.rtjCfs); rtjSave(rtjKEY.CFS, rtjState.cfs); }
-              if (p.rtjBalances) { rtjState.balances = { ...rtjDEFAULT_BALANCES, ...p.rtjBalances }; rtjSave(rtjKEY.BALANCES, rtjState.balances); }
-              rtjSyncCrtView();
-            }
 
             this.selectedPortId = this.portfolios.length > 0 ? this.portfolios[0].id : '';
             this.saveState();
@@ -3576,10 +3307,6 @@ class PixelStewardApp {
     switch (this.activeTab) {
       case 'dashboard':  this.renderDashboard(container); break;
       case 'portfolios': this.renderPortfolios(container); break;
-      case 'journal':
-        container.innerHTML = '<div class="journal-scope" id="tab-content-journal-mount"></div>';
-        rtjRender();
-        break;
       case 'quarterly':  this.renderQuarterly(container); break;
       case 'dividends':  this.renderDividends(container); break;
       case 'option':     this.renderOptionManual(container); break;
@@ -3592,918 +3319,3 @@ class PixelStewardApp {
 
 // 🚀 INITIALIZATION INSTANTIATION
 window.app = new PixelStewardApp();
-
-function rtjComputeStats(trades, startBal) {
-  const safeTrades = Array.isArray(trades) ? trades : [];
-  const total = safeTrades.length;
-  const wins = safeTrades.filter(t => t && t.status === 'TP').length;
-  const loses = safeTrades.filter(t => t && t.status === 'SL').length;
-  const bes = safeTrades.filter(t => t && t.status === 'BE').length;
-  const wr = total > 0 ? (wins / total * 100).toFixed(1) : 0;
-  const netPnl = safeTrades.reduce((s, t) => s + (Number(t.pnl) || 0), 0);
-
-  function calcRR(t) {
-    if (!t) return null;
-    const entryExitDist = Math.abs((Number(t.entry) || 0) - (Number(t.exit) || 0)); 
-    const entrySLDist = Math.abs((Number(t.entry) || 0) - (Number(t.sl) || 0));
-    if (entryExitDist === 0 || entrySLDist === 0 || (Number(t.lot) || 0) === 0) return null;
-    const pipVal = Math.abs(Number(t.pnl) || 0) / (entryExitDist * Number(t.lot));
-    const riskUSD = entrySLDist * Number(t.lot) * pipVal; 
-    const rewardUSD = Math.abs(Number(t.pnl) || 0);
-    return riskUSD > 0 ? rewardUSD / riskUSD : null;
-  }
-
-  const rrs = safeTrades.map(calcRR).filter(r => r !== null && r > 0);
-  const avgRR = rrs.length > 0 ? (rrs.reduce((a, b) => a + b, 0) / rrs.length).toFixed(2) + 'R' : '-';
-
-  const grossProfit = safeTrades.filter(t => t && Number(t.pnl) > 0).reduce((s, t) => s + Number(t.pnl), 0);
-  const grossLoss = Math.abs(safeTrades.filter(t => t && Number(t.pnl) < 0).reduce((s, t) => s + Number(t.pnl), 0));
-  const profitFactor = grossLoss > 0 ? (grossProfit / grossLoss).toFixed(2) : (grossProfit > 0 ? '∞' : '0.00');
-  const expectancy = total > 0 ? (netPnl / total).toFixed(2) : '0.00';
-
-  const lossTrades = safeTrades.filter(t => t && Number(t.pnl) < 0);
-  const greedCost = Math.abs(lossTrades.filter(t => t.psychology && t.psychology.greed).reduce((s, t) => s + Number(t.pnl), 0));
-  const fearCost = Math.abs(lossTrades.filter(t => t.psychology && t.psychology.fear).reduce((s, t) => s + Number(t.pnl), 0));
-
-  let maxWinStreak = 0, maxLossStreak = 0;
-  let currentWinStreak = 0, currentLossStreak = 0;
-  
-  const streakTrades = safeTrades.filter(t => t && (t.status === 'TP' || t.status === 'SL'));
-  for (let t of streakTrades) {
-    if (t.status === 'TP') {
-      currentWinStreak++; currentLossStreak = 0;
-      if (currentWinStreak > maxWinStreak) maxWinStreak = currentWinStreak;
-    } else if (t.status === 'SL') {
-      currentLossStreak++; currentWinStreak = 0;
-      if (currentLossStreak > maxLossStreak) maxLossStreak = currentLossStreak;
-    }
-  }
-
-  return { total, wins, loses, bes, wr, netPnl, avgRR, profitFactor, expectancy, greedCost, fearCost, maxWinStreak, maxLossStreak };
-}
-
-function rtjGetAccountAge(account) {
-  const allDates = [];
-  if (rtjState && Array.isArray(rtjState.trades)) {
-    rtjState.trades.forEach(t => { if(t && (account === 'ALL' || (t.account || 'Demo') === account)) allDates.push(new Date(t.date)); });
-  }
-  if (rtjState && Array.isArray(rtjState.cfs)) {
-    rtjState.cfs.forEach(c => { if(c && (account === 'ALL' || (c.account || 'Demo') === account)) allDates.push(new Date(c.date)); });
-  }
-  
-  if (allDates.length === 0) return "0Y 0M 0D";
-  
-  const minDate = new Date(Math.min(...allDates));
-  const now = new Date();
-  
-  let years = now.getFullYear() - minDate.getFullYear();
-  let months = now.getMonth() - minDate.getMonth();
-  let days = now.getDate() - minDate.getDate();
-  
-  if (days < 0) {
-    months--;
-    const prevMonthDays = new Date(now.getFullYear(), now.getMonth(), 0).getDate();
-    days += prevMonthDays;
-  }
-  if (months < 0) {
-    years--;
-    months += 12;
-  }
-  return `${years}Y ${months}M ${days}D`;
-}
-
-function rtjGetAccountList() {
-  const safeBalances = (rtjState && rtjState.balances) ? rtjState.balances : rtjDEFAULT_BALANCES;
-  const defaultAccs = Object.keys(safeBalances);
-  const tradeAccs = (rtjState && Array.isArray(rtjState.trades)) ? rtjState.trades.map(t => t ? (t.account || 'Demo') : 'Demo') : [];
-  const cfAccs = (rtjState && Array.isArray(rtjState.cfs)) ? rtjState.cfs.map(c => c ? (c.account || 'Demo') : 'Demo') : [];
-  return [...new Set([...defaultAccs, ...tradeAccs, ...cfAccs])].filter(Boolean);
-}
-
-/* ==========================================================================
-   🕹️ RETRO TRADER JOURNAL FUNCTIONS & EVENT ATTACHMENTS
-   ========================================================================== */
-function rtjGetTodayLosses() { 
-  if (!rtjState || !Array.isArray(rtjState.trades)) return 0;
-  return rtjState.trades.filter(tr => tr && tr.date === rtjToday() && tr.status === 'SL').length; 
-}
-function rtjShouldShowAlert() { return rtjGetTodayLosses() >= 2; }
-
-function rtjSyncToCloud() {
-  try {
-    rtjSave(rtjKEY.TRADES, rtjState.trades);
-    rtjSave(rtjKEY.CFS, rtjState.cfs);
-    rtjSave(rtjKEY.BALANCES, rtjState.balances);
-    if (window.app) {
-      window.app.syncStateToCloud();
-    }
-  } catch (e) {
-    console.error("Local save / sync trigger failed:", e);
-  }
-}
-
-function rtjInitCloudDatabase() {
-  // Main app's connectCloudDatabase handles the unified cloud sync.
-  // Locally load data on startup
-  rtjState.trades = rtjLoad(rtjKEY.TRADES, []);
-  rtjState.cfs = rtjLoad(rtjKEY.CFS, []);
-  rtjState.balances = rtjLoad(rtjKEY.BALANCES, rtjDEFAULT_BALANCES);
-  rtjSyncCrtView();
-  if (window.app && window.app.activeTab === 'journal') rtjRender();
-}
-
-function rtjSyncCrtView() {
-  const crtLayer = document.getElementById('crt-layer');
-  if(crtLayer) {
-    if(rtjState && rtjState.crt) crtLayer.classList.remove('disabled');
-    else crtLayer.classList.add('disabled');
-  }
-}
-
-function rtjUpdateActiveAccount(accName) {
-  if (!accName) return;
-  rtjState.f.account = accName;
-  rtjState.cf.account = accName;
-  rtjState.filter.account = accName;
-  rtjState.statsPeriod.account = accName;
-  rtjSave(rtjKEY.LAST_ACCOUNT, accName);
-  rtjRender();
-}
-
-function rtjRender() {
-  const mountEl = document.getElementById('tab-content-journal-mount');
-  if (!mountEl) return;
-  rtjSyncCrtView();
-  mountEl.innerHTML = rtjBuildApp();
-  if (rtjState && rtjState.crt) {
-    mountEl.classList.add('crt-active');
-  } else {
-    mountEl.classList.remove('crt-active');
-  }
-  rtjAttachEvents();
-}
-
-function rtjBuildApp() {
-  return `
-    <div id="crt-layer" class="crt"></div>
-    ${rtjBuildHubHeader()}
-    ${rtjBuildAlert()}
-    <div class="page-wrap">
-      ${rtjState.page === 'HOME'     ? rtjBuildHome()     : ''}
-      ${rtjState.page === 'LOG'      ? rtjBuildLog()      : ''}
-      ${rtjState.page === 'STATS'    ? rtjBuildStats()    : ''}
-      ${rtjState.page === 'SETTINGS' ? rtjBuildSettings() : ''}
-    </div>
-    ${rtjBuildNav()}
-  `;
-}
-
-function rtjBuildHubHeader() {
-  const allTrades = Array.isArray(rtjState.trades) ? rtjState.trades : [];
-  const targetAcc = rtjState.f.account || 'Demo';
-
-  let filteredTrades = rtjFilterByPeriod(allTrades, rtjState.statsPeriod);
-  if (targetAcc !== 'ALL') filteredTrades = filteredTrades.filter(t => t && (t.account || 'Demo') === targetAcc);
-
-  let accStartBal = 0;
-  const safeBalances = rtjState.balances || rtjDEFAULT_BALANCES;
-  if (targetAcc === 'ALL') {
-    accStartBal = Object.values(safeBalances).reduce((a, b) => a + (Number(b) || 0), 0);
-  } else {
-    accStartBal = Number(safeBalances[targetAcc]) || 0;
-  }
-
-  const safeCFs = Array.isArray(rtjState.cfs) ? rtjState.cfs : [];
-  const netDeposit = safeCFs.filter(c => c && (targetAcc === 'ALL' || (c.account || 'Demo') === targetAcc))
-                            .reduce((s, cf) => s + (cf.type === 'Deposit' ? Number(cf.amount)||0 : -Number(cf.amount)||0), 0);
-  const equity = accStartBal + netDeposit + filteredTrades.reduce((s, t) => s + (Number(t.pnl)||0), 0);
-  
-  const todayTrades = allTrades.filter(tr => tr && tr.date === rtjToday() && (targetAcc === 'ALL' || (tr.account || 'Demo') === targetAcc));
-  const todayPnl = todayTrades.reduce((s, tr) => s + (Number(tr.pnl)||0), 0);
-  
-  return `
-    <div class="rpg-hub-header">
-      <div class="rpg-avatar-box" id="hub-acc-trigger" title="คลิกสลับพอร์ตอย่างรวดเร็ว">🧙‍♂️</div>
-      <div class="rpg-hub-info">
-        <div class="rpg-hub-row">
-          <span class="rpg-hub-label">ACC:</span>
-          <span class="rpg-hub-value" style="color:#33D6FF; text-decoration:underline; cursor:pointer;" id="hub-acc-label">${targetAcc} ▾</span>
-        </div>
-        <div class="rpg-hub-row">
-          <span class="rpg-hub-label">NET EQUITY:</span>
-          <span class="rpg-hub-value" style="color:#52FF6B;">$${rtjFmt(equity,1)}</span>
-        </div>
-        <div class="rpg-hub-row">
-          <span class="rpg-hub-label">TODAY P/L:</span>
-          <span class="rpg-hub-value ${todayPnl >= 0 ? 'glow-green' : 'glow-red'}">${todayPnl >= 0 ? '+' : ''}$${rtjFmt(todayPnl,1)}</span>
-        </div>
-      </div>
-      <button class="rpg-setting-trigger" id="hub-setting-btn">⚙️</button>
-    </div>
-  `;
-}
-
-function rtjBuildAlert() {
-  if (!rtjShouldShowAlert()) return '';
-  return `
-    <div class="alert-banner">
-      <div class="alert-title">⚠ STOP TRADING TODAY ⚠</div>
-      <div class="alert-sub">คุณพ่ายแพ้ครบ ${rtjGetTodayLosses()} ไม้แล้วในวันนี้ — ปิดจอ พักผ่อนทันที!</div>
-    </div>`;
-}
-
-function rtjBuildNav() {
-  const pages = [
-    { id: 'HOME', icon: '📝', label: 'INPUT' },
-    { id: 'LOG', icon: '📋', label: 'LOG' },
-    { id: 'STATS', icon: '📊', label: 'STATS' }
-  ];
-  return `<div class="bottom-nav">
-    ${pages.map(p => `<button class="nav-btn ${rtjState.page === p.id ? 'active' : ''}" data-nav="${p.id}"><span class="nav-icon">${p.icon}</span>${p.label}</button>`).join('')}
-  </div>`;
-}
-
-function rtjBuildHome() {
-  return `
-    <div class="card">
-      <div class="card-title">
-        <span>▶ RETRO TRADER ARCADE</span>
-        <span class="glow-cyan" style="font-size:7px;">${rtjToday()}</span>
-      </div>
-      <div class="tabs">
-        <button class="tab ${rtjState.inputTab === 'TRADE' ? 'active' : ''}" data-tab-input="TRADE">TRADE</button>
-        <button class="tab ${rtjState.inputTab === 'CASHFLOW' ? 'active' : ''}" data-tab-input="CASHFLOW">CASHFLOW</button>
-      </div>
-      ${rtjState.inputTab === 'TRADE' ? rtjBuildTradeForm() : rtjBuildCFForm()}
-    </div>`;
-}
-
-function rtjBuildTradeForm() {
-  const f = rtjState.f; 
-  const symbols = ['GOLD','XAUUSD','BTCUSD','US30','NAS100','EURUSD','GBPUSD','Other']; 
-  const tfs = ['1M','5M','15M','30M','1H','4H','D1','W1'];
-  const accList = rtjGetAccountList();
-  return `
-    <label>🎯 พอร์ตบัญชีปลายทาง (LOCKED PERSISTENT)</label>
-    <select id="f-account">
-      ${accList.map(a => `<option value="${a}" ${f.account === a ? 'selected' : ''}>${a}</option>`).join('')}
-    </select>
-    <label>วันที่ทำรายการ</label><input type="date" id="f-date" value="${f.date}">
-    <label>คู่เงิน / สินทรัพย์</label><select id="f-symbol">${symbols.map(s => `<option ${f.symbol === s ? 'selected' : ''}>${s}</option>`).join('')}</select>
-    <label>ทิศทางคำสั่ง</label>
-    <div class="status-row" style="margin-bottom:10px">
-      <button class="status-btn ${f.dir === 'Buy' ? 'active-tp' : 'tp'}" data-dir="Buy">▲ BUY</button>
-      <button class="status-btn ${f.dir === 'Sell' ? 'active-sl' : 'sl'}" data-dir="Sell">▼ SELL</button>
-    </div>
-    <label>Timeframe</label><select id="f-tf">${tfs.map(t => `<option ${f.tf === t ? 'selected' : ''}>${t}</option>`).join('')}</select>
-    <label>Entry Price (ราคาเข้า)</label><input type="number" id="f-entry" placeholder="0.00" value="${f.entry}" inputmode="decimal">
-    <label>Exit Price (ราคาออก)</label><input type="number" id="f-exit" placeholder="0.00" value="${f.exit}" inputmode="decimal">
-    <label>Stop Loss Price (จุดยอมแพ้)</label><input type="number" id="f-sl" placeholder="0.00" value="${f.sl}" inputmode="decimal">
-    <label>Lot Size</label><input type="number" id="f-lot" placeholder="0.01" value="${f.lot}" inputmode="decimal">
-    <label>P&amp;L (USD) สุทธิ</label><input type="number" id="f-pnl" placeholder="+/- ใส่ตามจริง" value="${f.pnl}" inputmode="decimal">
-    <label>ผลลัพธ์ไม้เทรด</label>
-    <div class="status-row">
-      <button class="status-btn tp ${f.status === 'TP' ? 'active-tp' : ''}" data-status="TP">✓ TP</button>
-      <button class="status-btn sl ${f.status === 'SL' ? 'active-sl' : ''}" data-status="SL">✗ SL</button>
-      <button class="status-btn be ${f.status === 'BE' ? 'active-be' : ''}" data-status="BE">= BE</button>
-    </div>
-    <label>สภาวะอารมณ์ตอนเทรด</label>
-    <div class="psych-row">
-      <button class="psych-btn ${f.conf ? 'checked' : ''}" data-psych="conf">🔥 Conf</button>
-      <button class="psych-btn ${f.fear ? 'checked' : ''}" data-psych="fear">🙀 Fear</button>
-      <button class="psych-btn ${f.greed ? 'checked' : ''}" data-psych="greed">💢 Greed</button>
-    </div>
-    <button class="btn btn-green" id="btn-add-trade">► ADD TACTICAL TRADE</button>`;
-}
-
-function rtjBuildCFForm() {
-  const cf = rtjState.cf;
-  const accList = rtjGetAccountList();
-  return `
-    <label>🎯 คลังบัญชีเงินสด</label>
-    <select id="cf-account">
-      ${accList.map(a => `<option value="${a}" ${cf.account === a ? 'selected' : ''}>${a}</option>`).join('')}
-    </select>
-    <label>วันที่</label><input type="date" id="cf-date" value="${cf.date}">
-    <label>ประเภทกระแสเงินสด</label>
-    <div class="status-row" style="margin-bottom:10px">
-      <button class="status-btn tp ${cf.type === 'Deposit' ? 'active-tp' : ''}" data-cftype="Deposit">▲ ฝากเงิน</button>
-      <button class="status-btn sl ${cf.type === 'Withdraw' ? 'active-sl' : ''}" data-cftype="Withdraw">▼ ถอนเงิน</button>
-    </div>
-    <label>จำนวนเงินสุทธิ (USD)</label><input type="number" id="cf-amount" placeholder="0.00" value="${cf.amount}" inputmode="decimal">
-    <label>หมายเหตุบันทึกจำ</label><input type="text" id="cf-desc" placeholder="เพิ่มทุน..." value="${cf.desc}">
-    <button class="btn btn-green" id="btn-add-cf">► ADD CASHFLOW RECORD</button>`;
-}
-
-function rtjBuildLog() {
-  const allTrades = Array.isArray(rtjState.trades) ? rtjState.trades : [];
-  const symbols = ['ALL', ...new Set(allTrades.map(t => t ? t.symbol : ''))].filter(Boolean);
-  return `
-    <div class="card">
-      <div class="card-title"><span>📋 DATA LEDGER LOG</span></div>
-      <div class="tabs">
-        <button class="tab ${rtjState.logTab === 'TRADE' ? 'active' : ''}" data-tab-log="TRADE">TRADE</button>
-        <button class="tab ${rtjState.logTab === 'CASHFLOW' ? 'active' : ''}" data-tab-log="CASHFLOW">CASHFLOW</button>
-      </div>
-      ${rtjState.logTab === 'TRADE' ? rtjBuildTradeLog(symbols) : rtjBuildCFLog()}
-    </div>`;
-}
-
-function rtjBuildPeriodFilter(prefix, period) {
-  const safePeriod = period || { mode: 'all' };
-  return `
-    <div class="filter-bar">
-      <div class="filter-row">
-        <select id="${prefix}-period-mode" style="flex:1">
-          <option value="all" ${safePeriod.mode === 'all' ? 'selected' : ''}>All Time History</option>
-          <option value="daily" ${safePeriod.mode === 'daily' ? 'selected' : ''}>Daily Summary</option>
-          <option value="weekly" ${safePeriod.mode === 'weekly' ? 'selected' : ''}>Weekly Range</option>
-          <option value="monthly" ${safePeriod.mode === 'monthly' ? 'selected' : ''}>Monthly Range</option>
-          <option value="custom" ${safePeriod.mode === 'custom' ? 'selected' : ''}>Custom Range Target</option>
-        </select>
-      </div>
-      ${safePeriod.mode === 'daily' ? `<div class="filter-row"><input type="date" id="${prefix}-period-date" value="${safePeriod.date || rtjToday()}" style="flex:1"></div>` : ''}
-      ${safePeriod.mode === 'custom' ? `<div class="filter-row"><input type="date" id="${prefix}-period-from" value="${safePeriod.from || ''}" style="flex:1"><input type="date" id="${prefix}-period-to" value="${safePeriod.to || ''}" style="flex:1"></div>` : ''}
-    </div>`;
-}
-
-function rtjBuildTradeLog(symbols) {
-  const safeFilter = rtjState.filter || { period: { mode: 'all' }, symbol: 'ALL', status: 'ALL', account: 'ALL' };
-  const p = safeFilter.period || { mode: 'all' }; 
-  const allTrades = Array.isArray(rtjState.trades) ? rtjState.trades : [];
-  let filtered = [...allTrades].sort((a,b) => (b && a && b.date && a.date) ? b.date.localeCompare(a.date) : 0); 
-  filtered = rtjFilterByPeriod(filtered, p);
-  
-  if (safeFilter.symbol !== 'ALL') filtered = filtered.filter(t => t && t.symbol === safeFilter.symbol);
-  if (safeFilter.status !== 'ALL') filtered = filtered.filter(t => t && t.status === safeFilter.status);
-  if (safeFilter.account !== 'ALL') filtered = filtered.filter(t => t && (t.account || 'Demo') === safeFilter.account);
-  
-  const accList = rtjGetAccountList();
-  return `
-    ${rtjBuildPeriodFilter('log', p)}
-    <div class="filter-row" style="gap:4px;margin-bottom:10px">
-      <select id="flt-account" style="flex:1;font-size:7px">
-        <option value="ALL" ${safeFilter.account === 'ALL' ? 'selected' : ''}>ALL ACCOUNTS</option>
-        ${accList.map(a => `<option value="${a}" ${safeFilter.account === a ? 'selected' : ''}>${a}</option>`).join('')}
-      </select>
-      <select id="flt-symbol" style="flex:1;font-size:7px">${symbols.map(s => `<option ${safeFilter.symbol === s ? 'selected' : ''}>${s}</option>`).join('')}</select>
-      <select id="flt-status" style="flex:1;font-size:7px">${['ALL','TP','SL','BE'].map(s => `<option ${safeFilter.status === s ? 'selected' : ''}>${s}</option>`).join('')}</select>
-    </div>
-    ${filtered.length === 0 ? `<div class="empty">ไม่พบประวัติข้อมูลชุดนี้</div>` : filtered.map(t => rtjBuildTradeItem(t)).join('')}`;
-}
-
-function rtjBuildTradeItem(t) {
-  if (!t) return '';
-  const pnlVal = Number(t.pnl) || 0;
-  const pnlClass = pnlVal > 0 ? 'glow-green' : pnlVal < 0 ? 'glow-red' : 'glow-yellow'; 
-  const pnlSign = pnlVal > 0 ? '+' : ''; 
-  const badgeCls = t.status === 'TP' ? 'badge-tp' : t.status === 'SL' ? 'badge-sl' : 'badge-be'; 
-  const em = t.psychology || {}; 
-  const emTags = [em.conf && '🔥', em.fear && '🙀', em.greed && '💢'].filter(Boolean).join(' ');
-  return `
-    <div class="trade-item">
-      <div class="trade-header">
-        <span class="trade-symbol">${t.symbol} [${t.account || 'Demo'}] <span class="${t.dir === 'Buy' ? 'glow-green' : 'glow-red'}">${t.dir === 'Buy' ? '▲ BUY' : '▼ SELL'}</span></span>
-        <span class="badge ${badgeCls}">${t.status}</span>
-      </div>
-      <div class="trade-row"><span class="trade-label">EXECUTION DATE</span><span class="trade-value">${rtjFmtDate(t.date)}</span></div>
-      <div class="trade-row"><span class="trade-label">ENTRY / EXIT</span><span class="trade-value">${rtjFmt(t.entry,2)} → ${rtjFmt(t.exit,2)}</span></div>
-      <div class="trade-row"><span class="trade-label">SL / LOT SIZE</span><span class="trade-value">${rtjFmt(t.sl,2)} / ${t.lot}</span></div>
-      <div class="trade-row"><span class="trade-label">TIMEFRAME</span><span class="trade-value">${t.tf || '1H'}</span></div>
-      <div class="trade-row"><span class="trade-label">NET P&L (USD)</span><span class="${pnlClass}">${pnlSign}$${rtjFmt(t.pnl,2)}</span></div>
-      ${emTags ? `<div style="margin-top:4px;font-size:10px">${emTags}</div>` : ''}
-      <div style="margin-top:8px;text-align:right"><button class="del-btn" data-del-trade="${t.id}">✕ DELETE RECORD</button></div>
-    </div>`;
-}
-
-function rtjBuildCFLog() {
-  const safeCFs = Array.isArray(rtjState.cfs) ? rtjState.cfs : [];
-  const safeFilter = rtjState.filter || { account: 'ALL' };
-  let sorted = [...safeCFs].sort((a,b) => (b && a && b.date && a.date) ? b.date.localeCompare(a.date) : 0);
-  if (safeFilter.account !== 'ALL') sorted = sorted.filter(c => c && (c.account || 'Demo') === safeFilter.account);
-  if (sorted.length === 0) return `<div class="empty">ไม่มีรายการกระแสเงินสด</div>`;
-  return sorted.map(cf => `
-    <div class="cf-item">
-      <div>
-        <div style="color:#FFD54F;font-size:7px;margin-bottom:3px">${rtjFmtDate(cf.date)} [${cf.account || 'Demo'}]</div>
-        <div style="font-size:8px;color:#F5F5F5">${cf.desc || cf.type}</div>
-      </div>
-      <div style="display:flex;align-items:center;gap:8px">
-        <span class="${cf.type === 'Deposit' ? 'cf-deposit' : 'cf-withdraw'}" style="font-size:9px">${cf.type === 'Deposit' ? '+' : '-'}$${rtjFmt(cf.amount,0)}</span>
-        <button class="del-btn" data-del-cf="${cf.id}">✕</button>
-      </div>
-    </div>`).join('');
-}
-
-function rtjBuildCalendarSection(allTrades, accountFilter) {
-  const safeTrades = Array.isArray(allTrades) ? allTrades : [];
-  const monthNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
-  const year = rtjState.calYear || new Date().getFullYear(); 
-  const month = rtjState.calMonth !== undefined ? rtjState.calMonth : new Date().getMonth();
-  const firstDayIndex = new Date(year, month, 1).getDay();
-  const adjustedFirstDay = firstDayIndex === 0 ? 6 : firstDayIndex - 1; 
-  const totalDays = new Date(year, month + 1, 0).getDate();
-
-  const weekdays = ["MO", "TU", "WE", "TH", "FR", "SA", "SU"];
-  let htmlMesh = weekdays.map(w => `<div class="cal-weekday">${w}</div>`).join('');
-
-  for (let i = 0; i < adjustedFirstDay; i++) { htmlMesh += `<div class="cal-day-node skin-cal-blank"></div>`; }
-
-  const tStr = rtjToday();
-  for (let day = 1; day <= totalDays; day++) {
-    const currentStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-    let dayTrades = safeTrades.filter(t => t && t.date === currentStr);
-    if (accountFilter !== 'ALL') dayTrades = dayTrades.filter(t => t && (t.account || 'Demo') === accountFilter);
-
-    const tradeCount = dayTrades.length;
-    const totalPnl = dayTrades.reduce((s, t) => s + (Number(t.pnl) || 0), 0);
-
-    let skinClass = "skin-cal-neutral";
-    let pnlDisplay = "$0.00";
-    if (tradeCount > 0) {
-      if (totalPnl > 0) { skinClass = "skin-cal-win"; pnlDisplay = `+$${totalPnl.toFixed(0)}`; }
-      else if (totalPnl < 0) { skinClass = "skin-cal-loss"; pnlDisplay = `-$${Math.abs(totalPnl).toFixed(0)}`; }
-    }
-    
-    const isToday = currentStr === tStr;
-    if(isToday) skinClass += " skin-cal-today";
-
-    htmlMesh += `
-      <div class="cal-day-node ${skinClass}">
-        <div class="cal-day-idx">${isToday ? '★' + day : day}</div>
-        <div class="cal-day-pnl">${tradeCount > 0 ? pnlDisplay : '$0'}</div>
-        <div class="cal-day-count">${tradeCount}T</div>
-      </div>`;
-  }
-
-  const totalCells = adjustedFirstDay + totalDays;
-  const remainingCells = (7 - (totalCells % 7)) % 7;
-  for (let i = 0; i < remainingCells; i++) { htmlMesh += `<div class="cal-day-node skin-cal-blank"></div>`; }
-
-  return `
-    <div class="cal-box">
-      <div class="cal-header-layout">
-        <button class="btn" id="cal-prev" style="width:35px; margin:0; padding:4px 0;"><</button>
-        <span class="glow-cyan" style="font-size:7px;">${monthNames[month]} ${year}</span>
-        <button class="btn" id="cal-next" style="width:35px; margin:0; padding:4px 0;">></button>
-      </div>
-      <div class="cal-grid-mesh">${htmlMesh}</div>
-    </div>`;
-}
-
-function rtjBuildWeekdayBreakdown(filteredTrades) {
-  const safeTrades = Array.isArray(filteredTrades) ? filteredTrades : [];
-  const daysConfig = [
-    { idx: 1, label: "MON 🌙" },
-    { idx: 2, label: "TUE ☄️" },
-    { idx: 3, label: "WED 🛰️" },
-    { idx: 4, label: "THU 🚀" },
-    { idx: 5, label: "FRI 🛸" },
-    { idx: 6, label: "SAT 🪐" },
-    { idx: 0, label: "SUN 🌌" }
-  ];
-
-  const weekdayPnl = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0, 0: 0 };
-  safeTrades.forEach(t => {
-    if (t && t.date) {
-      const [y, m, d] = t.date.split('-');
-      const dayOfWeek = new Date(+y, +m - 1, +d).getDay();
-      weekdayPnl[dayOfWeek] += Number(t.pnl) || 0;
-    }
-  });
-
-  return `
-    <div class="stats-block">
-      <div class="stats-block-title">📦 BLOCK 3: WEEKDAY PERFORMANCE MATRIX</div>
-      <div class="weekday-grid">
-        ${daysConfig.map(d => {
-          const val = weekdayPnl[d.idx];
-          const colorClass = val > 0 ? 'glow-green' : (val < 0 ? 'glow-red' : 'txt-white');
-          return `
-            <div class="weekday-node">
-              <div class="weekday-lbl">${d.label}</div>
-              <div class="weekday-val ${colorClass}">${val >= 0 ? '+' : ''}$${val.toFixed(0)}</div>
-            </div>`;
-        }).join('')}
-      </div>
-    </div>`;
-}
-
-function rtjBuildStats() {
-  const p = rtjState.statsPeriod || { mode: 'all', account: 'ALL' }; 
-  const targetAcc = p.account || 'ALL'; 
-  const allTrades = Array.isArray(rtjState.trades) ? rtjState.trades : []; 
-  let filtered = rtjFilterByPeriod(allTrades, p);
-  if (targetAcc !== 'ALL') filtered = filtered.filter(t => t && (t.account || 'Demo') === targetAcc);
-
-  let accStartBal = 0;
-  const safeBalances = rtjState.balances || rtjDEFAULT_BALANCES;
-  if (targetAcc === 'ALL') {
-    accStartBal = Object.values(safeBalances).reduce((a, b) => a + (Number(b) || 0), 0);
-  } else {
-    accStartBal = Number(safeBalances[targetAcc]) || 0;
-  }
-
-  const todayTrades = allTrades.filter(tr => tr && tr.date === rtjToday() && (targetAcc === 'ALL' || (tr.account || 'Demo') === targetAcc));
-  const todayPnl = todayTrades.reduce((s, tr) => s + (Number(tr.pnl) || 0), 0); 
-  const st = rtjComputeStats(filtered, accStartBal); 
-  
-  const safeCFs = Array.isArray(rtjState.cfs) ? rtjState.cfs : [];
-  const netDeposit = safeCFs.filter(c => c && (targetAcc === 'ALL' || (c.account || 'Demo') === targetAcc))
-                           .reduce((s, cf) => s + (cf.type === 'Deposit' ? Number(cf.amount) || 0 : -Number(cf.amount) || 0), 0); 
-  const equity = accStartBal + netDeposit + filtered.reduce((s, t) => s + (Number(t.pnl) || 0), 0);
-
-  const pfClass = parseFloat(st.profitFactor) >= 1.5 ? 'glow-green' : (parseFloat(st.profitFactor) < 1.0 ? 'glow-red' : 'txt-white');
-  const expClass = parseFloat(st.expectancy) >= 0 ? 'glow-green' : 'glow-red';
-  
-  const accAgeStr = rtjGetAccountAge(targetAcc);
-  const accList = rtjGetAccountList();
-
-  return `
-    <div class="card">
-      <div class="card-title"><span>📊 COMMAND STATS MODULE</span></div>
-      
-      <div style="color:#FFD54F;font-size:7px;margin-bottom:6px">GLOBAL STATE FILTERS</div>
-      ${rtjBuildPeriodFilter('stats', p)}
-      <div class="filter-row" style="margin-bottom:12px">
-        <select id="stats-account" style="width:100%;font-size:7px">
-          <option value="ALL" ${p.account === 'ALL' ? 'selected' : ''}>ALL ACCOUNTS CONSOLIDATED</option>
-          ${accList.map(a => `<option value="${a}" ${p.account === a ? 'selected' : ''}>${a}</option>`).join('')}
-        </select>
-      </div>
-
-      <div class="stats-block">
-        <div class="stats-block-title">📦 BLOCK 1: ACCOUNT PROFILE DATABASE [ ${targetAcc} ]</div>
-        <div class="inner-grid">
-          <div class="stat-subbox"><div class="stat-sublabel">NET EQUITY CAPITAL</div><div class="stat-subvalue glow-cyan">$${rtjFmt(equity,2)}</div></div>
-          <div class="stat-subbox"><div class="stat-sublabel">ACCOUNT AGE HISTORY</div><div class="stat-subvalue glow-yellow" style="font-size:7px">${accAgeStr}</div></div>
-          <div class="stat-subbox" style="grid-column: span 2">
-            <div class="stat-sublabel">WIN RATE HP STATUS [ ${st.wr}% ]</div>
-            <div class="hp-bar-wrap"><div class="hp-bar-fill" style="width: ${st.wr}%;"></div></div>
-          </div>
-        </div>
-      </div>
-
-      <div class="stats-block">
-        <div class="stats-block-title">📦 BLOCK 2: QUANT PERFORMANCE RADAR</div>
-        <div class="inner-grid">
-          <div class="stat-subbox"><div class="stat-sublabel">PROFIT FACTOR</div><div class="stat-subvalue ${pfClass}">${st.profitFactor}</div></div>
-          <div class="stat-subbox"><div class="stat-sublabel">EXPECTANCY / TRADE</div><div class="stat-subvalue ${expClass}">${parseFloat(st.expectancy) >= 0 ? '+' : ''}$${st.expectancy}</div></div>
-          <div class="stat-subbox"><div class="stat-sublabel">MAX WIN STREAK</div><div class="stat-subvalue glow-green">${st.maxWinStreak}</div></div>
-          <div class="stat-subbox"><div class="stat-sublabel">MAX LOSS STREAK</div><div class="stat-subvalue glow-red">${st.maxLossStreak}</div></div>
-          <div class="stat-subbox"><div class="stat-sublabel">AVG WIN R:R</div><div class="stat-subvalue txt-white">${st.avgRR}</div></div>
-          <div class="stat-subbox"><div class="stat-sublabel">TOTAL TRADES</div><div class="stat-subvalue glow-cyan">${st.total}</div></div>
-          
-          <div class="stat-subbox" style="grid-column: span 2">
-            <div class="stat-sublabel">CORE ACTION MATRIX RATIO</div>
-            <div style="display:flex; justify-content:space-around; margin-top:4px; font-size:7px;">
-              <span>W: <span class="glow-green">${st.wins}</span></span>
-              <span>BE: <span class="glow-yellow">${st.bes}</span></span>
-              <span>L: <span class="glow-red">${st.loses}</span></span>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      ${rtjBuildWeekdayBreakdown(filtered)}
-
-      <div class="stats-block">
-        <div class="stats-block-title">📦 BLOCK 4: ANALYTICS CHANNELS &amp; DIARY</div>
-        
-        <div class="psych-cost-box" style="margin-bottom:10px;">
-          <div style="color:#FF4E63; font-size:7px; margin-bottom:6px;">⚠️ PSYCHOLOGY LOSS SPECTRUM</div>
-          <div class="psych-cost-row"><span>GREED COST:</span><span class="glow-red">-$${rtjFmt(st.greedCost,2)}</span></div>
-          <div class="psych-cost-row"><span>FEAR COST:</span><span class="glow-red">-$${rtjFmt(st.fearCost,2)}</span></div>
-        </div>
-
-        ${rtjBuildCalendarSection(allTrades, targetAcc)}
-      </div>
-
-      <div class="stats-block">
-        <div class="stats-block-title">📊 SYSTEM DATA CHARTS</div>
-        <div class="stat-subbox" style="margin-bottom:6px;"><div class="stat-sublabel">TODAY'S NET P&amp;L HUM</div><div class="stat-subvalue ${todayPnl >= 0 ? 'glow-green' : 'glow-red'}">${todayPnl >= 0 ? '+' : ''}$${rtjFmt(todayPnl,2)}</div></div>
-        ${rtjBuildEquityCurve(filtered)}
-        ${rtjBuildPieChart(st)}
-      </div>
-
-    </div>`;
-}
-
-function rtjBuildEquityCurve(trades) {
-  const safeTrades = Array.isArray(trades) ? trades : [];
-  if (safeTrades.length < 2) return `<div class="empty" style="margin-top:12px">เพิ่มประวัติการเทรดเพื่อสร้างสายกราฟพอร์ต</div>`;
-  const sorted = [...safeTrades].sort((a,b) => (a && b && a.date && b.date) ? a.date.localeCompare(b.date) : 0); 
-  let cum = 0; const points = sorted.map(t => { cum += Number(t.pnl) || 0; return cum; }); 
-  const maxV = Math.max(...points, 0); const minV = Math.min(...points, 0); const range = maxV - minV || 1; 
-  const W = 300, H = 110, PL = 4, PR = 4, PT = 8, PB = 20; const IW = W - PL - PR, IH = H - PT - PB;
-  const pts = points.map((v, i) => { const x = PL + (i / (points.length - 1 || 1)) * IW; const y = PT + IH - ((v - minV) / range) * IH; return `${x.toFixed(1)},${y.toFixed(1)}`; }).join(' ');
-  const zeroY = (PT + IH - ((0 - minV) / range) * IH).toFixed(1);
-  return `
-    <div style="margin-top:12px;color:#FFD54F;font-size:7px;margin-bottom:4px">📈 EQUITY GROWTH TRAJECTORY</div>
-    <div style="overflow-x:auto">
-      <svg width="${W}" height="${H}" style="display:block;background:#090B15;border:2px solid #304FFE">
-        <line x1="${PL}" y1="${zeroY}" x2="${W-PR}" y2="${zeroY}" stroke="#111827" stroke-width="1" stroke-dasharray="4,3"/>
-        <polyline points="${pts}" fill="none" stroke="#33D6FF" stroke-width="2"/>
-      </svg>
-    </div>`;
-}
-
-function rtjBuildPieChart(st) {
-  const total = st.wins + st.loses + st.bes; if (total === 0) return `<div class="empty" style="margin-top:12px">ไม่มีข้อมูลเรนเดอร์อัตราส่วนสถิติ</div>`;
-  const cx = 60, cy = 60, r = 50;
-  const slices = [{ label: 'Win', val: st.wins, color: '#52FF6B' }, { label: 'BE', val: st.bes, color: '#FFD54F' }, { label: 'Lose', val: st.loses, color: '#FF4E63' }].filter(s => s.val > 0);
-  let paths = ''; let startAngle = -Math.PI / 2;
-  slices.forEach(s => {
-    const angle = (s.val / total) * Math.PI * 2; const endAngle = startAngle + angle;
-    const x1 = cx + r * Math.cos(startAngle); const y1 = cy + r * Math.sin(startAngle);
-    const x2 = cx + r * Math.cos(endAngle); const y2 = cy + r * Math.sin(endAngle);
-    const large = angle > Math.PI ? 1 : 0;
-    if (slices.length === 1) { paths += `<circle cx="${cx}" cy="${cy}" r="${r}" fill="${s.color}" opacity="0.85"/>`; }
-    else { paths += `<path d="M${cx},${cy} L${x1.toFixed(2)},${y1.toFixed(2)} A${r},${r} 0 ${large},1 ${x2.toFixed(2)},${y2.toFixed(2)} Z" fill="${s.color}" opacity="0.85" stroke="#090B15" stroke-width="1"/>`; }
-    startAngle = endAngle;
-  });
-  const legend = [{ label: 'Win', pct: st.wins, color: '#52FF6B' }, { label: 'BE', pct: st.bes, color: '#FFD54F' }, { label: 'Lose', pct: st.loses, color: '#FF4E63' }];
-  return `
-    <div style="margin-top:12px;color:#FFD54F;font-size:7px;margin-bottom:4px">🥧 ACTION WIN/BE/LOSE RATIO</div>
-    <div class="pie-wrap">
-      <svg width="120" height="120" style="flex-shrink:0">${paths}</svg>
-      <div class="pie-legend">
-        ${legend.map(l => `
-          <div class="pie-legend-item">
-            <div class="pie-dot" style="background:${l.color}"></div>
-            <span style="color:#F5F5F5">${l.label}</span>
-            <span style="color:#33D6FF">${l.pct} <span style="color:#FFD54F">(${total > 0 ? (l.pct / total * 100).toFixed(0) : 0}%)</span></span>
-          </div>`).join('')}
-      </div>
-    </div>`;
-}
-
-function rtjBuildSettings() {
-  const accList = rtjGetAccountList();
-  const safeBalances = rtjState.balances || rtjDEFAULT_BALANCES;
-  return `
-    <div class="card">
-      <div class="card-title"><span>⚙ CONFIG OPERATIONS</span></div>
-      <div class="setting-row">
-        <span>จอแก้ว CRT FILTER</span>
-        <div class="toggle" id="toggle-crt"><div class="toggle-knob ${rtjState.crt ? 'on' : 'off'}"></div></div>
-      </div>
-      <div class="setting-row">
-        <span>เสียง 8-bit ALERTS</span>
-        <div class="toggle" id="toggle-sound"><div class="toggle-knob ${rtjState.sound ? 'on' : 'off'}"></div></div>
-      </div>
-      
-      <div class="divider"></div>
-      <div style="color:#FFD54F;font-size:7px;margin-bottom:8px">💰 STARTING BALANCES BY PORTFOLIO ($)</div>
-      <div id="balances-list-container">
-        ${accList.map(a => `
-          <div class="bal-card-item">
-            <span style="color:#33D6FF;">${a}</span>
-            <div style="display:flex; gap:6px; align-items:center;">
-              <input type="number" class="bal-input-node" data-acc="${a}" value="${safeBalances[a] !== undefined ? safeBalances[a] : 0}" style="width:100px; margin-bottom:0; font-size:8px;">
-              ${!['Demo','LIFE','RISK','Swingtrade'].includes(a) ? `<button class="del-btn" data-del-acc="${a}" style="min-width:44px; min-height:44px;">✕</button>` : ''}
-            </div>
-          </div>
-        `).join('')}
-      </div>
-      <button class="btn btn-green" id="btn-save-all-bal" style="margin-bottom:8px">💾 SAVE ALL BALANCES</button>
-      
-      <div style="margin-top:10px;">
-        <label>➕ สร้างบัญชีพอร์ตใหม่ (DYNAMIC ACCOUNT)</label>
-        <div style="display:flex; gap:6px;">
-          <input type="text" id="new-acc-name" placeholder="เช่น Scalping, Fund1" style="margin-bottom:0; flex:1;">
-          <button class="btn" id="btn-add-acc" style="margin-top:0; width:80px;">ADD</button>
-        </div>
-      </div>
-
-      <div class="divider"></div>
-      <div style="color:#FFD54F;font-size:7px;margin-bottom:8px">💾 DATA DISK MANAGEMENT</div>
-      <button class="btn btn-green" id="btn-backup" style="margin-bottom:8px">▼ BACKUP CORE DATA</button>
-      <button class="btn" id="btn-import-trigger" style="margin-bottom:8px">▲ IMPORT DATA DISK</button>
-      <input type="file" id="btn-import" accept=".json" style="display:none">
-      <div class="divider"></div>
-      <div style="color:#FF4E63;font-size:7px;margin-bottom:8px">⚠ DANGER ZONE DEPOT</div>
-      <button class="btn btn-red" id="btn-clear-trades">✕ ล้างประวัติการเทรดทั้งหมด</button>
-    </div>`;
-}
-
-function rtjAttachEvents() {
-  document.querySelectorAll('.journal-scope [data-nav]').forEach(el => { el.addEventListener('click', () => { rtjState.page = el.dataset.nav; rtjBeep('click'); rtjRender(); }); });
-  document.querySelectorAll('.journal-scope [data-tab-input]').forEach(el => { el.addEventListener('click', () => { rtjState.inputTab = el.dataset.tabInput; rtjRender(); }); });
-  document.querySelectorAll('.journal-scope [data-tab-log]').forEach(el => { el.addEventListener('click', () => { rtjState.logTab = el.dataset.tabLog; rtjRender(); }); });
-  
-  const hubSetting = document.getElementById('hub-setting-btn');
-  if(hubSetting) { hubSetting.addEventListener('click', () => { rtjState.page = 'SETTINGS'; rtjBeep('click'); rtjRender(); }); }
-
-  const hubAccTrigger = document.getElementById('hub-acc-trigger');
-  const hubAccLabel = document.getElementById('hub-acc-label');
-  const triggerSwitch = () => {
-    const accs = rtjGetAccountList();
-    const currIndex = accs.indexOf(rtjState.f.account);
-    const nextAcc = accs[(currIndex + 1) % accs.length];
-    rtjUpdateActiveAccount(nextAcc);
-    rtjBeep('click');
-  };
-  if(hubAccTrigger) hubAccTrigger.addEventListener('click', triggerSwitch);
-  if(hubAccLabel) hubAccLabel.addEventListener('click', triggerSwitch);
-
-  const liveF = {'f-date':v=>rtjState.f.date=v,'f-symbol':v=>rtjState.f.symbol=v,'f-tf':v=>rtjState.f.tf=v,'f-entry':v=>rtjState.f.entry=v,'f-exit':v=>rtjState.f.exit=v,'f-sl':v=>rtjState.f.sl=v,'f-lot':v=>rtjState.f.lot=v,'f-pnl':v=>rtjState.f.pnl=v};
-  Object.entries(liveF).forEach(([id,fn]) => { const el = document.getElementById(id); if(el) el.addEventListener('input', e => fn(e.target.value)); });
-
-  const fAcc = document.getElementById('f-account');
-  if(fAcc) fAcc.addEventListener('change', e => rtjUpdateActiveAccount(e.target.value));
-
-  document.querySelectorAll('.journal-scope [data-dir]').forEach(el => { el.addEventListener('click', () => { rtjState.f.dir = el.dataset.dir; rtjRender(); }); });
-  document.querySelectorAll('.journal-scope [data-status]').forEach(el => { el.addEventListener('click', () => { rtjState.f.status = el.dataset.status; rtjRender(); }); });
-  document.querySelectorAll('.journal-scope [data-psych]').forEach(el => { el.addEventListener('click', () => { const k = el.dataset.psych; rtjState.f[k] = !rtjState.f[k]; el.classList.toggle('checked'); rtjBeep('click'); }); });
-  document.querySelectorAll('.journal-scope [data-cftype]').forEach(el => { el.addEventListener('click', () => { rtjState.cf.type = el.dataset.cftype; rtjRender(); }); });
-
-  const cfAcc = document.getElementById('cf-account'); if(cfAcc) cfAcc.addEventListener('change', e => rtjUpdateActiveAccount(e.target.value));
-  ['cf-date','cf-amount','cf-desc'].forEach(id => { const el = document.getElementById(id); if(el) el.addEventListener('input', e => { if(id === 'cf-date') rtjState.cf.date = e.target.value; if(id === 'cf-amount') rtjState.cf.amount = e.target.value; if(id === 'cf-desc') rtjState.cf.desc = e.target.value; }); });
-
-  const fltAcc = document.getElementById('flt-account'); if(fltAcc) fltAcc.addEventListener('change', e => rtjUpdateActiveAccount(e.target.value));
-  const fltSym = document.getElementById('flt-symbol'); if(fltSym) fltSym.addEventListener('change', e => { if(!rtjState.filter) rtjState.filter = {account:'ALL',symbol:'ALL',status:'ALL',period:{mode:'all'}}; rtjState.filter.symbol = e.target.value; rtjRender(); });
-  const fltSt = document.getElementById('flt-status'); if(fltSt) fltSt.addEventListener('change', e => { if(!rtjState.filter) rtjState.filter = {account:'ALL',symbol:'ALL',status:'ALL',period:{mode:'all'}}; rtjState.filter.status = e.target.value; rtjRender(); });
-  
-  const statsAcc = document.getElementById('stats-account'); if(statsAcc) statsAcc.addEventListener('change', e => rtjUpdateActiveAccount(e.target.value));
-
-  rtjBindPeriodFilter('log', rtjState.filter ? rtjState.filter.period : {mode:'all'}, (p) => { rtjState.filter.period = p; rtjRender(); });
-  rtjBindPeriodFilter('stats', rtjState.statsPeriod || {mode:'all',account:'ALL'}, (p) => { rtjState.statsPeriod = p; rtjRender(); });
-
-  const btnTrade = document.getElementById('btn-add-trade');
-  if(btnTrade) btnTrade.addEventListener('click', () => {
-    const f = rtjState.f; if(!f.entry || !f.exit || !f.sl || !f.lot || f.pnl === ''){ alert('กรอกตัวเลขราคาและหลอดให้ครบถ้วนก่อนส่งข้อมูล!'); return; }
-    if(!Array.isArray(rtjState.trades)) rtjState.trades = [];
-    const newTrade = {id:rtjUid(), date:f.date, symbol:f.symbol, dir:f.dir, entry:parseFloat(f.entry)||0, exit:parseFloat(f.exit)||0, sl:parseFloat(f.sl)||0, lot:parseFloat(f.lot)||0, pnl:parseFloat(f.pnl)||0, status:f.status, tf:f.tf, psychology:{conf:f.conf, fear:f.fear, greed:f.greed}, account:f.account, timestamp:Date.now()};
-    rtjState.trades.push(newTrade);
-    rtjSave(rtjKEY.TRADES, rtjState.trades); rtjSyncToCloud();
-    
-    if(f.status === 'TP') rtjBeep('win'); else if(f.status === 'SL') rtjBeep('lose'); else rtjBeep('click');
-    const currentAccount = rtjState.f.account;
-
-    // 🚨 CONSECUTIVE LOSS CHECK FOR THE ACCOUNT
-    const tradesForAcc = rtjState.trades.filter(t => t && (t.account || 'Demo') === currentAccount);
-    let consecutiveLosses = 0;
-    for (let i = tradesForAcc.length - 1; i >= 0; i--) {
-      const t = tradesForAcc[i];
-      if (t.status === 'SL' || Number(t.pnl) < 0) {
-        consecutiveLosses++;
-      } else if (t.status === 'TP' || Number(t.pnl) > 0) {
-        break;
-      }
-    }
-
-    if (consecutiveLosses >= 2) {
-      setTimeout(() => {
-        const modal = document.getElementById('trade-warning-modal');
-        const countEl = document.getElementById('warn-loss-count');
-        const accEl = document.getElementById('warn-acc-name');
-        if (countEl) countEl.innerText = consecutiveLosses;
-        if (accEl) accEl.innerText = currentAccount;
-        if (modal) modal.classList.remove('hidden');
-        rtjBeep('warning');
-      }, 250);
-    }
-
-    rtjState.f = {...rtjState.f, entry:'', exit:'', sl:'', lot:'', pnl:'', status:'TP', conf:false, fear:false, greed:false, account: currentAccount}; 
-    rtjRender();
-  });
-
-  const btnCF = document.getElementById('btn-add-cf');
-  if(btnCF) btnCF.addEventListener('click', () => {
-    const cf = rtjState.cf; if(!cf.amount || parseFloat(cf.amount) <= 0){ alert('ระบุจำนวนเงินสดเป็นตัวเลขด้วย!'); return; }
-    if(!Array.isArray(rtjState.cfs)) rtjState.cfs = [];
-    rtjState.cfs.push({id:rtjUid(), date:cf.date, type:cf.type, amount:parseFloat(cf.amount), desc:cf.desc, account:cf.account});
-    rtjSave(rtjKEY.CFS, rtjState.cfs); rtjSyncToCloud(); rtjBeep('win');
-    const currentAccount = rtjState.cf.account;
-    rtjState.cf = {date:rtjToday(), type:'Deposit', amount:'', desc:'', account:currentAccount}; 
-    rtjRender();
-  });
-
-  document.querySelectorAll('.journal-scope [data-del-trade]').forEach(el => { el.addEventListener('click', () => { if(!confirm('ยืนยันลบประวัติไม้เทรดนี้ถาวร?')) return; rtjState.trades = rtjState.trades.filter(t => t && t.id !== el.dataset.delTrade); rtjSave(rtjKEY.TRADES, rtjState.trades); rtjSyncToCloud(); rtjRender(); }); });
-  document.querySelectorAll('.journal-scope [data-del-cf]').forEach(el => { el.addEventListener('click', () => { if(!confirm('ลบรายการกระแสเงินสดนี้?')) return; rtjState.cfs = rtjState.cfs.filter(c => c && c.id !== el.dataset.delCf); rtjSave(rtjKEY.CFS, rtjState.cfs); rtjSyncToCloud(); rtjRender(); }); });
-  
-  const tog = document.getElementById('toggle-sound'); if(tog) tog.addEventListener('click', () => { rtjState.sound = !rtjState.sound; rtjSave(rtjKEY.SOUND, rtjState.sound); rtjRender(); });
-  const togCrt = document.getElementById('toggle-crt'); if(togCrt) togCrt.addEventListener('click', () => { rtjState.crt = !rtjState.crt; rtjSave(rtjKEY.CRT, rtjState.crt); rtjRender(); });
-
-  const btnSaveAllBal = document.getElementById('btn-save-all-bal');
-  if (btnSaveAllBal) {
-    btnSaveAllBal.addEventListener('click', () => {
-      const inputs = document.querySelectorAll('#balances-list-container .bal-input-node');
-      inputs.forEach(inp => {
-        const acc = inp.dataset.acc;
-        const val = parseFloat(inp.value);
-        if (acc && !isNaN(val)) {
-          rtjState.balances[acc] = val;
-        }
-      });
-      rtjSave(rtjKEY.BALANCES, rtjState.balances);
-      rtjSyncToCloud();
-      rtjBeep('win');
-      alert('💾 บันทึกยอดเงินเริ่มต้นทุกพอร์ตสำเร็จ!');
-      rtjRender();
-    });
-  }
-
-  const btnAddAcc = document.getElementById('btn-add-acc');
-  if (btnAddAcc) {
-    btnAddAcc.addEventListener('click', () => {
-      const input = document.getElementById('new-acc-name');
-      const name = input ? input.value.trim() : '';
-      if (!name) { alert('โปรดกรอกชื่อพอร์ต!'); return; }
-      if (!rtjState.balances[name]) {
-        rtjState.balances[name] = 0;
-        rtjSave(rtjKEY.BALANCES, rtjState.balances);
-        rtjSyncToCloud();
-        rtjUpdateActiveAccount(name);
-      } else { alert('มีชื่อพอร์ตนี้อยู่แล้ว!'); }
-    });
-  }
-
-  const btnBackup = document.getElementById('btn-backup');
-  if (btnBackup) {
-    btnBackup.addEventListener('click', () => {
-      const data = { trades: rtjState.trades, cfs: rtjState.cfs, balances: rtjState.balances };
-      const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
-      const a = document.createElement('a');
-      a.href = URL.createObjectURL(blob);
-      a.download = `rtj_backup_${rtjToday()}.json`;
-      a.click();
-    });
-  }
-
-  const btnImpTrig = document.getElementById('btn-import-trigger');
-  const fileImp = document.getElementById('btn-import');
-  if (btnImpTrig && fileImp) {
-    btnImpTrig.addEventListener('click', () => fileImp.click());
-    fileImp.addEventListener('change', (e) => {
-      const file = e.target.files[0];
-      if (!file) return;
-      const reader = new FileReader();
-      reader.onload = (evt) => {
-        try {
-          const d = JSON.parse(evt.target.result);
-          if (d.trades) rtjState.trades = d.trades;
-          if (d.cfs) rtjState.cfs = d.cfs;
-          if (d.balances) rtjState.balances = d.balances;
-          rtjSave(rtjKEY.TRADES, rtjState.trades);
-          rtjSave(rtjKEY.CFS, rtjState.cfs);
-          rtjSave(rtjKEY.BALANCES, rtjState.balances);
-          rtjSyncToCloud();
-          alert('นำเข้าข้อมูลสำเร็จ!');
-          rtjRender();
-        } catch (err) { alert('ไฟล์ไม่ถูกต้อง!'); }
-      };
-      reader.readAsText(file);
-    });
-  }
-
-  const btnClear = document.getElementById('btn-clear-trades');
-  if (btnClear) {
-    btnClear.addEventListener('click', () => {
-      if (confirm('⚠️ เตือน: คุณต้องการลบประวัติการเทรดทั้งหมดใช่หรือไม่?')) {
-        rtjState.trades = [];
-        rtjSave(rtjKEY.TRADES, rtjState.trades);
-        rtjSyncToCloud();
-        rtjRender();
-      }
-    });
-  }
-
-  document.querySelectorAll('.journal-scope [data-del-acc]').forEach(el => {
-    el.addEventListener('click', () => {
-      const acc = el.dataset.delAcc;
-      if (confirm(`ลบบัญชี ${acc} หรือไม่?`)) {
-        delete rtjState.balances[acc];
-        rtjSave(rtjKEY.BALANCES, rtjState.balances);
-        rtjSyncToCloud();
-        if (rtjState.f.account === acc) rtjUpdateActiveAccount('Demo');
-        else rtjRender();
-      }
-    });
-  });
-}
-
-function rtjBindPeriodFilter(prefix, currentPeriod, onChange) {
-  const modeEl = document.getElementById(`${prefix}-period-mode`);
-  if (!modeEl) return;
-  modeEl.addEventListener('change', e => {
-    const mode = e.target.value;
-    if (mode === 'all' || mode === 'weekly' || mode === 'monthly') onChange({ mode });
-    else if (mode === 'daily') onChange({ mode, date: rtjToday() });
-    else if (mode === 'custom') onChange({ mode, from: '', to: '' });
-  });
-  const dateEl = document.getElementById(`${prefix}-period-date`);
-  if (dateEl) dateEl.addEventListener('change', e => onChange({ mode: 'daily', date: e.target.value }));
-  const fromEl = document.getElementById(`${prefix}-period-from`);
-  const toEl = document.getElementById(`${prefix}-period-to`);
-  if (fromEl) fromEl.addEventListener('change', () => onChange({ mode: 'custom', from: fromEl.value, to: toEl ? toEl.value : '' }));
-  if (toEl) toEl.addEventListener('change', () => onChange({ mode: 'custom', from: fromEl ? fromEl.value : '', to: toEl.value }));
-}
-
-// 🚀 Automatic initialization on load
-if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', () => rtjInitCloudDatabase());
-} else {
-  rtjInitCloudDatabase();
-}
