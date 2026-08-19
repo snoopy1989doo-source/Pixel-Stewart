@@ -2888,11 +2888,15 @@ class PixelStewardApp {
     }
   }
 
-  async fetchSingleTickerPrice(rawSymbol) {
+    async fetchSingleTickerPrice(rawSymbol) {
     let symbol = (rawSymbol || '').trim().toUpperCase();
     if (!symbol) return null;
 
-    // 1. Crypto support via Binance API (Fast & Direct)
+    // Ignore non-market fixed assets
+    const ignored = ['SSO', 'กอช.', 'กอช', 'KEPT', 'CASH', 'BUFFER', 'THB', 'USD', 'EMERGENCY', 'TMRW'];
+    if (ignored.includes(symbol)) return null;
+
+    // 1. Crypto support via Binance API (Direct & Ultra-fast)
     const cryptoMap = {
       'BTC': 'BTCUSDT', 'ETH': 'ETHUSDT', 'BNB': 'BNBUSDT', 'SOL': 'SOLUSDT',
       'ADA': 'ADAUSDT', 'XRP': 'XRPUSDT', 'DOGE': 'DOGEUSDT'
@@ -2918,61 +2922,110 @@ class PixelStewardApp {
       querySymbol += '.BK';
     }
 
-    const candidateUrls = [
-      `https://query1.finance.yahoo.com/v8/finance/chart/${querySymbol}?interval=1d&range=1d`,
-      `https://query2.finance.yahoo.com/v8/finance/chart/${querySymbol}?interval=1d&range=1d`,
-      `https://api.allorigins.win/raw?url=${encodeURIComponent(`https://query1.finance.yahoo.com/v8/finance/chart/${querySymbol}?interval=1d&range=1d`)}`,
-      `https://corsproxy.org/?${encodeURIComponent(`https://query1.finance.yahoo.com/v8/finance/chart/${querySymbol}?interval=1d&range=1d`)}`
-    ];
-
-    for (const targetUrl of candidateUrls) {
+    const fetchEndpoint = async (url) => {
+      const controller = new AbortController();
+      const timer = setTimeout(() => controller.abort(), 2200);
       try {
-        const res = await fetch(targetUrl);
+        const res = await fetch(url, { signal: controller.signal });
+        clearTimeout(timer);
         if (res.ok) {
           const text = await res.text();
           const data = JSON.parse(text);
           const p = data?.chart?.result?.[0]?.meta?.regularMarketPrice;
           if (p && p > 0) return p;
         }
-      } catch (e) {
-        // try next candidate
+      } catch (err) {
+        clearTimeout(timer);
+      }
+      throw new Error('Endpoint failed');
+    };
+
+    try {
+      // ⚡ Direct High-Speed Parallel Race (Query1 vs Query2)
+      return await Promise.any([
+        fetchEndpoint(`https://query1.finance.yahoo.com/v8/finance/chart/${querySymbol}?interval=1d&range=1d`),
+        fetchEndpoint(`https://query2.finance.yahoo.com/v8/finance/chart/${querySymbol}?interval=1d&range=1d`)
+      ]);
+    } catch (e) {
+      // 🛡️ High-speed CORS Proxy Fallback
+      try {
+        return await fetchEndpoint(`https://corsproxy.org/?${encodeURIComponent(`https://query1.finance.yahoo.com/v8/finance/chart/${querySymbol}?interval=1d&range=1d`)}`);
+      } catch (err) {
+        return null;
       }
     }
-    return null;
   }
 
-  async fetchLivePrices() {
+  async fetchLivePrices(isSilentOnBoot = false) {
     if (!Array.isArray(this.portfolios) || this.portfolios.length === 0) {
-      alert('❌ ไม่พบสินทรัพย์ย่อยในพอร์ตเพื่อดึงราคา');
+      if (!isSilentOnBoot) alert('❌ ไม่พบสินทรัพย์ย่อยในพอร์ตเพื่อดึงราคา');
       return;
     }
 
     const liveBtn = document.getElementById('btn-fetch-live-prices');
-    if (liveBtn) liveBtn.innerText = '⏳ กำลังดึงราคา...';
+    if (liveBtn) liveBtn.innerText = '⚡ กำลังดึงราคา Turbo...';
 
+    const startTime = Date.now();
     let updatedCount = 0;
-    try {
-      for (const p of this.portfolios) {
-        if (p && Array.isArray(p.assets)) {
-          for (const a of p.assets) {
-            const sym = (a.name || '').trim().toUpperCase();
-            if (!sym) continue;
 
-            const price = await this.fetchSingleTickerPrice(sym);
-            if (price && price > 0) {
-              a.currentPrice = price;
-              a.value = (Number(a.shares) || 1) * price;
-              updatedCount++;
-            }
-          }
+    try {
+      // 1. Collect all unique tickers
+      const uniqueTickers = new Set();
+      this.portfolios.forEach(p => {
+        if (p && Array.isArray(p.assets)) {
+          p.assets.forEach(a => {
+            const sym = (a.name || '').trim().toUpperCase();
+            if (sym) uniqueTickers.add(sym);
+          });
         }
+      });
+
+      if (uniqueTickers.size === 0) {
+        if (!isSilentOnBoot) alert('ℹ️ ยังไม่มีสินทรัพย์ในพอร์ต');
+        return;
       }
 
+      // 2. ⚡ Turbo Parallel Fetch ALL tickers concurrently!
+      const priceMap = new Map();
+      const tickerList = Array.from(uniqueTickers);
+      const fetchedResults = await Promise.all(tickerList.map(async (sym) => {
+        const price = await this.fetchSingleTickerPrice(sym);
+        return { sym, price };
+      }));
+
+      fetchedResults.forEach(r => {
+        if (r && r.price && r.price > 0) {
+          priceMap.set(r.sym, r.price);
+        }
+      });
+
+      // 3. Apply fetched prices to all assets across portfolios
+      this.portfolios.forEach(p => {
+        if (p && Array.isArray(p.assets)) {
+          p.assets.forEach(a => {
+            const sym = (a.name || '').trim().toUpperCase();
+            if (priceMap.has(sym)) {
+              const pPrice = priceMap.get(sym);
+              a.currentPrice = pPrice;
+              a.value = (Number(a.shares) || 1) * pPrice;
+              updatedCount++;
+            }
+          });
+        }
+      });
+
+      const elapsed = ((Date.now() - startTime) / 1000).toFixed(2);
       this.saveState();
       this.refreshUI();
-      alert(`🎯 อัปเดตราคาตลาดสดสำเร็จ! (ปรับปรุงไปแล้ว ${updatedCount} รายการ)`);
+
+      if (!isSilentOnBoot) {
+        this.showRetroToast(`⚡ อัปเดตราคาตลาดสดสำเร็จ ${updatedCount} รายการ (${elapsed}s)`, 'success');
+        alert(`⚡ อัปเดตราคาตลาดสดสำเร็จเรียบร้อย! (ปรับปรุงไปแล้ว ${updatedCount} รายการ ในเวลา ${elapsed} วินาที)`);
+      } else if (updatedCount > 0) {
+        this.showRetroToast(`⚡ อัปเดตราคาตลาดสดอัตโนมัติ ${updatedCount} รายการ (${elapsed}s)`, 'success');
+      }
     } catch (e) {
-      alert('⚠️ ดึงราคาตลาดสดบางรายการไม่สำเร็จ: ระบบใช้ราคาเดิมล่าสุด');
+      if (!isSilentOnBoot) alert('⚠️ ดึงราคาตลาดสดบางรายการไม่สำเร็จ: ระบบใช้ราคาเดิมล่าสุด');
     } finally {
       if (liveBtn) liveBtn.innerHTML = '<span>🔄 ดึงราคาตลาดสด</span>';
     }
