@@ -2886,23 +2886,24 @@ class PixelStewardApp {
       querySymbol += '.BK';
     }
 
-    const proxies = [
-      (url) => `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`,
-      (url) => `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(url)}`,
-      (url) => `https://thingproxy.freeboard.io/fetch/${url}`
+    const candidateUrls = [
+      `https://query1.finance.yahoo.com/v8/finance/chart/${querySymbol}?interval=1d&range=1d`,
+      `https://query2.finance.yahoo.com/v8/finance/chart/${querySymbol}?interval=1d&range=1d`,
+      `https://api.allorigins.win/raw?url=${encodeURIComponent(`https://query1.finance.yahoo.com/v8/finance/chart/${querySymbol}?interval=1d&range=1d`)}`,
+      `https://corsproxy.org/?${encodeURIComponent(`https://query1.finance.yahoo.com/v8/finance/chart/${querySymbol}?interval=1d&range=1d`)}`
     ];
 
-    const targetUrl = `https://query1.finance.yahoo.com/v8/finance/chart/${querySymbol}?interval=1d&range=1d`;
-    for (const wrapProxy of proxies) {
+    for (const targetUrl of candidateUrls) {
       try {
-        const res = await fetch(wrapProxy(targetUrl));
+        const res = await fetch(targetUrl);
         if (res.ok) {
-          const data = await res.json();
+          const text = await res.text();
+          const data = JSON.parse(text);
           const p = data?.chart?.result?.[0]?.meta?.regularMarketPrice;
           if (p && p > 0) return p;
         }
       } catch (e) {
-        // try next proxy
+        // try next candidate
       }
     }
     return null;
