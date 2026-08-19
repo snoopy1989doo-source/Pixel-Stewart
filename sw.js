@@ -1,4 +1,4 @@
-const CACHE_NAME = 'pixel-steward-v500';
+const CACHE_NAME = 'pixel-steward-v510';
 const ASSETS_TO_CACHE = [
   './',
   './index.html',

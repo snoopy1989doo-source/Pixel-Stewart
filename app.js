@@ -532,6 +532,7 @@ class PixelStewardApp {
     }
 
     this.fetchRateOnLoad();
+    setTimeout(() => { this.fetchLivePrices(true); }, 1500);
     this.autoSnapshotQuarterly();
     this.refreshUI();
   }
@@ -1150,6 +1151,26 @@ class PixelStewardApp {
               const tierClass = hasGoal ? (isPurpleTier ? 'tier-purple' : (pct >= 40 ? 'tier-gold' : 'tier-silver')) : 'tier-silver';
               const isActive = p.id === this.selectedPortId ? 'active' : '';
 
+              // 📈 Dime-Style Portfolio P/L Calculation
+              const pAssets = Array.isArray(p.assets) ? p.assets : [];
+              let pCost = 0;
+              let pVal = 0;
+              pAssets.forEach(a => {
+                if (!a) return;
+                const v = Number(a.value) || 0;
+                const sh = Number(a.shares) || 1;
+                const cp = Number(a.costPrice) || 0;
+                const cb = Number(a.costBasis) || (cp > 0 ? sh * cp : v);
+                pCost += cb;
+                pVal += v;
+              });
+              const pDiff = pVal - pCost;
+              const pDiffPct = pCost > 0 ? (pDiff / pCost) * 100 : 0;
+              const isPProfit = pDiff >= 0;
+              const pColor = isPProfit ? '#10b981' : '#ef4444';
+              const pSign = isPProfit ? '+' : '';
+              const pArrow = isPProfit ? '↗ ' : '↘ ';
+
               return `
                 <div class="memory-card-wrapper ${tierClass} ${isActive}" draggable="true" data-port-id="${p.id}" data-port-index="${idx}" onclick="app.switchPortfolio('${p.id}')">
                   <img src="./assets/cards/card-folio.png" class="memory-card-bg" alt="Memory Card">
@@ -1160,13 +1181,24 @@ class PixelStewardApp {
                     </div>
                     <div>
                       <div class="card-val-text">${this.formatMoney(p.current + p.cashBuffer, p.category, false)}</div>
+                      
+                      <!-- 📈 Dime 1:1 Portfolio Profit Display -->
+                      ${pAssets.length > 0 ? `
+                        <div style="font-size:0.62rem; color:${pColor}; font-weight:bold; margin-top:2px; display:flex; align-items:center; gap:2px;" title="กำไรของสินทรัพย์ที่ถืออยู่">
+                          <span>${pArrow}${pSign}${pDiffPct.toFixed(2)}%</span>
+                          <span style="font-size:0.58rem; opacity:0.85;">(${pSign}${Math.abs(pDiff).toFixed(2)})</span>
+                        </div>
+                      ` : `
+                        <div style="font-size:0.6rem; color:#64748b; margin-top:2px;">0.00% ($0.00)</div>
+                      `}
+
                       ${hasGoal ? `
                       <div style="display:flex; justify-content:space-between; align-items:center; font-family:'Press Start 2P'; font-size:0.5rem; color:#94a3b8; margin-top:3px;">
                         <span>${pct.toFixed(0)}%</span>
                         <div class="card-progress-bar" style="width:70%; margin:0;">
                           <div class="card-progress-fill" style="width:${Math.min(100, pct)}%;"></div>
                         </div>
-                      </div>` : '<div style="font-size:0.65rem; color:#64748b; margin-top:4px;">ไม่ตั้งเป้าหมาย</div>'}
+                      </div>` : '<div style="font-size:0.6rem; color:#64748b; margin-top:3px;">ไม่ตั้งเป้าหมาย</div>'}
                     </div>
                   </div>
                   <div class="card-footer-tag">MEMORY CARD</div>
