@@ -1,8 +1,10 @@
-/* ==========================================
-   PIXEL STEWARD CORE ENGINE - APP.JS (V.1.6.0)
-   ========================================== */
+/* ==========================================================================
+   PIXEL STEWARD 2.0 - CORE JAVASCRIPT APPLICATION ENGINE
+   Dual Currency (USD/THB) | Dime-Style Holdings | Dedicated Cash Buffer
+   Realtime Firebase Sync | Live Market Data | Obsidian & AI Exporter
+   ========================================================================== */
 
-// --- FIREBASE CONFIGURATION HOOK ---
+// --- 1. FIREBASE CONFIGURATION (Reusing Existing Project) ---
 const firebaseConfig = {
   apiKey: "AIzaSyD-FLJd2vKaFX-2F8kzE87inrmGEH5pyzY",
   authDomain: "pixel-steward-db.firebaseapp.com",
@@ -13,635 +15,2349 @@ const firebaseConfig = {
   appId: "1:36576321084:web:315c61237093e616e06d39"
 };
 
-let isFirebaseActive = false;
-if (typeof firebase !== 'undefined' && firebaseConfig.apiKey && firebaseConfig.apiKey !== "YOUR_API_KEY") {
-  try {
-    firebase.initializeApp(firebaseConfig);
-    isFirebaseActive = true;
-  } catch (e) {
-    console.error("Firebase Sync Connection Failed:", e);
-  }
-}
-
-// --- 🥇 ⚙️ ฐานข้อมูลสถิติมวลรวมฉบับสมบูรณ์ (ห้ามสูญหาย) ---
+// --- 2. DEFAULT INVESTMENT POLICY (Strictly Goal-Based IPS, RedWing Removed) ---
 const INITIAL_PORTFOLIOS = [
-  { id: '1', name: 'RedWing (กยศ.)', category: 'Thai Stock', goalType: 'numeric', goal: 60000, current: 30000, cashBuffer: 15000, dryPowder: 5000, assets: [{ name: 'หุ้นย่อย A', value: 25000 }], startDate: '2025-01-01', notes: 'เน้นสำรองจ่ายและรักษาสภาพคล่อง' },
-  { id: '2', name: 'Zero 1 (เงินฉุกเฉิน)', category: 'Emergency', goalType: 'numeric', goal: 95000, current: 0, cashBuffer: 90000, dryPowder: 0, assets: [], startDate: '2025-01-01', notes: 'เงินสำรองห้ามแตะต้องเว้นแต่จำเป็น' },
-  { id: '3', name: 'Zero 2 (รถ)', category: 'Asset', goalType: 'numeric', goal: 1200000, current: 300000, cashBuffer: 50000, dryPowder: 300000, assets: [], startDate: '2025-01-01', notes: 'สะสมดาวน์รถยนต์คันใหม่' },
-  { id: '4', name: 'Zero 3 (เกษียณ)', category: 'Retirement', goalType: 'numeric', goal: 4000000, current: 750000, cashBuffer: 100000, dryPowder: 750000, assets: [{ name: 'กองทุนดัชนี', value: 750000 }], startDate: '2025-01-01', notes: 'พอร์ตหลักระยะยาว พลิกฟื้นอิสรภาพ' },
-  { id: '5', name: 'Zero 4 (แต่งงาน)', category: 'Life Goal', goalType: 'numeric', goal: 600000, current: 120000, cashBuffer: 30000, dryPowder: 120000, assets: [], startDate: '2025-05-01', notes: 'ทุนแต่งงานในอนาคต' },
-  { id: '6', name: 'Zero 5 (บ้าน)', category: 'Asset', goalType: 'numeric', goal: 1500000, current: 180000, cashBuffer: 20000, dryPowder: 180000, assets: [], startDate: '2025-06-01', notes: 'เป้าหมายระยะกลางสำหรับที่อยู่อาศัย' },
-  { id: '7', name: 'Dividend Yield (หุ้นโลก)', category: 'Global Stock', goalType: 'numeric', goal: 300000, current: 100000, cashBuffer: 20000, dryPowder: 100000, assets: [{ name: 'ETF โลก', value: 100000 }], startDate: '2025-02-01', notes: 'ปันผลสม่ำเสมอ ลดความเสี่ยงค่าเงิน' },
-  { id: '8', name: 'THAI Dividend (หุ้นไทย)', category: 'Thai Stock', goalType: 'numeric', goal: 100000, current: 55000, cashBuffer: 10000, dryPowder: 55000, assets: [{ name: 'หุ้นปันผลไทย', value: 55000 }], startDate: '2025-01-15', notes: 'เน้นกระแสเงินสดจากปันผลในประเทศ' },
-  { id: '9', name: 'NEXT GEN (หุ้นเติบโต)', category: 'Growth Stock', goalType: 'schedule', goalSchedule: 'DCA ทุกวันที่ 25', current: 4000000, cashBuffer: 500000, dryPowder: 4000000, assets: [{ name: 'Tech Growth', value: 4000000 }], startDate: '2025-03-01', notes: 'พอร์ตซิ่ง ดุดัน ไม่เกรงใจใคร โตระยะยาว', dcaDoneThisMonth: true },
-  { id: '10', name: 'FOREX LIFE', category: 'Forex', goalType: 'numeric', goal: 50000, current: 10000, cashBuffer: 2500, dryPowder: 10000, assets: [], startDate: '2025-01-01', notes: 'เทรดกระแสเงินสดรายเดือน ดอลลาร์สหรัฐ' },
-  { id: '11', name: 'FOREX RISK', category: 'Forex', goalType: 'numeric', goal: 20000, current: 4000, cashBuffer: 1200, dryPowder: 4000, assets: [], startDate: '2025-01-01', notes: 'พอร์ตเสี่ยงสูง ปั้นพอร์ตคูณเท่า' },
-  { id: '12', name: 'Option', category: 'Option', goalType: 'numeric', goal: 30000, current: 7000, cashBuffer: 1900, dryPowder: 7000, assets: [], startDate: '2025-02-01', notes: 'ใช้กลยุทธ์ออปชั่นในการ Hedging และทำกำไร' }
+  {
+    id: 'zero1',
+    name: 'Zero 1 (เงินฉุกเฉิน & รักษาเยียวยา)',
+    emoji: '🎃',
+    color: '#ff6b6b',
+    category: 'Emergency',
+    tier: 'Tier 1',
+    goalUSD: 2915.00,
+    cashBufferUSD: 0.00,
+    notes: 'เงินสำรองห้ามแตะต้องเว้นแต่จำเป็น • MSFT, V, WMT, TISCO, KEPT',
+    logo: 'assets/foliologo/zero1.png',
+    holdings: [
+      { id: 'h-msft', ticker: 'MSFT', name: 'Microsoft Corp.', shares: 0.125, avgCostUSD: 365.00, currentPriceUSD: 410.20, change1dPct: 0.45 },
+      { id: 'h-v', ticker: 'V', name: 'Visa Inc.', shares: 0.102, avgCostUSD: 275.50, currentPriceUSD: 285.80, change1dPct: 0.12 },
+      { id: 'h-wmt', ticker: 'WMT', name: 'Walmart Inc.', shares: 0.0470276, avgCostUSD: 116.5887, currentPriceUSD: 103.70, change1dPct: -0.13 },
+      { id: 'h-tisco', ticker: 'TISCO.BK', name: 'TISCO Financial Group', shares: 0.00, avgCostUSD: 2.80, currentPriceUSD: 2.85, change1dPct: 0.00 },
+      { id: 'h-kept', ticker: 'KEPT', name: 'Kept by Krungsri (Cash)', shares: 0.00, avgCostUSD: 1.00, currentPriceUSD: 1.00, change1dPct: 0.00 }
+    ]
+  },
+  {
+    id: 'zero2',
+    name: 'Zero 2 (รถ)',
+    emoji: '💐',
+    color: '#a855f7',
+    category: 'Asset',
+    tier: 'Tier 2',
+    goalUSD: 36820.00,
+    cashBufferUSD: 5523.16,
+    notes: 'สะสมดาวน์รถยนต์คันใหม่ • Cash Buffer = 180,000 ฿',
+    logo: 'assets/foliologo/zero2.png',
+    holdings: [
+      { id: 'h-nvda', ticker: 'NVDA', name: 'NVIDIA Corporation', shares: 0.0651080, avgCostUSD: 199.6858, currentPriceUSD: 214.72, change1dPct: -0.98 },
+      { id: 'h-tmo', ticker: 'TMO', name: 'Thermo Fisher Scientific', shares: 0.0131, avgCostUSD: 550.00, currentPriceUSD: 585.00, change1dPct: 0.85 },
+      { id: 'h-pltr', ticker: 'PLTR', name: 'Palantir Technologies', shares: 0.156, avgCostUSD: 24.50, currentPriceUSD: 31.20, change1dPct: 2.40 },
+      { id: 'h-abt', ticker: 'ABT', name: 'Abbott Laboratories', shares: 0.0028, avgCostUSD: 108.00, currentPriceUSD: 112.50, change1dPct: 0.20 },
+      { id: 'h-nee', ticker: 'NEE', name: 'NextEra Energy', shares: 0.00, avgCostUSD: 72.00, currentPriceUSD: 75.00, change1dPct: 0.00 },
+      { id: 'h-jpm', ticker: 'JPM', name: 'JPMorgan Chase & Co.', shares: 0.00, avgCostUSD: 195.00, currentPriceUSD: 200.00, change1dPct: 0.00 }
+    ]
+  },
+  {
+    id: 'zero3',
+    name: 'Zero 3 (เกษียณ)',
+    emoji: '❄️🧊',
+    color: '#38bdf8',
+    category: 'Retirement',
+    tier: 'Tier 3',
+    goalUSD: 122737.00,
+    cashBufferUSD: 3000.00,
+    notes: 'พอร์ตหลักระยะยาว พลิกฟื้นอิสรภาพ 37 Years',
+    logo: 'assets/foliologo/zero3.png',
+    holdings: [
+      { id: 'h-googl', ticker: 'GOOGL', name: 'Alphabet Inc.', shares: 0.50, avgCostUSD: 165.00, currentPriceUSD: 178.50, change1dPct: 0.70 },
+      { id: 'h-amzn', ticker: 'AMZN', name: 'Amazon.com Inc.', shares: 0.35, avgCostUSD: 180.00, currentPriceUSD: 192.00, change1dPct: 1.10 },
+      { id: 'h-tsla', ticker: 'TSLA', name: 'Tesla Inc.', shares: 0.85, avgCostUSD: 215.00, currentPriceUSD: 235.00, change1dPct: -1.20 },
+      { id: 'h-crwd', ticker: 'CRWD', name: 'CrowdStrike Holdings', shares: 0.20, avgCostUSD: 290.00, currentPriceUSD: 320.00, change1dPct: 1.50 },
+      { id: 'h-smr', ticker: 'SMR', name: 'NuScale Power Corp', shares: 5.00, avgCostUSD: 9.20, currentPriceUSD: 11.50, change1dPct: 3.20 },
+      { id: 'h-rklb', ticker: 'RKLB', name: 'Rocket Lab USA', shares: 10.00, avgCostUSD: 4.80, currentPriceUSD: 5.40, change1dPct: -0.50 },
+      { id: 'h-etn', ticker: 'ETN', name: 'Eaton Corporation', shares: 0.00, avgCostUSD: 310.00, currentPriceUSD: 315.00, change1dPct: 0.00 },
+      { id: 'h-abbv', ticker: 'ABBV', name: 'AbbVie Inc.', shares: 0.00, avgCostUSD: 170.00, currentPriceUSD: 175.00, change1dPct: 0.00 }
+    ]
+  },
+  {
+    id: 'zero4',
+    name: 'Zero 4 (แต่งงาน)',
+    emoji: '💖',
+    color: '#ec4899',
+    category: 'Life Goal',
+    tier: 'Tier 2',
+    goalUSD: 18410.00,
+    cashBufferUSD: 6136.00,
+    notes: 'ทุนแต่งงานในอนาคต 5 Years • Cash Buffer = 200,000 ฿',
+    logo: 'assets/foliologo/zero4.png',
+    holdings: [
+      { id: 'h-cost', ticker: 'COST', name: 'Costco Wholesale Corp.', shares: 0.00, avgCostUSD: 850.00, currentPriceUSD: 870.00, change1dPct: 0.00 },
+      { id: 'h-lly', ticker: 'LLY', name: 'Eli Lilly and Company', shares: 0.00, avgCostUSD: 920.00, currentPriceUSD: 940.00, change1dPct: 0.00 },
+      { id: 'h-unh', ticker: 'UNH', name: 'UnitedHealth Group', shares: 0.00, avgCostUSD: 540.00, currentPriceUSD: 550.00, change1dPct: 0.00 },
+      { id: 'h-hd', ticker: 'HD', name: 'Home Depot Inc.', shares: 0.00, avgCostUSD: 360.00, currentPriceUSD: 365.00, change1dPct: 0.00 },
+      { id: 'h-mcd', ticker: 'MCD', name: 'McDonald\'s Corp.', shares: 0.00, avgCostUSD: 280.00, currentPriceUSD: 285.00, change1dPct: 0.00 }
+    ]
+  },
+  {
+    id: 'zero5',
+    name: 'Zero 5 (บ้าน)',
+    emoji: '⛺',
+    color: '#eab308',
+    category: 'Asset',
+    tier: 'Tier 3',
+    goalUSD: 46026.00,
+    cashBufferUSD: 9205.00,
+    notes: 'เป้าหมายระยะกลางสำหรับที่อยู่อาศัย • Cash Buffer = 300,000 ฿',
+    logo: 'assets/foliologo/zero5.png',
+    holdings: [
+      { id: 'h-tsm', ticker: 'TSM', name: 'Taiwan Semiconductor (TSMC)', shares: 0.00, avgCostUSD: 165.00, currentPriceUSD: 172.00, change1dPct: 0.00 },
+      { id: 'h-asml', ticker: 'ASML', name: 'ASML Holding N.V.', shares: 0.00, avgCostUSD: 850.00, currentPriceUSD: 880.00, change1dPct: 0.00 },
+      { id: 'h-amd', ticker: 'AMD', name: 'Advanced Micro Devices', shares: 0.00, avgCostUSD: 145.00, currentPriceUSD: 150.00, change1dPct: 0.00 },
+      { id: 'h-bwxt', ticker: 'BWXT', name: 'BWX Technologies', shares: 0.00, avgCostUSD: 95.00, currentPriceUSD: 98.00, change1dPct: 0.00 },
+      { id: 'h-spgi', ticker: 'SPGI', name: 'S&P Global Inc.', shares: 0.00, avgCostUSD: 480.00, currentPriceUSD: 490.00, change1dPct: 0.00 },
+      { id: 'h-lmt', ticker: 'LMT', name: 'Lockheed Martin Corp.', shares: 0.00, avgCostUSD: 540.00, currentPriceUSD: 555.00, change1dPct: 0.00 }
+    ]
+  },
+  {
+    id: 'us_dividend',
+    name: 'US Dividend Yield',
+    emoji: '💰',
+    color: '#10b981',
+    category: 'Global Stock',
+    tier: 'Tier 4',
+    goalUSD: 9205.00,
+    cashBufferUSD: 613.68,
+    notes: 'ปันผลสม่ำเสมอ ลดความเสี่ยงค่าเงิน • PG, KO, PEP, AVGO, CVX',
+    logo: 'assets/foliologo/usdividentyield.png',
+    holdings: [
+      { id: 'h-pg', ticker: 'PG', name: 'Procter & Gamble Co.', shares: 0.65, avgCostUSD: 162.00, currentPriceUSD: 168.40, change1dPct: 0.30 },
+      { id: 'h-cvx', ticker: 'CVX', name: 'Chevron Corporation', shares: 0.12, avgCostUSD: 148.00, currentPriceUSD: 152.00, change1dPct: -0.40 },
+      { id: 'h-ko', ticker: 'KO', name: 'Coca-Cola Company', shares: 0.00, avgCostUSD: 68.00, currentPriceUSD: 69.50, change1dPct: 0.00 },
+      { id: 'h-pep', ticker: 'PEP', name: 'PepsiCo Inc.', shares: 0.00, avgCostUSD: 170.00, currentPriceUSD: 172.00, change1dPct: 0.00 },
+      { id: 'h-avgo', ticker: 'AVGO', name: 'Broadcom Inc.', shares: 0.00, avgCostUSD: 160.00, currentPriceUSD: 165.00, change1dPct: 0.00 }
+    ]
+  },
+  {
+    id: 'thai_dividend',
+    name: 'THAI Dividend',
+    emoji: '🇹🇭',
+    color: '#6366f1',
+    category: 'Thai Stock',
+    tier: 'Tier 4',
+    goalUSD: 3068.00,
+    cashBufferUSD: 306.84,
+    notes: 'เน้นกระแสเงินสดจากปันผลในประเทศ • ADVANC, SCB, PTT, DIF, WHART',
+    logo: 'assets/foliologo/thaidivident.png',
+    holdings: [
+      { id: 'h-advanc', ticker: 'ADVANC.BK', name: 'Advanced Info Service', shares: 0.00, avgCostUSD: 7.20, currentPriceUSD: 7.30, change1dPct: 0.00 },
+      { id: 'h-scb', ticker: 'SCB.BK', name: 'SCB X Public Company', shares: 0.00, avgCostUSD: 3.10, currentPriceUSD: 3.15, change1dPct: 0.00 },
+      { id: 'h-ptt', ticker: 'PTT.BK', name: 'PTT Public Company', shares: 0.00, avgCostUSD: 0.95, currentPriceUSD: 0.98, change1dPct: 0.00 },
+      { id: 'h-dif', ticker: 'DIF.BK', name: 'Digital Telecom Infra Fund', shares: 0.00, avgCostUSD: 0.22, currentPriceUSD: 0.23, change1dPct: 0.00 },
+      { id: 'h-whart', ticker: 'WHART.BK', name: 'WHA Premium Growth Freehold', shares: 0.00, avgCostUSD: 0.28, currentPriceUSD: 0.29, change1dPct: 0.00 }
+    ]
+  },
+  {
+    id: 'next_gen',
+    name: 'NEXT GEN (หุ้นเติบโต)',
+    emoji: '🚀',
+    color: '#f97316',
+    category: 'Growth Stock',
+    tier: 'Tier 5',
+    goalUSD: 15000.00,
+    cashBufferUSD: 500.00,
+    notes: 'พอร์ตซิ่ง ดุดัน ไม่เกรงใจใคร โตระยะยาว • DE, GEV, ISRG, NU, VOO',
+    logo: 'assets/foliologo/nextgen.png',
+    holdings: [
+      { id: 'h-nu', ticker: 'NU', name: 'Nu Holdings Ltd.', shares: 14.50, avgCostUSD: 12.20, currentPriceUSD: 14.80, change1dPct: 1.80 },
+      { id: 'h-voo', ticker: 'VOO', name: 'Vanguard S&P 500 ETF', shares: 0.00, avgCostUSD: 510.00, currentPriceUSD: 520.00, change1dPct: 0.00 },
+      { id: 'h-de', ticker: 'DE', name: 'Deere & Company', shares: 0.00, avgCostUSD: 380.00, currentPriceUSD: 390.00, change1dPct: 0.00 },
+      { id: 'h-gev', ticker: 'GEV', name: 'GE Vernova Inc.', shares: 0.00, avgCostUSD: 240.00, currentPriceUSD: 255.00, change1dPct: 0.00 },
+      { id: 'h-isrg', ticker: 'ISRG', name: 'Intuitive Surgical', shares: 0.00, avgCostUSD: 460.00, currentPriceUSD: 475.00, change1dPct: 0.00 }
+    ]
+  },
+  {
+    id: 'crypto',
+    name: 'Crypto (สินทรัพย์ทางเลือก)',
+    emoji: '🪙',
+    color: '#f59e0b',
+    category: 'Crypto',
+    tier: 'Tier 5',
+    goalUSD: 5000.00,
+    cashBufferUSD: 100.00,
+    notes: 'สินทรัพย์ดิจิทัลและเก็งกำไร • BTC, BNB, ETH',
+    logo: 'assets/foliologo/crypto.png',
+    holdings: [
+      { id: 'h-btc', ticker: 'BTC', name: 'Bitcoin', shares: 0.0015, avgCostUSD: 62000.00, currentPriceUSD: 64500.00, change1dPct: 1.40 },
+      { id: 'h-eth', ticker: 'ETH', name: 'Ethereum', shares: 0.025, avgCostUSD: 3100.00, currentPriceUSD: 3350.00, change1dPct: 2.10 },
+      { id: 'h-bnb', ticker: 'BNB', name: 'BNB Token', shares: 0.00, avgCostUSD: 550.00, currentPriceUSD: 580.00, change1dPct: 0.00 }
+    ]
+  }
 ];
 
-const INITIAL_QUARTERLY_RECORDS = [
-  { id: 'q-1', portfolioId: '4', year: 2025, q1: 600000, q2: 680000, q3: 750000, q4: 820000, notes: 'ภาพรวมพอร์ตเกษียณเติบโตขึ้นตามเป้าหมาย' },
-  { id: 'q-2', portfolioId: '7', year: 2025, q1: 90000, q2: 100000, q3: 110000, q4: 118000, notes: 'ปันผลสะสมต่อเนื่อง ได้รับอานิสงส์จากหุ้นกลุ่มการเงินโลก' },
-  { id: 'q-3', portfolioId: '8', year: 2025, q1: 50000, q2: 55000, q3: 58000, q4: 62000, notes: 'สภาวะตลาดไทยค่อนข้างผันผวนแต่ปันผลยังคงสม่ำเสมอ' },
-  { id: 'q-4', portfolioId: '9', year: 2025, q1: 3000000, q2: 3500000, q3: 4000000, q4: 4300000, notes: 'DCA หุ้นเทคฯ อย่างเข้มงวดทุกวันที่ 25' }
+// Default Monthly Forex & Option Trading Snapshots
+const INITIAL_TRADING_DATA = {
+  forex_life: {
+    name: 'FOREX LIFE',
+    monthlyBalances: [
+      { year: 2026, month: 6, balanceUSD: 100.00, note: 'เทรดกระแสเงินสด EURUSD' },
+      { year: 2026, month: 7, balanceUSD: 120.00, note: 'รันเทรนด์ช่วงตลาดเปิดลอนดอน' },
+      { year: 2026, month: 8, balanceUSD: 145.00, note: 'ยอดล่าสุดปัจจุบัน' }
+    ]
+  },
+  forex_bottrade: {
+    name: 'FOREX BOTTRADE (RISK)',
+    monthlyBalances: [
+      { year: 2026, month: 6, balanceUSD: 50.00, note: 'รันบอท Gold XAUUSD เสี่ยงสูง' },
+      { year: 2026, month: 7, balanceUSD: 65.00, note: 'เก็บกำไรตามรอบ' },
+      { year: 2026, month: 8, balanceUSD: 80.00, note: 'ยอดล่าสุดปัจจุบัน' }
+    ]
+  },
+  option: {
+    name: 'OPTION TRADING',
+    monthlyBalances: [
+      { year: 2026, month: 6, balanceUSD: 80.00, note: 'กลยุทธ์ Iron Condor' },
+      { year: 2026, month: 7, balanceUSD: 95.00, note: 'รับพรีเมียมรายสัปดาห์' },
+      { year: 2026, month: 8, balanceUSD: 110.00, note: 'ยอดล่าสุดปัจจุบัน' }
+    ]
+  }
+};
+
+// Default Quarterly Snapshots
+const INITIAL_QUARTERLY_DATA = [
+  {
+    year: 2026,
+    quarter: 'Q1',
+    date: '2026-03-31',
+    exchangeRate: 32.50,
+    portValuesUSD: {
+      zero1: 152.90,
+      zero2: 86.00,
+      zero3: 351.57,
+      zero4: 0.00,
+      zero5: 0.00,
+      us_dividend: 118.52,
+      thai_dividend: 0.00,
+      next_gen: 205.31,
+      crypto: 50.00,
+      forex_life: 80.00,
+      forex_bottrade: 40.00,
+      option: 60.00
+    },
+    totalUSD: 1144.30,
+    notes: 'สรุปผลงานไตรมาสแรก 2026'
+  },
+  {
+    year: 2026,
+    quarter: 'Q2',
+    date: '2026-06-30',
+    exchangeRate: 32.59,
+    portValuesUSD: {
+      zero1: 140.90,
+      zero2: 85.68,
+      zero3: 381.54,
+      zero4: 0.00,
+      zero5: 0.00,
+      us_dividend: 123.35,
+      thai_dividend: 0.00,
+      next_gen: 200.37,
+      crypto: 65.00,
+      forex_life: 100.00,
+      forex_bottrade: 50.00,
+      option: 80.00
+    },
+    totalUSD: 1226.84,
+    notes: 'สรุปผลงานไตรมาส 2'
+  }
 ];
 
-const INITIAL_MONTHLY_RECORDS = [
-  { id: 'm-1', portfolioId: '10', year: 2025, month: 10, profitLossUSD: 450, notes: 'เทรดคู่ EURUSD รันเทรนดสวยงาม' },
-  { id: 'm-2', portfolioId: '10', year: 2025, month: 11, profitLossUSD: 520, notes: 'ตลาดเคลื่อนไหวตามกรอบ Sideway' },
-  { id: 'm-3', portfolioId: '10', year: 2025, month: 12, profitLossUSD: -120, notes: 'มีโดน Stop Loss ปลายปีเนื่องจากปริมาณการซื้อขายเบาบาง' },
-  { id: 'm-4', portfolioId: '11', year: 2025, month: 10, profitLossUSD: 180, notes: 'เทรดทองคำ (XAUUSD) เสี่ยงสูง' },
-  { id: 'm-5', portfolioId: '11', year: 2025, month: 11, profitLossUSD: -90, notes: 'ล้างพอร์ทย่อยบางส่วนแต่กู้คืนมาได้' },
-  { id: 'm-6', portfolioId: '11', year: 2025, month: 12, profitLossUSD: 310, notes: 'ได้ไม้สไนเปอร์ช่วง FOMC' },
-  { id: 'm-7', portfolioId: '12', year: 2025, month: 10, profitLossUSD: 280, notes: 'Hedging ค่าเงินด้วย Option' },
-  { id: 'm-8', portfolioId: '12', year: 2025, month: 11, profitLossUSD: 340, notes: 'กลยุทธ์ Iron Condor ได้พรีเมียมเต็ม' },
-  { id: 'm-9', portfolioId: '12', year: 2025, month: 12, profitLossUSD: -80, notes: 'โดนสควีซช่วงสิ้นปี' }
+// Default Dividend Records
+const INITIAL_DIVIDENDS = [
+  { id: 'div-1', date: '2026-05-15', ticker: 'PG', portfolioId: 'us_dividend', grossUSD: 8.50, taxUSD: 1.28, netUSD: 7.22, notes: 'ปันผล Q1/2026' },
+  { id: 'div-2', date: '2026-06-20', ticker: 'NVDA', portfolioId: 'zero2', grossUSD: 1.20, taxUSD: 0.18, netUSD: 1.02, notes: 'ปันผล Q2/2026' },
+  { id: 'div-3', date: '2026-07-10', ticker: 'MSFT', portfolioId: 'zero1', grossUSD: 3.40, taxUSD: 0.51, netUSD: 2.89, notes: 'ปันผลประจำไตรมาส' }
 ];
 
+// --- 3. MAIN APPLICATION CLASS ---
 class PixelStewardApp {
   constructor() {
     this.portfolios = [];
-    this.quarterlyRecords = [];
-    this.monthlyRecords = [];
-    this.dividendRecords = [];
-    this.exchangeRate = 36.5;
-    this.activeTab = 'dashboard';
-    this.selectedPortId = '1';
+    this.tradingData = {};
+    this.quarterlySnapshots = [];
+    this.dividends = [];
+    this.exchangeRate = 32.59;
+    this.displayCurrency = 'USD'; // 'USD' or 'THB'
+    this.currentTab = 'dashboard';
+    this.selectedPortfolioId = 'zero1';
+    
+    // Firebase & Sync State
+    this.dbRef = null;
+    this.isFirebaseOnline = false;
+    this.charts = {};
+
     this.init();
   }
 
-  formatMoney(val, category) {
-    const isUSD = ['Forex', 'Option'].includes(category);
-    return (isUSD ? '$' : '฿') + Number(val).toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 2 });
+  async init() {
+    this.initFirebase();
+    this.loadLocalData();
+    this.setupEventListeners();
+    this.setupModals();
+    this.renderActiveTab();
+    this.fetchLiveExchangeRate();
+    this.registerPWA();
   }
 
-  init() {
-    const storedPorts = localStorage.getItem('ps_portfolios_v2');
-    const storedQuarters = localStorage.getItem('ps_quarterly_v2');
-    const storedMonthlies = localStorage.getItem('ps_monthly_v2');
-    const storedDividends = localStorage.getItem('ps_dividends_v2');
-    const storedRate = localStorage.getItem('ps_ex_rate_v2');
+  // --- FIREBASE INITIALIZATION & REALTIME SYNC ---
+  initFirebase() {
+    if (typeof firebase !== 'undefined') {
+      try {
+        if (!firebase.apps.length) {
+          firebase.initializeApp(firebaseConfig);
+        }
+        this.db = firebase.database();
+        this.dbRef = this.db.ref('pixel_steward_data');
 
-    this.portfolios = storedPorts ? JSON.parse(storedPorts) : INITIAL_PORTFOLIOS;
-    this.quarterlyRecords = storedQuarters ? JSON.parse(storedQuarters) : INITIAL_QUARTERLY_RECORDS;
-    this.monthlyRecords = storedMonthlies ? JSON.parse(storedMonthlies) : INITIAL_MONTHLY_RECORDS;
-    this.dividendRecords = storedDividends ? JSON.parse(storedDividends) : [];
-    this.exchangeRate = storedRate ? Number(storedRate) : 36.5;
+        // Realtime Listener
+        this.dbRef.on('value', (snapshot) => {
+          const cloudData = snapshot.val();
+          if (cloudData) {
+            this.handleCloudSync(cloudData);
+          } else {
+            // First time sync -> push defaults
+            this.pushDataToCloud();
+          }
+          this.setCloudStatus('online', 'Cloud Synced');
+        }, (error) => {
+          console.warn('Firebase sync error:', error);
+          this.setCloudStatus('offline', 'Offline Mode');
+        });
 
-    if (isFirebaseActive) this.connectCloudDatabase();
+        this.isFirebaseOnline = true;
+      } catch (e) {
+        console.error('Firebase setup failed:', e);
+        this.setCloudStatus('offline', 'Offline Mode');
+      }
+    } else {
+      this.setCloudStatus('offline', 'Offline Mode');
+    }
+  }
 
-    const rateInput = document.getElementById('global-usd-rate');
-    if (rateInput) {
-      rateInput.value = this.exchangeRate;
-      rateInput.addEventListener('input', (e) => {
-        const val = Number(e.target.value);
-        if (val > 0) {
-          this.exchangeRate = val;
-          this.saveState();
-          this.refreshUI();
+  setCloudStatus(status, text) {
+    const indicator = document.getElementById('cloud-indicator');
+    const textEl = document.getElementById('cloud-status-text');
+    if (indicator && textEl) {
+      indicator.querySelector('.status-dot').className = `status-dot ${status}`;
+      textEl.textContent = text;
+    }
+  }
+
+  loadLocalData() {
+    try {
+      const saved = localStorage.getItem('pixel_steward_data_v2');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        this.portfolios = parsed.portfolios || INITIAL_PORTFOLIOS;
+        this.tradingData = parsed.tradingData || INITIAL_TRADING_DATA;
+        this.quarterlySnapshots = parsed.quarterlySnapshots || INITIAL_QUARTERLY_DATA;
+        this.dividends = parsed.dividends || INITIAL_DIVIDENDS;
+        this.exchangeRate = parsed.exchangeRate || 32.59;
+      } else {
+        this.portfolios = JSON.parse(JSON.stringify(INITIAL_PORTFOLIOS));
+        this.tradingData = JSON.parse(JSON.stringify(INITIAL_TRADING_DATA));
+        this.quarterlySnapshots = JSON.parse(JSON.stringify(INITIAL_QUARTERLY_DATA));
+        this.dividends = JSON.parse(JSON.stringify(INITIAL_DIVIDENDS));
+      }
+    } catch (e) {
+      console.warn('Failed to load localStorage:', e);
+      this.portfolios = JSON.parse(JSON.stringify(INITIAL_PORTFOLIOS));
+      this.tradingData = JSON.parse(JSON.stringify(INITIAL_TRADING_DATA));
+      this.quarterlySnapshots = JSON.parse(JSON.stringify(INITIAL_QUARTERLY_DATA));
+      this.dividends = JSON.parse(JSON.stringify(INITIAL_DIVIDENDS));
+    }
+
+    // Always sanitize to ensure RedWing is completely removed
+    this.portfolios = this.portfolios.filter(p => p.id !== 'redwing' && !p.name.includes('RedWing'));
+    this.updateSidebarFxRate();
+  }
+
+  saveData() {
+    // Sanitize RedWing
+    this.portfolios = this.portfolios.filter(p => p.id !== 'redwing' && !p.name.includes('RedWing'));
+
+    const payload = {
+      portfolios: this.portfolios,
+      tradingData: this.tradingData,
+      quarterlySnapshots: this.quarterlySnapshots,
+      dividends: this.dividends,
+      exchangeRate: this.exchangeRate,
+      lastUpdated: new Date().toISOString()
+    };
+
+    localStorage.setItem('pixel_steward_data_v2', JSON.stringify(payload));
+
+    if (this.isFirebaseOnline && this.dbRef) {
+      this.setCloudStatus('syncing', 'Syncing...');
+      this.dbRef.set(payload)
+        .then(() => {
+          this.setCloudStatus('online', 'Cloud Synced');
+        })
+        .catch(err => {
+          console.error('Firebase save error:', err);
+          this.setCloudStatus('offline', 'Offline (Saved Local)');
+        });
+    }
+
+    this.renderActiveTab();
+  }
+
+  handleCloudSync(cloudData) {
+    if (cloudData.portfolios) {
+      this.portfolios = cloudData.portfolios.filter(p => p.id !== 'redwing' && !p.name.includes('RedWing'));
+    }
+    if (cloudData.tradingData) this.tradingData = cloudData.tradingData;
+    if (cloudData.quarterlySnapshots) this.quarterlySnapshots = cloudData.quarterlySnapshots;
+    if (cloudData.dividends) this.dividends = cloudData.dividends;
+    if (cloudData.exchangeRate) this.exchangeRate = cloudData.exchangeRate;
+
+    localStorage.setItem('pixel_steward_data_v2', JSON.stringify(cloudData));
+    this.updateSidebarFxRate();
+    this.renderActiveTab();
+  }
+
+  pushDataToCloud() {
+    this.saveData();
+  }
+
+  // --- CURRENCY & FORMATTING HELPERS ---
+  usdToThb(usdVal) {
+    return (usdVal || 0) * this.exchangeRate;
+  }
+
+  thbToUsd(thbVal) {
+    return (thbVal || 0) / (this.exchangeRate || 32.59);
+  }
+
+  formatUSD(num) {
+    return '$' + (num || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  }
+
+  formatTHB(num) {
+    return '฿' + (num || 0).toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  }
+
+  formatDual(usdVal, forcePrimary = null) {
+    const primaryMode = forcePrimary || this.displayCurrency;
+    const usdStr = this.formatUSD(usdVal);
+    const thbStr = this.formatTHB(this.usdToThb(usdVal));
+    if (primaryMode === 'USD') {
+      return { main: usdStr, sub: `≈ ${thbStr}` };
+    } else {
+      return { main: thbStr, sub: `≈ ${usdStr}` };
+    }
+  }
+
+  formatPercent(pct) {
+    const p = pct || 0;
+    const sign = p > 0 ? '+' : '';
+    return `${sign}${p.toFixed(2)}%`;
+  }
+
+  updateSidebarFxRate() {
+    const fxEl = document.getElementById('sidebar-fx-rate');
+    if (fxEl) fxEl.textContent = this.exchangeRate.toFixed(2);
+    const inputFx = document.getElementById('input-fx-rate');
+    if (inputFx) inputFx.value = this.exchangeRate.toFixed(2);
+  }
+
+  // --- CALCULATIONS: HOLDING, PORTFOLIO & TOTAL NET WORTH ---
+  calculateHoldingStats(h) {
+    const shares = parseFloat(h.shares) || 0;
+    const avgCost = parseFloat(h.avgCostUSD) || 0;
+    const currentPrice = parseFloat(h.currentPriceUSD) || avgCost || 0;
+    const change1d = parseFloat(h.change1dPct) || 0;
+
+    const totalCostUSD = shares * avgCost;
+    const marketValueUSD = shares * currentPrice;
+    const unrealizedPLUSD = marketValueUSD - totalCostUSD;
+    const unrealizedPLPct = totalCostUSD > 0 ? (unrealizedPLUSD / totalCostUSD) * 100 : 0;
+    const marketValueTHB = this.usdToThb(marketValueUSD);
+    const unrealizedPLTHB = this.usdToThb(unrealizedPLUSD);
+
+    return {
+      shares,
+      avgCost,
+      currentPrice,
+      change1d,
+      totalCostUSD,
+      marketValueUSD,
+      unrealizedPLUSD,
+      unrealizedPLPct,
+      marketValueTHB,
+      unrealizedPLTHB
+    };
+  }
+
+  calculatePortfolioStats(port) {
+    let holdingsTotalUSD = 0;
+    let holdingsCostUSD = 0;
+    let weighted1dSum = 0;
+    const holdings = port.holdings || [];
+
+    holdings.forEach(h => {
+      const stats = this.calculateHoldingStats(h);
+      holdingsTotalUSD += stats.marketValueUSD;
+      holdingsCostUSD += stats.totalCostUSD;
+      weighted1dSum += (stats.marketValueUSD * stats.change1d);
+    });
+
+    const cashBufferUSD = parseFloat(port.cashBufferUSD) || 0;
+    const totalValueUSD = holdingsTotalUSD + cashBufferUSD;
+    const totalCostUSD = holdingsCostUSD + cashBufferUSD;
+    const totalPLUSD = totalValueUSD - totalCostUSD;
+    const totalPLPct = holdingsCostUSD > 0 ? ((holdingsTotalUSD - holdingsCostUSD) / holdingsCostUSD) * 100 : 0;
+    const avg1dChangePct = holdingsTotalUSD > 0 ? (weighted1dSum / holdingsTotalUSD) : 0;
+    const goalUSD = parseFloat(port.goalUSD) || 1;
+    const goalProgressPct = Math.min(100, Math.max(0, (totalValueUSD / goalUSD) * 100));
+
+    return {
+      holdingsTotalUSD,
+      holdingsCostUSD,
+      cashBufferUSD,
+      totalValueUSD,
+      totalCostUSD,
+      totalPLUSD,
+      totalPLPct,
+      avg1dChangePct,
+      goalUSD,
+      goalProgressPct,
+      assetCount: holdings.filter(h => (parseFloat(h.shares) || 0) > 0).length,
+      totalAssetsListed: holdings.length
+    };
+  }
+
+  getTradingLatestBalances() {
+    let totalTradingUSD = 0;
+    const balances = {};
+    for (const [key, item] of Object.entries(this.tradingData || {})) {
+      const list = item.monthlyBalances || [];
+      const latest = list.length > 0 ? list[list.length - 1].balanceUSD : 0;
+      balances[key] = latest;
+      totalTradingUSD += latest;
+    }
+    return { balances, totalTradingUSD };
+  }
+
+  calculateGrandTotalStats() {
+    let totalStocksUSD = 0;
+    let totalCashBufferUSD = 0;
+    let totalStockCostUSD = 0;
+    let weighted1dSum = 0;
+
+    this.portfolios.forEach(p => {
+      const stats = this.calculatePortfolioStats(p);
+      totalStocksUSD += stats.holdingsTotalUSD;
+      totalCashBufferUSD += stats.cashBufferUSD;
+      totalStockCostUSD += stats.holdingsCostUSD;
+      weighted1dSum += (stats.holdingsTotalUSD * stats.avg1dChangePct);
+    });
+
+    const { totalTradingUSD } = this.getTradingLatestBalances();
+    const grandTotalUSD = totalStocksUSD + totalCashBufferUSD + totalTradingUSD;
+    const grandTotalTHB = this.usdToThb(grandTotalUSD);
+    const avg1dChangePct = totalStocksUSD > 0 ? (weighted1dSum / totalStocksUSD) : 0;
+    const totalPLUSD = totalStocksUSD - totalStockCostUSD;
+    const totalPLPct = totalStockCostUSD > 0 ? (totalPLUSD / totalStockCostUSD) * 100 : 0;
+
+    return {
+      grandTotalUSD,
+      grandTotalTHB,
+      totalStocksUSD,
+      totalCashBufferUSD,
+      totalTradingUSD,
+      avg1dChangePct,
+      totalPLUSD,
+      totalPLPct
+    };
+  }
+
+  // --- LIVE MARKET DATA FETCHER ---
+  async fetchLiveExchangeRate() {
+    try {
+      const res = await fetch('https://open.er-api.com/v6/latest/USD');
+      if (res.ok) {
+        const data = await res.json();
+        if (data && data.rates && data.rates.THB) {
+          this.exchangeRate = parseFloat(data.rates.THB);
+          this.updateSidebarFxRate();
+          this.renderActiveTab();
+        }
+      }
+    } catch (e) {
+      console.warn('Live FX fetch failed, using stored rate:', e);
+    }
+  }
+
+  async syncLiveMarketPrices() {
+    const btnTop = document.getElementById('btn-sync-market-top');
+    const btnSide = document.getElementById('btn-sync-market-desktop');
+    if (btnTop) btnTop.classList.add('spinning');
+
+    // Collect all unique stock tickers
+    const tickers = new Set();
+    this.portfolios.forEach(p => {
+      (p.holdings || []).forEach(h => {
+        if (h.ticker && !h.ticker.includes('KEPT') && !h.ticker.includes('กอช')) {
+          tickers.add(h.ticker.trim().toUpperCase());
         }
       });
-    }
-
-    document.getElementById('btn-add-portfolio').addEventListener('click', () => this.openPortfolioModal());
-    document.getElementById('btn-quick-transfer').addEventListener('click', () => this.openTransferModal());
-
-    document.querySelectorAll('.nav-menu .nav-item').forEach(item => {
-      item.addEventListener('click', (e) => {
-        const btn = e.currentTarget;
-        document.querySelectorAll('.nav-menu .nav-item').forEach(n => n.classList.remove('active'));
-        btn.classList.add('active');
-        this.activeTab = btn.dataset.tab;
-        this.refreshUI();
-      });
     });
 
-    document.querySelectorAll('.btn-close-modal').forEach(btn => {
-      btn.addEventListener('click', () => this.closeModals());
-    });
-
-    this.refreshUI();
-  }
-
-  connectCloudDatabase() {
-    const dbRef = firebase.database().ref('pixel_steward_data');
-    dbRef.on('value', (snapshot) => {
-      const data = snapshot.val();
-      if (data) {
-        if (data.portfolios) this.portfolios = data.portfolios;
-        if (data.quarterlyRecords) this.quarterlyRecords = data.quarterlyRecords;
-        if (data.monthlyRecords) this.monthlyRecords = data.monthlyRecords;
-        if (data.dividendRecords) this.dividendRecords = data.dividendRecords;
-        if (data.exchangeRate) this.exchangeRate = data.exchangeRate;
-        this.refreshUI();
-      }
-    });
-  }
-
-  syncStateToCloud() {
-    if (!isFirebaseActive) return;
-    firebase.database().ref('pixel_steward_data').set({
-      portfolios: this.portfolios, quarterlyRecords: this.quarterlyRecords,
-      monthlyRecords: this.monthlyRecords, dividendRecords: this.dividendRecords, exchangeRate: this.exchangeRate
-    });
-  }
-
-  saveState() {
-    localStorage.setItem('ps_portfolios_v2', JSON.stringify(this.portfolios));
-    localStorage.setItem('ps_quarterly_v2', JSON.stringify(this.quarterlyRecords));
-    localStorage.setItem('ps_monthly_v2', JSON.stringify(this.monthlyRecords));
-    localStorage.setItem('ps_dividends_v2', JSON.stringify(this.dividendRecords));
-    localStorage.setItem('ps_ex_rate_v2', this.exchangeRate.toString());
-    this.syncStateToCloud();
-  }
-
-  getCalculations() {
-    let totalTHB = 0, totalUSD = 0, totalCashBufferTHB = 0, totalDryPowderTHB = 0;
-    this.portfolios.forEach(p => {
-      const isUSD = ['Forex', 'Option'].includes(p.category);
-      if (isUSD) {
-        totalUSD += p.current;
-        totalCashBufferTHB += p.cashBuffer * this.exchangeRate;
-        totalDryPowderTHB += p.dryPowder * this.exchangeRate;
-      } else {
-        totalTHB += p.current;
-        totalCashBufferTHB += p.cashBuffer;
-        totalDryPowderTHB += p.dryPowder;
-      }
-    });
-    const netWorthTHB = totalTHB + (totalUSD * this.exchangeRate) + totalCashBufferTHB;
-    return { netWorthTHB, netWorthUSD: netWorthTHB / this.exchangeRate, totalTHB, totalUSD, totalCashBufferTHB, totalDryPowderTHB };
-  }
-
-  // --- 🏅 ระบบเกณฑ์คำนวณยศและ Rank ดั้งเดิม ---
-  getPortfolioLevel(p) {
-    if (p.goalType === 'schedule') {
-      return { icon: p.dcaDoneThisMonth ? '🔥' : '⏳', label: p.dcaDoneThisMonth ? 'DCA เดือนนี้เรียบร้อย' : 'รอบรรลุการ DCA', desc: 'สะสมแต้มพลังบวกรายเดือน', pct: p.dcaDoneThisMonth ? 100 : 0 };
-    }
-    const pct = p.goal > 0 ? ((p.current + p.cashBuffer) / p.goal) * 100 : 0;
-    const nameLower = p.name.toLowerCase();
-
-    if (nameLower.includes('บ้าน') || nameLower.includes('house') || nameLower.includes('zero 5')) {
-      if (pct >= 80) return { icon: '🏰', label: 'วิหารทองคำ', desc: 'ปลดล็อกสกินขอบทองขั้นสุดยอด!', pct };
-      if (pct >= 40) return { icon: '🏡', label: 'บ้านโมเดิร์น', desc: 'ฐานรากมั่นคง คอนกรีตเสริมเหล็ก', pct };
-      return { icon: '⛺', label: 'กระต๊อบ', desc: 'เพิ่งปักหลักเข็มเสร็จเลเวล 1', pct };
-    }
-    if (nameLower.includes('รถ') || nameLower.includes('car') || nameLower.includes('zero 2')) {
-      if (pct >= 80) return { icon: '🏎️', label: 'ซูเปอร์คาร์', desc: 'ซิ่งแซงหน้าความจน!', pct };
-      if (pct >= 40) return { icon: '🚗', label: 'รถเก๋ง', desc: 'เดินทางอุ่นใจสไตล์ครอบครัว', pct };
-      return { icon: '🚲', label: 'จักรยาน', desc: 'เริ่มปั่นชิวสะสมไมล์', pct };
-    }
-    if (nameLower.includes('แต่งงาน') || nameLower.includes('wedding') || nameLower.includes('zero 4')) {
-      if (pct >= 80) return { icon: '👑', label: 'มงกุฎราชา', desc: 'งานแต่งในฝันดั่งนิยายกรีก', pct };
-      if (pct >= 40) return { icon: '💍', label: 'แหวนแต่งงาน', desc: 'เควสหัวใจเริ่มสว่างสดใส', pct };
-      return { icon: '🌸', label: 'ดอกไม้', desc: 'จุดเริ่มต้นความสัมพันธ์ที่งดงาม', pct };
-    }
-    if (nameLower.includes('เกษียณ') || nameLower.includes('retirement') || nameLower.includes('zero 3')) {
-      if (pct >= 80) return { icon: '🏛️', label: 'วิหารทวยเทพ', desc: 'เสถียรสถาพร นั่งชิวสวรรค์ชั้นฟ้า', pct };
-      if (pct >= 40) return { icon: '🔱', label: 'ป้อมปราการ', desc: 'สร้างกองทุนรับเงินปันผลรายสัปดาห์', pct };
-      return { icon: '🪵', label: 'กองฟืนเก้าอี้โยก', desc: 'สะสมฟืนรอความอบอุ่นยามชรา', pct };
-    }
-    if (pct >= 80) return { icon: '⚔️', label: 'มหาอัศวินขุมทรัพย์', desc: 'กองทัพการเงินมีกำลังมหาศาล!', pct };
-    if (pct >= 40) return { icon: '🛡️', label: 'นักรบพิทักษ์เหรียญ', desc: 'มีโล่ป้องกัน ความเสี่ยงลดลง', pct };
-    return { icon: '🐣', label: 'มอนสเตอร์เลเวล 1', desc: 'กำลังฝึกฝนวิทยายุทธ์ฟาร์มเงินสด', pct };
-  }
-
-  getNextRankPreview(p) {
-    if (p.goalType === 'schedule') return `🔮 ขั้นต่อไป: รักษาวินัยการลงทุนในเดือนถัดไป!`;
-    const pct = p.goal > 0 ? ((p.current + p.cashBuffer) / p.goal) * 100 : 0;
-    const nameLower = p.name.toLowerCase();
-    let nextIcon = '🛡️', nextLabel = 'นักรบพิทักษ์เหรียญ', targetPct = 40;
-
-    if (pct < 40) {
-      if (nameLower.includes('บ้าน')) { nextIcon = '🏡'; nextLabel = 'บ้านโมเดิร์น'; }
-      else if (nameLower.includes('รถ')) { nextIcon = '🚗'; nextLabel = 'รถเก๋ง'; }
-      else if (nameLower.includes('แต่งงาน')) { nextIcon = '💍'; nextLabel = 'แหวนแต่งงาน'; }
-      else if (nameLower.includes('เกษียณ')) { nextIcon = '🔱'; nextLabel = 'ป้อมปราการ'; }
-    } else if (pct < 80) {
-      targetPct = 80;
-      if (nameLower.includes('บ้าน')) { nextIcon = '🏰'; nextLabel = 'วิหารทองคำ'; }
-      else if (nameLower.includes('รถ')) { nextIcon = '🏎️'; nextLabel = 'ซูเปอร์คาร์'; }
-      else if (nameLower.includes('แต่งงาน')) { nextIcon = '👑'; nextLabel = 'มงกุฎราชา'; }
-      else if (nameLower.includes('เกษียณ')) { nextIcon = '🏛️'; nextLabel = 'วิหารทวยเทพ'; }
-      else { nextIcon = '⚔️'; nextLabel = 'มหาอัศวินขุมทรัพย์'; }
-    } else {
-      return `🏆 เลเวลสูงสุดขอบทองทองแล้ว!`;
-    }
-    const neededVal = ((targetPct / 100) * p.goal) - (p.current + p.cashBuffer);
-    return `🔮 ขั้นต่อไป: ${nextIcon} ${nextLabel}<br><span style="font-size:0.75rem; color:var(--color-text-muted);">สะสมอีกประมาณ ${this.formatMoney(neededVal, p.category)} เพื่อเลเวลอัป!</span>`;
-  }
-
-  refreshUI() {
-    const tabContent = document.getElementById('tab-content');
-    if (!tabContent) return;
-    tabContent.innerHTML = '';
-
-    switch (this.activeTab) {
-      case 'dashboard': this.renderDashboard(tabContent); break;
-      case 'portfolios': this.renderPortfolios(tabContent); break;
-      case 'quarterly': this.renderQuarterly(tabContent); break;
-      case 'dividends': this.renderDividends(tabContent); break;
-      case 'forex':
-        tabContent.innerHTML = '<div class="border-pixel" style="padding:20px;">📊 โมดูลเชื่อมต่อประวัติการเทรด Forex จาก Retro Trading Journal กำลังแสตนด์บายคู่ขนาน</div>';
-        break;
-      case 'option': this.renderOptionManual(tabContent); break;
-      case 'settings': this.renderSettings(tabContent); break;
-    }
-  }
-
-  // --- 📊 RENDER 1: CLEAN DASHBOARD ---
-  renderDashboard(container) {
-    const calc = this.getCalculations();
-
-    const topGoals = this.portfolios
-      .filter(p => p.goalType === 'numeric' && p.goal > 0)
-      .map(p => {
-        const totalVal = p.current + p.cashBuffer;
-        return { name: p.name, pct: (totalVal / p.goal) * 100 };
-      })
-      .sort((a, b) => b.pct - a.pct)
-      .slice(0, 3);
-
-    const currentYear = new Date().getFullYear();
-    let q1Total = 0, q2Total = 0, q3Total = 0, q4Total = 0;
-    this.quarterlyRecords.filter(r => r.year === currentYear).forEach(r => {
-      const p = this.portfolios.find(port => port.id === r.portfolioId);
-      const rate = (p && ['Forex', 'Option'].includes(p.category)) ? this.exchangeRate : 1;
-      q1Total += (Number(r.q1) || 0) * rate;
-      q2Total += (Number(r.q2) || 0) * rate;
-      q3Total += (Number(r.q3) || 0) * rate;
-      q4Total += (Number(r.q4) || 0) * rate;
-    });
-
-    const maxQVal = Math.max(q1Total, q2Total, q3Total, q4Total, 1);
-    const getBarHeight = (val) => (val / maxQVal) * 100;
-
-    container.innerHTML = `
-      <div class="dashboard-grid" style="display:grid; grid-template-columns: 1fr 1fr; gap:20px;">
-        <div class="stat-card border-pixel" style="--card-accent-color: var(--color-accent)">
-          <div class="stat-header"><span class="stat-title">ความมั่งคั่งสุทธิ (พอร์ตรวมทุกการลงทุน)</span><span class="stat-icon">👑</span></div>
-          <div class="stat-value text-accent">฿${calc.netWorthTHB.toLocaleString(undefined, { maximumFractionDigits: 2 })}</div>
-          <div class="stat-desc">เงินลงทุนรวม: ฿${(calc.totalTHB + (calc.totalUSD * this.exchangeRate)).toLocaleString(undefined, { maximumFractionDigits: 0 })} | สำรอง Buffer: ฿${calc.totalCashBufferTHB.toLocaleString(undefined, { maximumFractionDigits: 0 })}</div>
-        </div>
-        <div class="stat-card border-pixel" style="--card-accent-color: var(--color-warning)">
-          <div class="stat-header"><span class="stat-title">Dry Powder (กระสุนรอช้อน)</span><span class="stat-icon">🥄</span></div>
-          <div class="stat-value" style="color:var(--color-warning)!important">฿${calc.totalDryPowderTHB.toLocaleString(undefined, { maximumFractionDigits: 2 })}</div>
-          <div class="stat-desc">สภาพคล่องสะสมรอสอยของถูกประจำพอร์ต</div>
-        </div>
-      </div>
-
-      <div class="dashboard-grid" style="display:grid; grid-template-columns: 1.2fr 0.8fr; gap:20px; margin-top:20px;">
-        <div class="border-pixel" style="padding:20px; background:#1f273e;">
-          <h4 style="font-family:var(--font-press-start); font-size:0.75rem; color:var(--color-primary-light); margin-bottom:20px;">📈 สรุปความเติบโตของเงินทุนรายไตรมาส (${currentYear})</h4>
-          <div style="display:flex; justify-content:space-around; align-items:flex-end; height:180px; background:#111625; padding:20px 10px; border:2px solid #000; border-radius:4px;">
-            <div style="display:flex; flex-direction:column; align-items:center; width:20%; height:100%; justify-content:flex-end;">
-              <div style="font-size:0.65rem; margin-bottom:4px;">฿${q1Total.toLocaleString(undefined,{maximumFractionDigits:0})}</div>
-              <div style="width:100%; height:${getBarHeight(q1Total)}%; background:var(--color-primary); border:2px solid #000;"></div>
-              <div style="font-size:0.7rem; font-family:var(--font-press-start); margin-top:8px;">Q1</div>
-            </div>
-            <div style="display:flex; flex-direction:column; align-items:center; width:20%; height:100%; justify-content:flex-end;">
-              <div style="font-size:0.65rem; margin-bottom:4px; color:var(--color-success);">฿${q2Total.toLocaleString(undefined,{maximumFractionDigits:0})}</div>
-              <div style="width:100%; height:${getBarHeight(q2Total)}%; background:var(--color-success); border:2px solid #000;"></div>
-              <div style="font-size:0.7rem; font-family:var(--font-press-start); margin-top:8px;">Q2</div>
-            </div>
-            <div style="display:flex; flex-direction:column; align-items:center; width:20%; height:100%; justify-content:flex-end;">
-              <div style="font-size:0.65rem; margin-bottom:4px;">฿${q3Total.toLocaleString(undefined,{maximumFractionDigits:0})}</div>
-              <div style="width:100%; height:${getBarHeight(q3Total)}%; background:var(--color-secondary); border:2px solid #000;"></div>
-              <div style="font-size:0.7rem; font-family:var(--font-press-start); margin-top:8px;">Q3</div>
-            </div>
-            <div style="display:flex; flex-direction:column; align-items:center; width:20%; height:100%; justify-content:flex-end;">
-              <div style="font-size:0.65rem; margin-bottom:4px;">฿${q4Total.toLocaleString(undefined,{maximumFractionDigits:0})}</div>
-              <div style="width:100%; height:${getBarHeight(q4Total)}%; background:var(--color-accent); border:2px solid #000;"></div>
-              <div style="font-size:0.7rem; font-family:var(--font-press-start); margin-top:8px;">Q4</div>
-            </div>
-          </div>
-        </div>
-
-        <div class="border-pixel" style="padding:20px; background:#1f273e;">
-          <h4 style="font-family:var(--font-press-start); font-size:0.7rem; color:var(--color-accent); margin-bottom:12px;">🚩 3 อันดับพอร์ตใกล้ถึงเป้าหมาย</h4>
-          <div style="display:flex; flex-direction:column; gap:12px;">
-            ${topGoals.length === 0 ? '<p class="text-muted">ไม่มีรายการ</p>' : topGoals.map((g, idx) => `
-              <div style="background:#111625; padding:10px; border:2px solid #000;">
-                <div style="display:flex; justify-content:space-between; font-size:0.85rem; font-weight:bold;">
-                  <span>${idx+1}. ${g.name}</span>
-                  <span style="color:var(--color-success);">${g.pct.toFixed(1)}%</span>
-                </div>
-                <div class="progress-container" style="margin-top:6px; height:8px;">
-                  <div class="progress-bar-bg" style="height:100%;">
-                    <div class="progress-bar-fill" style="width:${Math.min(100, g.pct)}%; height:100%; background:var(--color-accent);"></div>
-                  </div>
-                </div>
-              </div>
-            `).join('')}
-          </div>
-        </div>
-      </div>
-    `;
-  }
-
-  // --- 📁 RENDER 2: PORTFOLIOS COMPLETE (กู้คืนวิดเจ็ตอัปเดตกระปุกเซฟ 3 ช่องแยก + เลเวลเควสขอบทอง) ---
-  renderPortfolios(container) {
-    if (this.portfolios.length === 0) {
-      container.innerHTML = '<div class="border-pixel" style="padding:20px;">ไม่พบรายการพอร์ตการลงทุนในระบบ</div>';
-      return;
-    }
-    let activePort = this.portfolios.find(p => p.id === this.selectedPortId) || this.portfolios[0];
-    this.selectedPortId = activePort.id;
-    
-    const lvl = this.getPortfolioLevel(activePort);
-    const isUSD = ['Forex', 'Option'].includes(activePort.category);
-
-    container.innerHTML = `
-      <div class="portfolio-detail-container" style="display:grid; grid-template-columns: 0.6fr 1.4fr; gap:20px;">
+    let updatedCount = 0;
+    for (const ticker of tickers) {
+      try {
+        // Query Yahoo Finance chart API via public CORS proxy
+        const targetUrl = `https://query1.finance.yahoo.com/v8/finance/chart/${ticker}?interval=1d&range=2d`;
+        const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(targetUrl)}`;
         
-        <div class="border-pixel" style="padding:16px; background:#111625; display:flex; flex-direction:column; gap:10px;">
-          <h4 style="font-family:var(--font-press-start); font-size:0.65rem; color:var(--color-primary-light); margin-bottom:8px; border-bottom:2px solid #000; padding-bottom:8px;">📁 รายชื่อพอร์ตทั้งหมด</h4>
-          <div style="display:flex; flex-direction:column; gap:8px; max-height:550px; overflow-y:auto;">
+        const res = await fetch(proxyUrl);
+        if (res.ok) {
+          const jsonWrapper = await res.json();
+          const parsed = JSON.parse(jsonWrapper.contents);
+          const meta = parsed.chart?.result?.[0]?.meta;
+          if (meta && meta.regularMarketPrice) {
+            const price = meta.regularMarketPrice;
+            const prevClose = meta.previousClose || meta.chartPreviousClose || price;
+            const changePct = prevClose > 0 ? ((price - prevClose) / prevClose) * 100 : 0;
+
+            // Update in all matching holdings
+            this.portfolios.forEach(p => {
+              (p.holdings || []).forEach(h => {
+                if (h.ticker.toUpperCase() === ticker) {
+                  h.currentPriceUSD = price;
+                  h.change1dPct = changePct;
+                  updatedCount++;
+                }
+              });
+            });
+          }
+        }
+      } catch (err) {
+        console.warn(`Price fetch failed for ${ticker}:`, err);
+      }
+    }
+
+    await this.fetchLiveExchangeRate();
+    if (btnTop) btnTop.classList.remove('spinning');
+    this.saveData();
+    alert(`⚡ อัปเดตราคาตลาดสำเร็จ! (อัปเดตไป ${updatedCount} สินทรัพย์, อัตราแลกเปลี่ยน: ฿${this.exchangeRate.toFixed(2)})`);
+  }
+
+  // --- VIEW RENDERING ENGINE ---
+  renderActiveTab() {
+    const container = document.getElementById('app-view-container');
+    if (!container) return;
+
+    // Destroy existing charts to avoid memory leaks
+    Object.values(this.charts).forEach(c => { if (c && typeof c.destroy === 'function') c.destroy(); });
+    this.charts = {};
+
+    switch (this.currentTab) {
+      case 'dashboard':
+        this.renderDashboardView(container);
+        break;
+      case 'portfolios':
+        this.renderPortfoliosView(container);
+        break;
+      case 'trading':
+        this.renderTradingView(container);
+        break;
+      case 'dividends':
+        this.renderDividendsView(container);
+        break;
+      case 'quarterly':
+        this.renderQuarterlyView(container);
+        break;
+      case 'obsidian':
+        this.renderObsidianExportView(container);
+        break;
+      case 'settings':
+        this.renderSettingsView(container);
+        break;
+      default:
+        this.renderDashboardView(container);
+    }
+  }
+
+  // 1. DASHBOARD VIEW (DIME AESTHETIC & DUAL CHARTS)
+  renderDashboardView(container) {
+    const grand = this.calculateGrandTotalStats();
+    const dualMain = this.formatDual(grand.grandTotalUSD);
+    const dateStr = new Date().toLocaleDateString('th-TH', { year: '2-digit', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+
+    let html = `
+      <!-- DIME HERO BANNER -->
+      <div class="dime-hero-banner">
+        <div class="dime-hero-header">
+          <span class="dime-hero-label">สินทรัพย์รวมทั้งหมด (Total Net Worth)</span>
+          <span class="dime-timestamp font-mono">อัปเดต: ${dateStr} น.</span>
+        </div>
+        <div class="dime-main-value font-mono">${dualMain.main}</div>
+        <div class="dime-sub-value font-mono">${dualMain.sub} (อิงอัตราแลกเปลี่ยน ฿${this.exchangeRate.toFixed(2)})</div>
+
+        <div class="dime-hero-metrics">
+          <div class="hero-metric-item">
+            <span class="text-muted">เปลี่ยนแปลงเฉลี่ย 1 วัน:</span>
+            <span class="metric-pill ${grand.avg1dChangePct >= 0 ? 'positive' : 'negative'} font-mono">
+              ${grand.avg1dChangePct >= 0 ? '↗' : '↘'} ${this.formatPercent(grand.avg1dChangePct)}
+            </span>
+          </div>
+          <div class="hero-metric-item">
+            <span class="text-muted">กำไร/ขาดทุนสินทรัพย์หุ้น:</span>
+            <span class="metric-pill ${grand.totalPLUSD >= 0 ? 'positive' : 'negative'} font-mono">
+              ${grand.totalPLUSD >= 0 ? '↗' : '↘'} ${this.formatPercent(grand.totalPLPct)} (${this.formatUSD(grand.totalPLUSD)} / ${this.formatTHB(this.usdToThb(grand.totalPLUSD))})
+            </span>
+          </div>
+        </div>
+      </div>
+
+      <!-- ANALYTICS DONUT CHARTS (DIME ANALYTICS STYLE) -->
+      <div class="analytics-charts-grid">
+        <div class="chart-card">
+          <div class="chart-title">
+            <span>🍩 สัดส่วนตามประเภทสินทรัพย์ (Asset Allocation)</span>
+          </div>
+          <div class="chart-canvas-container">
+            <canvas id="chart-asset-classes"></canvas>
+          </div>
+          <div class="chart-legend-list" id="legend-asset-classes"></div>
+        </div>
+
+        <div class="chart-card">
+          <div class="chart-title">
+            <span>🎯 สัดส่วนตามพอร์ตเป้าหมาย (Sub-Portfolios)</span>
+          </div>
+          <div class="chart-canvas-container">
+            <canvas id="chart-portfolio-weights"></canvas>
+          </div>
+          <div class="chart-legend-list" id="legend-portfolio-weights"></div>
+        </div>
+      </div>
+
+      <!-- SUB-PORTFOLIOS CARDS (DIME CARDS) -->
+      <div class="section-header">
+        <div class="section-title">
+          <span>พอร์ตการลงทุนตามเป้าหมาย (Goal-Based IPS)</span>
+          <span class="section-count-badge font-mono">${this.portfolios.length} พอร์ต</span>
+        </div>
+        <button class="btn btn-sm btn-secondary" id="btn-add-portfolio-modal">
+          <span>➕ เพิ่มพอร์ตใหม่</span>
+        </button>
+      </div>
+
+      <div class="portfolios-grid">
+    `;
+
+    this.portfolios.forEach(p => {
+      const stats = this.calculatePortfolioStats(p);
+      const dualVal = this.formatDual(stats.totalValueUSD);
+      const dualCash = this.formatDual(stats.cashBufferUSD);
+
+      html += `
+        <div class="port-card" data-open-port="${p.id}" style="border-left: 4px solid ${p.color || '#10b981'};">
+          <div class="port-card-top">
+            ${p.logo ? `<img src="${p.logo}" class="port-logo-img" alt="${p.name}" onerror="this.style.display='none'">` : ''}
+            <div class="port-info-col">
+              <div class="port-card-name">${p.emoji || '📁'} ${p.name}</div>
+              <div class="port-card-tag">${p.tier} • ${p.category} (${stats.assetCount} สินทรัพย์)</div>
+            </div>
+            <div class="port-card-value-box">
+              <div class="port-card-val-primary font-mono">${dualVal.main}</div>
+              <div class="port-card-val-secondary font-mono">${dualVal.sub}</div>
+            </div>
+          </div>
+
+          <div class="port-cash-buffer-tag">
+            <span>💧 เงินไว้ช้อน (Cash Buffer):</span>
+            <strong class="font-mono">${dualCash.main}</strong>
+          </div>
+
+          <div class="port-card-stats font-mono">
+            <div>
+              <div class="port-stat-label">1D Change</div>
+              <div class="port-stat-val ${stats.avg1dChangePct >= 0 ? 'text-emerald' : 'text-rose'}">
+                ${stats.avg1dChangePct >= 0 ? '↗' : '↘'} ${this.formatPercent(stats.avg1dChangePct)}
+              </div>
+            </div>
+            <div style="text-align: right;">
+              <div class="port-stat-label">P/L หุ้นที่ถือ</div>
+              <div class="port-stat-val ${stats.totalPLPct >= 0 ? 'text-emerald' : 'text-rose'}">
+                ${stats.totalPLPct >= 0 ? '↗' : '↘'} ${this.formatPercent(stats.totalPLPct)} (${this.formatUSD(stats.totalPLUSD)})
+              </div>
+            </div>
+          </div>
+
+          <div class="port-goal-progress-wrap">
+            <div class="goal-label-row font-mono">
+              <span>เป้าหมาย: ${this.formatUSD(stats.goalUSD)} (${this.formatTHB(this.usdToThb(stats.goalUSD))})</span>
+              <strong>${stats.goalProgressPct.toFixed(1)}%</strong>
+            </div>
+            <div class="progress-bar-bg">
+              <div class="progress-bar-fill" style="width: ${stats.goalProgressPct}%; background: ${p.color || '#10b981'};"></div>
+            </div>
+          </div>
+        </div>
+      `;
+    });
+
+    html += `</div>`;
+    container.innerHTML = html;
+
+    // Render Chart.js Donut Charts
+    setTimeout(() => {
+      this.initDashboardCharts();
+    }, 50);
+  }
+
+  initDashboardCharts() {
+    // 1. Asset Class Donut Chart
+    const grand = this.calculateGrandTotalStats();
+    const ctxAsset = document.getElementById('chart-asset-classes')?.getContext('2d');
+    if (ctxAsset) {
+      const labels = ['หุ้นและกองทุน (US Stocks)', 'เงินสดไว้ช้อน (Cash Buffer)', 'พอร์ตเทรด (Forex & Option)'];
+      const dataValues = [grand.totalStocksUSD, grand.totalCashBufferUSD, grand.totalTradingUSD];
+      const colors = ['#a855f7', '#38bdf8', '#f59e0b'];
+
+      this.charts.asset = new Chart(ctxAsset, {
+        type: 'doughnut',
+        data: {
+          labels,
+          datasets: [{
+            data: dataValues,
+            backgroundColor: colors,
+            borderWidth: 0,
+            hoverOffset: 6
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          cutout: '72%',
+          plugins: { legend: { display: false } }
+        }
+      });
+
+      // Render custom legend
+      const legendEl = document.getElementById('legend-asset-classes');
+      if (legendEl) {
+        const total = grand.grandTotalUSD || 1;
+        legendEl.innerHTML = labels.map((lbl, idx) => {
+          const val = dataValues[idx];
+          const pct = ((val / total) * 100).toFixed(2);
+          return `
+            <div class="chart-legend-item">
+              <div><span class="legend-color-dot" style="background: ${colors[idx]}"></span>${lbl}</div>
+              <strong class="font-mono">${pct}% (${this.formatUSD(val)})</strong>
+            </div>
+          `;
+        }).join('');
+      }
+    }
+
+    // 2. Sub-Portfolio Weights Donut Chart
+    const ctxPort = document.getElementById('chart-portfolio-weights')?.getContext('2d');
+    if (ctxPort) {
+      const portLabels = [];
+      const portValues = [];
+      const portColors = [];
+
+      this.portfolios.forEach(p => {
+        const s = this.calculatePortfolioStats(p);
+        if (s.totalValueUSD > 0) {
+          portLabels.push(`${p.emoji || ''} ${p.name}`);
+          portValues.push(s.totalValueUSD);
+          portColors.push(p.color || '#10b981');
+        }
+      });
+
+      const { totalTradingUSD } = this.getTradingLatestBalances();
+      if (totalTradingUSD > 0) {
+        portLabels.push('💱 Trading (Forex & Option)');
+        portValues.push(totalTradingUSD);
+        portColors.push('#f59e0b');
+      }
+
+      this.charts.ports = new Chart(ctxPort, {
+        type: 'doughnut',
+        data: {
+          labels: portLabels,
+          datasets: [{
+            data: portValues,
+            backgroundColor: portColors,
+            borderWidth: 0,
+            hoverOffset: 6
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          cutout: '72%',
+          plugins: { legend: { display: false } }
+        }
+      });
+
+      const legendEl = document.getElementById('legend-portfolio-weights');
+      if (legendEl) {
+        const grandTotal = grand.grandTotalUSD || 1;
+        legendEl.innerHTML = portLabels.map((lbl, idx) => {
+          const val = portValues[idx];
+          const pct = ((val / grandTotal) * 100).toFixed(2);
+          return `
+            <div class="chart-legend-item">
+              <div><span class="legend-color-dot" style="background: ${portColors[idx]}"></span>${lbl}</div>
+              <strong class="font-mono">${pct}% (${this.formatUSD(val)})</strong>
+            </div>
+          `;
+        }).join('');
+      }
+    }
+  }
+
+  // 2. SUB-PORTFOLIO & DIME HOLDINGS VIEW
+  renderPortfoliosView(container) {
+    const port = this.portfolios.find(p => p.id === this.selectedPortfolioId) || this.portfolios[0];
+    if (!port) return;
+
+    const stats = this.calculatePortfolioStats(port);
+    const dualTotal = this.formatDual(stats.totalValueUSD);
+    const dualGoal = this.formatDual(stats.goalUSD);
+    const dualCash = this.formatDual(stats.cashBufferUSD);
+
+    let html = `
+      <!-- SUBPORTFOLIO HERO HEADER (DIME APP ACCURATE) -->
+      <div class="subport-hero-header" style="--hero-theme-bg: ${port.color}15; --hero-theme-border: ${port.color}40;">
+        <div class="subport-hero-top">
+          <div style="display: flex; gap: 8px; flex-wrap: wrap;">
             ${this.portfolios.map(p => `
-              <button class="btn ${p.id === this.selectedPortId ? 'btn-primary' : 'btn-secondary'}" onclick="app.switchPortfolio('${p.id}')" style="width:100%; text-align:left; padding:10px; font-size:0.85rem;">
-                📁 ${p.name}
+              <button class="btn btn-sm ${p.id === port.id ? 'btn-primary' : 'btn-secondary'}" data-select-port="${p.id}" style="${p.id === port.id ? `background: ${p.color}; border-color: ${p.color};` : ''}">
+                ${p.emoji || '📁'} ${p.name.split(' ')[0]}
               </button>
             `).join('')}
           </div>
+          <button class="btn btn-sm btn-secondary" id="btn-edit-current-port">⚙️ แก้ไขพอร์ต</button>
         </div>
 
-        <div style="display:grid; grid-template-columns: 1.2fr 0.8fr; gap:20px;">
-          
-          <div class="detail-main-card border-pixel" style="background:#1f273e; padding:20px; display:flex; flex-direction:column; gap:16px;">
-            <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:2px solid #000; padding-bottom:10px;">
-              <h3>📦 ${activePort.name}</h3>
-              <span class="port-card-cat" style="background:var(--color-primary); font-size:0.8rem; padding:4px 10px;">${activePort.category}</span>
+        <div class="subport-hero-main">
+          <div>
+            <div style="font-size: 13px; color: ${port.color}; font-weight: 700; text-transform: uppercase;">${port.tier} • ${port.category}</div>
+            <h2 style="font-size: 26px; font-weight: 800; color: #fff; margin-top: 2px;">${port.emoji || ''} ${port.name}</h2>
+            <div class="subport-target-goal-text font-mono">
+              เป้าหมาย: ${dualGoal.main} (${dualGoal.sub}) • ความคืบหน้า <strong>${stats.goalProgressPct.toFixed(1)}%</strong>
             </div>
-
-            <div class="details-grid-stats" style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
-              <div class="detail-stat-box" style="background:#111625; padding:12px; border:2px solid #000;">🎯 เป้าหมาย: ${activePort.goalType === 'numeric' ? this.formatMoney(activePort.goal, activePort.category) : activePort.goalSchedule}</div>
-              <div class="detail-stat-box" style="background:#111625; padding:12px; border:2px solid #000; color:var(--color-success)">💼 ยอดเงินลงทุนสะสม: ${this.formatMoney(activePort.current, activePort.category)}</div>
-            </div>
-
-            <div>
-              <div style="display:flex; justify-content:space-between; font-weight:bold; font-size:0.85rem; margin-bottom:4px;">
-                <span>สเกลความก้าวหน้าเควส:</span>
-                <span style="font-family:var(--font-press-start); font-size:0.75rem;">${lvl.pct.toFixed(1)}%</span>
-              </div>
-              <div class="progress-container" style="height:22px; background:#111625; border:2px solid #000; position:relative;">
-                <div style="width: ${Math.min(100, lvl.pct)}%; height:100%; background:var(--color-success);"></div>
-                <div style="position:absolute; width:100%; text-align:center; top:0; font-size:0.75rem; line-height:18px; font-weight:bold; color:#fff;">${lvl.pct.toFixed(0)}% ถึงเป้าหมาย</div>
-              </div>
-            </div>
-
-            <div class="assets-section" style="margin-top:10px;">
-              <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:2px solid #000; padding-bottom:6px;">
-                <h4 style="font-family:var(--font-press-start); font-size:0.65rem; color:var(--color-text-muted);">💎 สินทรัพย์ย่อยในตลับเซฟ</h4>
-                <button class="btn btn-primary btn-retro btn-small" id="btn-add-asset" style="padding:2px 8px;">➕ เพิ่มสินทรัพย์</button>
-              </div>
-              <div class="assets-list" style="margin-top:12px; display:flex; flex-direction:column; gap:6px; max-height:200px; overflow-y:auto;">
-                ${activePort.assets.length === 0 ? '<p class="text-muted" style="text-align:center; padding:10px;">ไม่มีรายการสินทรัพย์ย่อย</p>' : activePort.assets.map((a, i) => `
-                  <div style="display:flex; justify-content:space-between; background:#111625; padding:10px; border:2px solid #000;">
-                    <span>🔸 ${a.name}</span>
-                    <div>
-                      <b style="margin-right:12px;">${this.formatMoney(a.value, activePort.category)}</b>
-                      <button class="btn btn-danger btn-small" onclick="app.deleteAsset('${activePort.id}', ${i})" style="padding:2px 6px;">✖</button>
-                    </div>
-                  </div>
-                `).join('')}
-              </div>
+            <div class="progress-bar-bg" style="width: 260px; margin-top: 8px;">
+              <div class="progress-bar-fill" style="width: ${stats.goalProgressPct}%; background: ${port.color || '#10b981'};"></div>
             </div>
           </div>
 
-          <div style="display:flex; flex-direction:column; gap:16px;">
-            
-            <div class="border-pixel" style="padding:12px; background:#1f273e; text-align:center;">
-              <h5 style="font-family:var(--font-press-start); font-size:0.6rem; color:var(--color-accent); margin-bottom:8px;">🏅 ระดับของพอร์ต</h5>
-              <div style="font-size:2rem; filter:drop-shadow(1px 1px 0px #000);">${lvl.icon}</div>
-              <div style="font-weight:bold; margin-top:4px;">${lvl.label}</div>
-              <div style="font-size:0.75rem; color:var(--color-text-muted);">${lvl.desc}</div>
-              <div style="border-top:2px dashed #000; margin:8px 0;"></div>
-              <div style="font-size:0.75rem; font-weight:bold; color:var(--color-accent); text-align:left;">${this.getNextRankPreview(activePort)}</div>
-            </div>
-
-            <div class="border-pixel" style="padding:14px; background:#1f273e;">
-              <h5 style="font-family:var(--font-press-start); font-size:0.6rem; color:var(--color-success); margin-bottom:10px;">💰 อัปเดตยอดคงคลัง</h5>
-              <form id="update-balance-form" style="display:flex; flex-direction:column; gap:8px; font-size:0.85rem;">
-                <div>
-                  <label style="font-weight:bold; display:block; margin-bottom:2px;">เงินในพอร์ตรวมจริง (${isUSD ? 'USD' : 'THB'}):</label>
-                  <input type="number" id="update-current" class="input-retro" value="${activePort.current + activePort.cashBuffer}" style="width:100%; padding:4px;" required>
-                </div>
-                <div>
-                  <label style="font-weight:bold; display:block; margin-bottom:2px;">ในนั้นเป็นสำรอง Buffer:</label>
-                  <input type="number" id="update-buffer" class="input-retro" value="${activePort.cashBuffer}" style="width:100%; padding:4px;" required>
-                </div>
-                <div>
-                  <label style="font-weight:bold; display:block; margin-bottom:2px;">ในนั้นเป็นเงินช้อน Dry:</label>
-                  <input type="number" id="update-dry" class="input-retro" value="${activePort.dryPowder}" style="width:100%; padding:4px;" required>
-                </div>
-                <button type="submit" class="btn btn-success btn-retro" style="width:100%; padding:6px; margin-top:4px; font-weight:bold;">💾 บันทึกยอดกระปุกเซฟ</button>
-              </form>
+          <div style="text-align: right;">
+            <div style="font-size: 12px; color: var(--text-muted);">มูลค่ารวมของพอร์ต</div>
+            <div style="font-size: 32px; font-weight: 800; color: #fff;" class="font-mono">${dualTotal.main}</div>
+            <div style="font-size: 14px; color: var(--text-secondary);" class="font-mono">${dualTotal.sub}</div>
+            <div class="font-mono" style="margin-top: 4px; font-size: 13px;">
+              1D: <span class="${stats.avg1dChangePct >= 0 ? 'text-emerald' : 'text-rose'} font-bold">${this.formatPercent(stats.avg1dChangePct)}</span> | 
+              P/L: <span class="${stats.totalPLPct >= 0 ? 'text-emerald' : 'text-rose'} font-bold">${this.formatPercent(stats.totalPLPct)}</span>
             </div>
           </div>
+        </div>
 
+        ${port.notes ? `<div style="margin-top: 14px; padding: 8px 12px; background: rgba(0,0,0,0.3); border-radius: var(--radius-sm); font-size: 12px; color: var(--text-secondary);">📝 ${port.notes}</div>` : ''}
+      </div>
+
+      <!-- DEDICATED CASH BUFFER (เงินไว้ช้อน) SECTION -->
+      <div class="subport-cash-buffer-box">
+        <div class="cash-box-left">
+          <div class="cash-box-icon">💧</div>
+          <div>
+            <div class="cash-box-title">Cash Buffer (เงินสดไว้ช้อนซื้อหุ้นของพอร์ตนี้)</div>
+            <div class="cash-box-val font-mono">${dualCash.main}</div>
+            <div class="cash-box-sub font-mono">${dualCash.sub}</div>
+          </div>
+        </div>
+        <div class="cash-box-actions">
+          <button class="btn btn-sm btn-secondary" id="btn-manage-cash-buffer" data-port-id="${port.id}">
+            <span>➕/➖ ฝาก-ถอนเงินสด</span>
+          </button>
+          <button class="btn btn-sm btn-primary" id="btn-quick-buy-with-cash" data-port-id="${port.id}">
+            <span>🛒 ช้อนซื้อหุ้นทันที</span>
+          </button>
         </div>
       </div>
+
+      <!-- HOLDINGS LIST HEADER -->
+      <div class="section-header">
+        <div class="section-title">
+          <span>รายการสินทรัพย์ที่ถือครอง (Dime Holdings)</span>
+          <span class="section-count-badge font-mono">${(port.holdings || []).length} ตัว</span>
+        </div>
+        <div style="display: flex; gap: 8px;">
+          <button class="btn btn-sm btn-secondary" id="btn-add-holding-modal">
+            <span>➕ เพิ่มหุ้นในพอร์ตนี้</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- HOLDINGS LIST (DIME 4-METRIC CARDS) -->
+      <div class="holdings-container">
     `;
 
-    // ผูกกลไกคำนวณและกระจายคลังเสบียงยามกดยืนยันเซฟฟอร์ม 3 กล่อง
-    document.getElementById('update-balance-form').addEventListener('submit', (e) => {
-      e.preventDefault();
-      const curr = Number(document.getElementById('update-current').value);
-      const buff = Number(document.getElementById('update-buffer').value);
-      const dry = Number(document.getElementById('update-dry').value);
-      
-      const port = this.portfolios.find(p => p.id === activePort.id);
-      if (port) {
-        port.current = curr - buff; // ยอดทำงานสุทธิหักลบเสบียงบัฟเฟอร์หลัก
-        port.cashBuffer = buff;
-        port.dryPowder = dry;
-        this.saveState();
-        this.refreshUI();
-      }
-    });
+    const holdings = port.holdings || [];
+    if (holdings.length === 0) {
+      html += `
+        <div style="text-align: center; padding: 48px 20px; background: var(--bg-card); border-radius: var(--radius-lg); color: var(--text-muted);">
+          <div style="font-size: 40px; margin-bottom: 8px;">🛒</div>
+          <h3>ยังไม่มีรายการหุ้นในพอร์ตนี้</h3>
+          <p style="font-size: 13px; margin-top: 4px;">คลิกปุ่ม "➕ เพิ่มหุ้นในพอร์ตนี้" เพื่อเริ่มจดสินทรัพย์</p>
+        </div>
+      `;
+    } else {
+      holdings.forEach(h => {
+        const s = this.calculateHoldingStats(h);
+        const dualMarket = this.formatDual(s.marketValueUSD);
+        const weightPct = stats.totalValueUSD > 0 ? ((s.marketValueUSD / stats.totalValueUSD) * 100).toFixed(2) : '0.00';
 
-    const addAssetBtn = document.getElementById('btn-add-asset');
-    if (addAssetBtn) {
-      addAssetBtn.addEventListener('click', () => {
-        const name = prompt('กรอกชื่อสินทรัพย์ย่อย/ตัวย่อหุ้น (เช่น AGG, JNJ):');
-        const val = Number(prompt(`ระบุมูลค่าเงินลงทุนสุทธิ (${isUSD ? 'USD' : 'THB'}):`));
-        if (name && !isNaN(val) && val >= 0) {
-          activePort.assets.push({ name, value: val });
-          this.saveState();
-          this.refreshUI();
-        }
+        html += `
+          <div class="holding-card">
+            <div class="holding-header">
+              <div class="holding-ticker-group">
+                <div class="ticker-icon-circle" style="border-color: ${port.color || '#10b981'};">
+                  ${h.ticker.slice(0, 4)}
+                </div>
+                <div class="ticker-name-box">
+                  <h4>${h.ticker}</h4>
+                  <div class="ticker-subname">${h.name || h.ticker}</div>
+                </div>
+              </div>
+
+              <div class="holding-value-group">
+                <div class="holding-market-val-thb font-mono">${dualMarket.main}</div>
+                <div class="holding-market-val-usd font-mono">${dualMarket.sub}</div>
+                <div class="holding-weight-tag font-mono">สัดส่วน: ${weightPct}%</div>
+                <div class="holding-pl-badge font-mono ${s.unrealizedPLUSD >= 0 ? 'text-emerald' : 'text-rose'}">
+                  ${s.unrealizedPLUSD >= 0 ? '↗' : '↘'} ${this.formatPercent(s.unrealizedPLPct)} (${this.formatUSD(s.unrealizedPLUSD)})
+                </div>
+              </div>
+            </div>
+
+            <!-- DIME 4-METRICS GRID -->
+            <div class="dime-metrics-grid font-mono">
+              <div class="metric-cell">
+                <span class="metric-cell-label">จำนวนหุ้นคงเหลือ (Shares)</span>
+                <span class="metric-cell-val">${s.shares.toFixed(7)}</span>
+              </div>
+              <div class="metric-cell" style="text-align: right;">
+                <span class="metric-cell-label">ราคาตลาด ($) และ % 1 วัน</span>
+                <span class="metric-cell-val ${s.change1d >= 0 ? 'text-emerald' : 'text-rose'}">
+                  $${s.currentPrice.toFixed(2)} (${this.formatPercent(s.change1d)})
+                </span>
+              </div>
+              <div class="metric-cell">
+                <span class="metric-cell-label">ต้นทุนต่อหุ้นเฉลี่ย (Avg Cost)</span>
+                <span class="metric-cell-val">$${s.avgCost.toFixed(4)}</span>
+              </div>
+              <div class="metric-cell" style="text-align: right;">
+                <span class="metric-cell-label">ต้นทุนรวม (Total Cost)</span>
+                <span class="metric-cell-val">${this.formatUSD(s.totalCostUSD)}</span>
+              </div>
+            </div>
+
+            <div class="holding-actions-row">
+              <button class="btn btn-sm btn-secondary" data-edit-holding="${h.id}" data-port-id="${port.id}">✏️ แก้ไข</button>
+              <button class="btn btn-sm btn-primary" data-trade-holding="${h.id}" data-port-id="${port.id}">⚡ ซื้อ-ขาย</button>
+            </div>
+          </div>
+        `;
       });
     }
+
+    html += `</div>`;
+    container.innerHTML = html;
   }
 
-  switchPortfolio(id) { this.selectedPortId = id; this.refreshUI(); }
+  // 3. FOREX & OPTION MONTHLY CAPITAL JOURNAL VIEW
+  renderTradingView(container) {
+    const { balances, totalTradingUSD } = this.getTradingLatestBalances();
+    const dualTotal = this.formatDual(totalTradingUSD);
 
-  deleteAsset(portId, index) {
-    const port = this.portfolios.find(p => p.id === portId);
-    if (port && port.assets[index]) {
-      if (confirm(`ลบสินทรัพย์ย่อย ${port.assets[index].name}?`)) {
-        port.assets.splice(index, 1);
-        this.saveState(); this.refreshUI();
-      }
+    let html = `
+      <div class="dime-hero-banner" style="background: linear-gradient(135deg, #2d1808 0%, #171108 40%, #0f131a 100%); border-color: rgba(245, 158, 11, 0.3);">
+        <div class="dime-hero-header">
+          <span class="dime-hero-label text-amber">พอร์ตเทรดกระแสเงินสด (Forex & Option Trading)</span>
+        </div>
+        <div class="dime-main-value font-mono">${dualTotal.main}</div>
+        <div class="dime-sub-value font-mono">${dualTotal.sub} • อัปเดตเฉพาะยอดเงินรวมรายเดือน (USD)</div>
+      </div>
+
+      <div class="trading-summary-cards">
+    `;
+
+    for (const [key, item] of Object.entries(this.tradingData || {})) {
+      const list = item.monthlyBalances || [];
+      const latest = list.length > 0 ? list[list.length - 1] : { balanceUSD: 0, note: '' };
+      const latestUSD = latest.balanceUSD || 0;
+
+      html += `
+        <div class="trading-port-card">
+          <div class="trading-port-header">
+            <div class="trading-title">${item.name}</div>
+            <span class="badge font-mono text-amber">Latest: ${this.formatUSD(latestUSD)}</span>
+          </div>
+
+          <div style="font-size: 12px; color: var(--text-muted); margin-bottom: 6px;">ยอดเงินทุนปัจจุบัน ($ USD)</div>
+          <input type="number" step="any" class="trading-balance-input font-mono" data-trading-key="${key}" value="${latestUSD}">
+          <div class="font-mono" style="font-size: 13px; color: var(--text-secondary); margin-bottom: 12px;">
+            ≈ ${this.formatTHB(this.usdToThb(latestUSD))}
+          </div>
+
+          <div style="display: flex; gap: 8px;">
+            <button class="btn btn-sm btn-primary" data-save-trading-key="${key}">💾 บันทึกยอดเงิน</button>
+            <button class="btn btn-sm btn-secondary" data-log-trading-history="${key}">📅 ประวัติรายเดือน</button>
+          </div>
+        </div>
+      `;
     }
-  }
 
-  // --- 💎 RENDER 3: OPTION MANUAL ---
-  renderOptionManual(container) {
-    const optionPorts = this.portfolios.filter(p => p.category === 'Option');
-    const records = this.monthlyRecords.filter(r => optionPorts.map(p => p.id).includes(r.portfolioId));
+    html += `
+      </div>
 
-    container.innerHTML = `
-      <div class="border-pixel" style="padding:20px; background:#1f273e;">
-        <h4 style="font-family:var(--font-press-start); font-size:0.75rem; color:var(--color-accent); margin-bottom:12px;">💎 ระบบบันทึกรายเดือนพอร์ต Option (โหมดจดมือแมนนวล)</h4>
-        
-        <div style="display:grid; grid-template-columns:1fr 2fr; gap:20px;">
-          <div class="border-pixel-inset" style="padding:16px; background:#111625;">
-            <div class="form-group" style="margin-bottom:12px;"><label>เลือกพอร์ตออปชัน:</label>
-              <select id="opt-port-select" class="input-retro" style="width:100%;">
-                ${optionPorts.map(p => `<option value="${p.id}">${p.name}</option>`).join('')}
-              </select>
-            </div>
-            <div class="form-group" style="margin-bottom:12px;"><label>เดือนประจำงวด:</label>
-              <select id="opt-month-select" class="input-retro" style="width:100%;">
-                ${[...Array(12).keys()].map(i => `<option value="${i+1}">เดือน ${i+1}</option>`).join('')}
-              </select>
-            </div>
-            <div class="form-group" style="margin-bottom:16px;"><label>ผลกำไร/ขาดทุนสุทธิ (USD):</label>
-              <input type="number" id="opt-pl-input" class="input-retro" placeholder="เช่น 250 หรือ -120" style="width:100%;">
-            </div>
-            <button class="btn btn-success btn-retro" id="btn-save-opt-manual" style="width:100%;">💾 บันทึกยอดออปชัน</button>
-          </div>
-          
-          <div class="border-pixel-inset" style="padding:16px; background:#111625;">
-            <h5 style="margin-bottom:10px;">📜 ประวัติการบันทึกงวดสัญญารายเดือน</h5>
-            <div style="max-height:300px; overflow-y:auto; font-size:0.85rem;">
-              ${records.length === 0 ? '<p class="text-muted">ไม่มีรายการจดบันทึก</p>' : records.map(r => {
-                const p = this.portfolios.find(port => port.id === r.portfolioId);
-                return `
-                  <div style="display:flex; justify-content:space-between; border-bottom:1px solid #444; padding:8px 0;">
-                    <span><b>${p?p.name:''}</b> (เดือน ${r.month})</span>
-                    <b class="${r.profitLossUSD >= 0 ? 'text-success' : 'text-danger'}">${r.profitLossUSD >= 0 ? '+' : ''}$${r.profitLossUSD}</b>
-                  </div>
-                `;
-              }).join('')}
-            </div>
-          </div>
+      <!-- TRADING EQUITY CURVE CHART -->
+      <div class="chart-card">
+        <div class="chart-title">
+          <span>📈 กราฟการเติบโตของทุนเทรดรายเดือน (Trading Capital Growth)</span>
+        </div>
+        <div class="chart-canvas-container" style="height: 280px;">
+          <canvas id="chart-trading-equity"></canvas>
         </div>
       </div>
     `;
 
-    document.getElementById('btn-save-opt-manual').addEventListener('click', () => {
-      const pId = document.getElementById('opt-port-select').value;
-      const month = Number(document.getElementById('opt-month-select').value);
-      const pl = Number(document.getElementById('opt-pl-input').value);
-      if (!pId || isNaN(pl)) { alert('❌ กรอกตัวเลขไม่ถูกต้อง'); return; }
-      
-      this.monthlyRecords.push({ id: 'm-' + Date.now(), portfolioId: pId, year: new Date().getFullYear(), month: month, profitLossUSD: pl, notes: 'บันทึกแมนนวล' });
-      this.saveState(); this.refreshUI();
+    container.innerHTML = html;
+
+    setTimeout(() => {
+      this.initTradingChart();
+    }, 50);
+  }
+
+  initTradingChart() {
+    const ctx = document.getElementById('chart-trading-equity')?.getContext('2d');
+    if (!ctx) return;
+
+    const labels = ['2026-06', '2026-07', '2026-08'];
+    const datasets = [];
+
+    const colors = { forex_life: '#38bdf8', forex_bottrade: '#f43f5e', option: '#a855f7' };
+
+    for (const [key, item] of Object.entries(this.tradingData || {})) {
+      const data = (item.monthlyBalances || []).map(m => m.balanceUSD);
+      datasets.push({
+        label: item.name,
+        data: data.length > 0 ? data : [0, 0, 0],
+        borderColor: colors[key] || '#10b981',
+        backgroundColor: colors[key] ? colors[key] + '20' : '#10b98120',
+        fill: true,
+        tension: 0.3
+      });
+    }
+
+    this.charts.trading = new Chart(ctx, {
+      type: 'line',
+      data: { labels, datasets },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: { legend: { position: 'top' } },
+        scales: {
+          y: {
+            grid: { color: 'rgba(255,255,255,0.06)' },
+            ticks: { callback: v => '$' + v }
+          },
+          x: { grid: { color: 'rgba(255,255,255,0.06)' } }
+        }
+      }
     });
   }
 
-  // --- 📈 RENDER 4: QUARTERLY TWR SUMMARY ---
-  renderQuarterly(container) {
-    const stockPorts = this.portfolios.filter(p => !['Forex', 'Option'].includes(p.category));
-    const year = new Date().getFullYear();
-    container.innerHTML = `
-      <div class="portfolio-grid" style="display:grid; grid-template-columns:1fr; gap:16px;">
-        ${stockPorts.map(p => {
-          const raw = this.quarterlyRecords.find(r => r.portfolioId === p.id && r.year === year) || { q1:0, q2:0, q3:0, q4:0 };
-          return `
-            <div class="border-pixel" style="padding:16px; background:#1f273e; border:2px solid #000;">
-              <h4>📊 ${p.name}</h4>
-              <div style="display:grid; grid-template-columns:repeat(4,1fr); gap:12px; margin:12px 0; text-align:center;">
-                <div style="background:#111625; padding:8px;">Q1<br>฿${(raw.q1||0).toLocaleString()}</div>
-                <div style="background:#111625; padding:8px; border:2px solid var(--color-success)">Q2<br>฿${(raw.q2||0).toLocaleString()}</div>
-                <div style="background:#111625; padding:8px;">Q3<br>฿${(raw.q3||0).toLocaleString()}</div>
-                <div style="background:#111625; padding:8px;">Q4<br>฿${(raw.q4||0).toLocaleString()}</div>
-              </div>
-              <button class="btn btn-secondary btn-retro btn-small" style="width:100%;" onclick="app.openQuarterlyModal('${p.id}', ${year})">✏️ บันทึกรายงานไตรมาส TWR</button>
-            </div>
-          `;
-        }).join('')}
+  // 4. DIVIDEND TRACKER & CASHFLOW VIEW
+  renderDividendsView(container) {
+    let totalGrossUSD = 0;
+    let totalTaxUSD = 0;
+    let totalNetUSD = 0;
+
+    this.dividends.forEach(d => {
+      totalGrossUSD += parseFloat(d.grossUSD) || 0;
+      totalTaxUSD += parseFloat(d.taxUSD) || 0;
+      totalNetUSD += parseFloat(d.netUSD) || 0;
+    });
+
+    const dualNet = this.formatDual(totalNetUSD);
+
+    let html = `
+      <div class="dime-hero-banner" style="background: linear-gradient(135deg, #0e291e 0%, #0d1e17 40%, #0f131a 100%);">
+        <div class="dime-hero-header">
+          <span class="dime-hero-label text-emerald">เงินปันผลสะสมทั้งหมด (Total Net Dividends)</span>
+        </div>
+        <div class="dime-main-value font-mono">${dualNet.main}</div>
+        <div class="dime-sub-value font-mono">${dualNet.sub} (หักภาษี WHT 15% แล้ว)</div>
       </div>
-    `;
-  }
 
-  openQuarterlyModal(portfolioId, year) {
-    const port = this.portfolios.find(p => p.id === portfolioId); if (!port) return;
-    const q1Val = prompt('ยอดพอร์ตไตรมาส 1 (THB):');
-    const q2Val = prompt('ยอดพอร์ตไตรมาส 2 (THB):');
-    const q3Val = prompt('ยอดพอร์ตไตรมาส 3 (THB):');
-    const q4Val = prompt('ยอดพอร์ตไตรมาส 4 (THB):');
-    
-    let rec = this.quarterlyRecords.find(r => r.portfolioId === portfolioId && r.year === year);
-    if (!rec) { rec = { id:'q-'+Date.now(), portfolioId, year, q1:0, q2:0, q3:0, q4:0 }; this.quarterlyRecords.push(rec); }
-    if (q1Val) rec.q1 = Number(q1Val); if (q2Val) rec.q2 = Number(q2Val); if (q3Val) rec.q3 = Number(q3Val); if (q4Val) rec.q4 = Number(q4Val);
-    this.saveState(); this.refreshUI();
-  }
+      <div class="dividend-stats-row">
+        <div class="div-stat-box">
+          <span class="text-muted" style="font-size: 12px;">ปันผลรวม Gross (USD)</span>
+          <div class="font-mono" style="font-size: 20px; font-weight: 700; color: #fff;">${this.formatUSD(totalGrossUSD)}</div>
+        </div>
+        <div class="div-stat-box">
+          <span class="text-muted" style="font-size: 12px;">ภาษีหัก ณ ที่จ่าย 15% (USD)</span>
+          <div class="font-mono text-rose" style="font-size: 20px; font-weight: 700;">-${this.formatUSD(totalTaxUSD)}</div>
+        </div>
+        <div class="div-stat-box">
+          <span class="text-muted" style="font-size: 12px;">ปันผลสุทธิ Net (THB)</span>
+          <div class="font-mono text-emerald" style="font-size: 20px; font-weight: 700;">${this.formatTHB(this.usdToThb(totalNetUSD))}</div>
+        </div>
+      </div>
 
-  // --- 💰 RENDER 5: DIVIDENDS ---
-  renderDividends(container) {
-    container.innerHTML = `
-      <div class="border-pixel" style="padding:16px; background:#1f273e;">
-        <h4>💰 แดชบอร์ดวิเคราะห์เงินปันผล & Yield on Cost (YOC)</h4>
-        <table class="retro-table" style="width:100%; margin-top:12px; text-align:left; border-collapse:collapse;">
+      <div class="section-header">
+        <div class="section-title">
+          <span>ประวัติการรับเงินปันผล</span>
+          <span class="section-count-badge font-mono">${this.dividends.length} รายการ</span>
+        </div>
+        <button class="btn btn-sm btn-primary" id="btn-add-dividend-modal">
+          <span>➕ บันทึกเงินปันผลรับ</span>
+        </button>
+      </div>
+
+      <div class="div-table-wrap">
+        <table class="custom-table font-mono">
           <thead>
-            <tr style="background:#111625;">
-              <th style="padding:10px; border:2px solid #000;">ชื่อพอร์ต</th>
-              <th style="padding:10px; border:2px solid #000;">ต้นทุนปัจจุบัน</th>
-              <th style="padding:10px; border:2px solid #000;">ปันผลสะสม</th>
-              <th style="padding:10px; border:2px solid #000; color:var(--color-accent);">YOC (%)</th>
+            <tr>
+              <th>วันที่</th>
+              <th>Ticker</th>
+              <th>พอร์ตที่ได้รับ</th>
+              <th>Gross ($)</th>
+              <th>Tax 15%</th>
+              <th>Net ($)</th>
+              <th>Net (฿)</th>
+              <th>หมายเหตุ</th>
+              <th>จัดการ</th>
             </tr>
           </thead>
           <tbody>
-            ${this.portfolios.map(p => {
-              const divs = this.dividendRecords ? this.dividendRecords.filter(r => r.portfolioId === p.id).reduce((s, r) => s + Number(r.amount), 0) : 0;
-              const yoc = p.current > 0 ? ((divs / p.current) * 100).toFixed(2) + '%' : '0.00%';
-              return `<tr><td style="padding:10px; border:2px solid #000;"><b>${p.name}</b></td><td style="padding:10px; border:2px solid #000;">${this.formatMoney(p.current, p.category)}</td><td style="padding:10px; border:2px solid #000; color:var(--color-success)">${this.formatMoney(divs, p.category)}</td><td style="padding:10px; border:2px solid #000; font-weight:bold; color:var(--color-accent);">${yoc}</td></tr>`;
-            }).join('')}
+    `;
+
+    if (this.dividends.length === 0) {
+      html += `<tr><td colspan="9" style="text-align: center; padding: 32px;">ยังไม่มีบันทึกเงินปันผล</td></tr>`;
+    } else {
+      this.dividends.forEach(d => {
+        const port = this.portfolios.find(p => p.id === d.portfolioId);
+        const netTHB = this.usdToThb(d.netUSD);
+        html += `
+          <tr>
+            <td>${d.date}</td>
+            <td><strong>${d.ticker}</strong></td>
+            <td>${port ? port.emoji + ' ' + port.name : d.portfolioId}</td>
+            <td>${this.formatUSD(d.grossUSD)}</td>
+            <td class="text-rose">-${this.formatUSD(d.taxUSD)}</td>
+            <td class="text-emerald font-bold">${this.formatUSD(d.netUSD)}</td>
+            <td class="text-emerald font-bold">${this.formatTHB(netTHB)}</td>
+            <td style="font-family: var(--font-ui);">${d.notes || '-'}</td>
+            <td>
+              <button class="btn btn-sm btn-danger" data-delete-dividend="${d.id}">ลบ</button>
+            </td>
+          </tr>
+        `;
+      });
+    }
+
+    html += `
           </tbody>
         </table>
       </div>
     `;
+
+    container.innerHTML = html;
   }
 
-  // --- ⚙️ RENDER 6: SETTINGS COMPACT ---
-  renderSettings(container) {
-    container.innerHTML = `
-      <div class="border-pixel" style="padding:20px; display:flex; flex-direction:column; gap:16px; background:#1f273e;">
-        <h3>⚙️ ตลับเซฟข้อมูลระบบนิเวศ (Data Sync Management)</h3>
-        <p>สถานะเซิร์ฟเวอร์ Cloud: <b>${isFirebaseActive ? '🟢 ออนไลน์ (Realtime Connected)' : '🔴 ออฟไลน์ (Local-Only)'}</b></p>
-        <div style="border-top: 2px dashed #444; margin: 8px 0;"></div>
-        
-        <h4>📥 โหลดฐานข้อมูลเก่า</h4>
-        <p style="font-size:0.85rem; color:var(--color-text-muted);">เปิดไฟล์สำรองข้อมูล .json คัดลอกข้อความด้านในมาวางตรงนี้ได้เลย</p>
-        <textarea id="import-json-area" class="input-retro" rows="10" style="width:100%; background:#0c1020; color:#10b981; font-family:monospace; padding:12px; border:2px solid #000;" placeholder="วางข้อความข้อมูลดิบ JSON ที่นี่..."></textarea>
-        <button class="btn btn-success btn-retro" id="btn-execute-import" style="width:220px; margin-top:8px;">📥 โหลดข้อมูลเก่า</button>
+  // 5. QUARTERLY COMPARISON & AUTO-SNAPSHOT VIEW
+  renderQuarterlyView(container) {
+    const currentYear = new Date().getFullYear();
+    const currentQuarter = 'Q' + Math.ceil((new Date().getMonth() + 1) / 3);
+
+    let html = `
+      <div class="quarterly-action-banner">
+        <div>
+          <h3 style="font-size: 18px; font-weight: 700; color: #fff;">📸 ระบบบันทึกเปรียบเทียบการเติบโตรายไตรมาส (Quarterly Engine)</h3>
+          <p style="font-size: 13px; color: var(--text-secondary); margin-top: 4px;">
+            บันทึก Snapshot สถานะพอร์ตล่าสุดลง Firebase อัตโนมัติ เพื่อเปรียบเทียบการเติบโต Q-on-Q
+          </p>
+        </div>
+        <button class="btn btn-primary btn-glow" id="btn-take-quarter-snapshot">
+          <span>📸 บันทึก Snapshot (${currentQuarter}/${currentYear})</span>
+        </button>
+      </div>
+
+      <div class="section-header">
+        <div class="section-title">
+          <span>ตารางเปรียบเทียบผลงานรายไตรมาส (Quarterly Records)</span>
+        </div>
+      </div>
+
+      <div class="div-table-wrap">
+        <table class="custom-table font-mono">
+          <thead>
+            <tr>
+              <th>พอร์ตการลงทุน</th>
+              <th>Q1 Value ($)</th>
+              <th>Q2 Value ($)</th>
+              <th>Q3 Value ($)</th>
+              <th>Q4 Value ($)</th>
+              <th>ล่าสุด ($)</th>
+              <th>การเติบโต</th>
+            </tr>
+          </thead>
+          <tbody>
+    `;
+
+    const q1Map = this.quarterlySnapshots.find(q => q.quarter === 'Q1')?.portValuesUSD || {};
+    const q2Map = this.quarterlySnapshots.find(q => q.quarter === 'Q2')?.portValuesUSD || {};
+    const q3Map = this.quarterlySnapshots.find(q => q.quarter === 'Q3')?.portValuesUSD || {};
+    const q4Map = this.quarterlySnapshots.find(q => q.quarter === 'Q4')?.portValuesUSD || {};
+
+    this.portfolios.forEach(p => {
+      const s = this.calculatePortfolioStats(p);
+      const q1Val = q1Map[p.id] || 0;
+      const q2Val = q2Map[p.id] || 0;
+      const q3Val = q3Map[p.id] || 0;
+      const q4Val = q4Map[p.id] || 0;
+
+      const baseVal = q1Val || q2Val || s.totalValueUSD;
+      const diff = s.totalValueUSD - baseVal;
+      const pct = baseVal > 0 ? (diff / baseVal) * 100 : 0;
+
+      html += `
+        <tr>
+          <td style="font-family: var(--font-ui); font-weight: 700;">${p.emoji || ''} ${p.name}</td>
+          <td>${q1Val > 0 ? this.formatUSD(q1Val) : '-'}</td>
+          <td>${q2Val > 0 ? this.formatUSD(q2Val) : '-'}</td>
+          <td>${q3Val > 0 ? this.formatUSD(q3Val) : '-'}</td>
+          <td>${q4Val > 0 ? this.formatUSD(q4Val) : '-'}</td>
+          <td class="font-bold">${this.formatUSD(s.totalValueUSD)}</td>
+          <td class="${pct >= 0 ? 'text-emerald' : 'text-rose'} font-bold">
+            ${pct >= 0 ? '+' : ''}${this.formatUSD(diff)} (${this.formatPercent(pct)})
+          </td>
+        </tr>
+      `;
+    });
+
+    html += `
+          </tbody>
+        </table>
       </div>
     `;
 
-    document.getElementById('btn-execute-import').addEventListener('click', () => {
-      const jsonStr = document.getElementById('import-json-area').value.trim();
-      if (!jsonStr) { alert('❌ ไม่พบข้อมูลในช่องกรอก'); return; }
-      try {
-        const parsed = JSON.parse(jsonStr);
-        if (parsed.portfolios) {
-          this.portfolios = parsed.portfolios;
-          this.quarterlyRecords = parsed.quarterlyRecords || [];
-          this.monthlyRecords = parsed.monthlyRecords || [];
-          this.dividendRecords = parsed.dividendRecords || [];
-          this.exchangeRate = Number(parsed.exchangeRate) || 36.5;
-          this.saveState(); this.refreshUI();
-          alert('🎯 นำเข้าเสร็จสิ้นเรียบร้อยแล้ว ทุกพอร์ตและลูกเล่น Rank กลับคืนมาร้อยเปอร์เซ็นต์!');
-        } else { alert('❌ โครงสร้าง JSON ไม่ถูกต้อง'); }
-      } catch (e) { alert('❌ ข้อมูลดิบเสียหาย: ' + e.message); }
+    container.innerHTML = html;
+  }
+
+  takeQuarterlySnapshot() {
+    const currentYear = new Date().getFullYear();
+    const currentQuarter = 'Q' + Math.ceil((new Date().getMonth() + 1) / 3);
+    const dateStr = new Date().toISOString().split('T')[0];
+
+    const portValuesUSD = {};
+    let totalUSD = 0;
+
+    this.portfolios.forEach(p => {
+      const s = this.calculatePortfolioStats(p);
+      portValuesUSD[p.id] = s.totalValueUSD;
+      totalUSD += s.totalValueUSD;
+    });
+
+    const { balances, totalTradingUSD } = this.getTradingLatestBalances();
+    Object.assign(portValuesUSD, balances);
+    totalUSD += totalTradingUSD;
+
+    // Check if exists
+    const idx = this.quarterlySnapshots.findIndex(q => q.year === currentYear && q.quarter === currentQuarter);
+    const newSnapshot = {
+      year: currentYear,
+      quarter: currentQuarter,
+      date: dateStr,
+      exchangeRate: this.exchangeRate,
+      portValuesUSD,
+      totalUSD,
+      notes: `Snapshot อัตโนมัติ ${currentQuarter}/${currentYear}`
+    };
+
+    if (idx >= 0) {
+      this.quarterlySnapshots[idx] = newSnapshot;
+    } else {
+      this.quarterlySnapshots.push(newSnapshot);
+    }
+
+    this.saveData();
+    alert(`📸 บันทึก Snapshot ไตรมาส ${currentQuarter}/${currentYear} เรียบร้อยแล้ว!`);
+  }
+
+  // 6. OBSIDIAN VAULT & AI SECOND BRAIN 1-CLICK EXPORT VIEW
+  renderObsidianExportView(container) {
+    const mdContent = this.generateObsidianMarkdown();
+
+    let html = `
+      <div class="obsidian-export-container">
+        <div class="obsidian-preview-header">
+          <div>
+            <h3 style="font-size: 18px; font-weight: 700; color: #fff;">🤖 ส่งออกเข้า Obsidian Vault & AI Second Brain</h3>
+            <p style="font-size: 13px; color: var(--text-secondary);">
+              ฟอร์แมต Markdown ตรงตามสเปกของ <code>Luna/02_INVESTMENT/financial_results/</code> พร้อม YAML Tags และ Wikilinks
+            </p>
+          </div>
+          <div style="display: flex; gap: 10px;">
+            <button class="btn btn-primary" id="btn-copy-obsidian-md">
+              <span>📋 Copy Markdown for AI</span>
+            </button>
+            <button class="btn btn-secondary" id="btn-download-obsidian-md">
+              <span>📥 Download .md File</span>
+            </button>
+          </div>
+        </div>
+
+        <pre class="markdown-preview-box" id="obsidian-md-preview">${this.escapeHtml(mdContent)}</pre>
+      </div>
+    `;
+
+    container.innerHTML = html;
+  }
+
+  generateObsidianMarkdown() {
+    const currentYear = new Date().getFullYear();
+    const currentQuarter = 'Q' + Math.ceil((new Date().getMonth() + 1) / 3);
+    const isoDate = new Date().toISOString();
+    const grand = this.calculateGrandTotalStats();
+
+    let md = `---
+type: [[Financial_Review]]
+quarter: [[${currentQuarter}_${currentYear}]]
+year: ${currentYear}
+export_date: ${isoDate}
+exchange_rate_thb_usd: ${this.exchangeRate.toFixed(2)}
+tags:
+  - #Agent_Access
+  - #Financial_Report
+  - #${currentQuarter}_${currentYear}
+  - #Portfolio_Tracking
+  - #Data_Vault
+---
+
+# 📊 [[${currentQuarter}_${currentYear}]] Financial Quarter Review
+
+**Metadata Information**
+* **Exported At:** ${isoDate}
+* **Exchange Rate Reference:** ${this.exchangeRate.toFixed(2)} THB/USD
+* **Total Net Worth (USD):** ${this.formatUSD(grand.grandTotalUSD)} (≈ ${this.formatTHB(grand.grandTotalTHB)})
+
+---
+
+## 💼 1. Portfolio Summary (สรุปสถานะพอร์ตการลงทุน)
+
+| ID | Portfolio Name | Tier / Category | Goal (USD) | Current Value (USD) | Cash Buffer (USD) | Notes / Strategy | Assets Held (Value USD) |
+| :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
+`;
+
+    this.portfolios.forEach((p, idx) => {
+      const s = this.calculatePortfolioStats(p);
+      const holdingsList = (p.holdings || [])
+        .filter(h => (parseFloat(h.shares) || 0) > 0)
+        .map(h => {
+          const stats = this.calculateHoldingStats(h);
+          return `[[Asset_${h.ticker}]]: $${stats.marketValueUSD.toFixed(2)}`;
+        }).join('<br>') || 'None';
+
+      md += `| ${idx + 1} | **[[${p.name}]]** | #${p.tier.replace(' ', '_')} #${p.category.replace(' ', '_')} | ${this.formatUSD(s.goalUSD)} | ${this.formatUSD(s.totalValueUSD)} | ${this.formatUSD(s.cashBufferUSD)} | ${p.notes || '-'} | ${holdingsList} |\n`;
+    });
+
+    // Trading rows
+    for (const [key, item] of Object.entries(this.tradingData || {})) {
+      const list = item.monthlyBalances || [];
+      const latest = list.length > 0 ? list[list.length - 1].balanceUSD : 0;
+      md += `| Trading | **[[${item.name}]]** | #Trading #Forex | - | ${this.formatUSD(latest)} | - | อัปเดตรายเดือน | [[Cash]]: ${this.formatUSD(latest)} |\n`;
+    }
+
+    md += `\n---\n\n## 📈 2. Quarterly Records (บันทึกผลงานเปรียบเทียบไตรมาสปี ${currentYear})\n\n`;
+    md += `| Portfolio | Q1 Value ($) | Q2 Value ($) | Q3 Value ($) | Q4 Value ($) | Current ($) |\n| :--- | :--- | :--- | :--- | :--- | :--- |\n`;
+
+    const q1Map = this.quarterlySnapshots.find(q => q.quarter === 'Q1')?.portValuesUSD || {};
+    const q2Map = this.quarterlySnapshots.find(q => q.quarter === 'Q2')?.portValuesUSD || {};
+    const q3Map = this.quarterlySnapshots.find(q => q.quarter === 'Q3')?.portValuesUSD || {};
+    const q4Map = this.quarterlySnapshots.find(q => q.quarter === 'Q4')?.portValuesUSD || {};
+
+    this.portfolios.forEach(p => {
+      const s = this.calculatePortfolioStats(p);
+      md += `| **[[${p.name}]]** | ${q1Map[p.id] ? this.formatUSD(q1Map[p.id]) : '-'} | ${q2Map[p.id] ? this.formatUSD(q2Map[p.id]) : '-'} | ${q3Map[p.id] ? this.formatUSD(q3Map[p.id]) : '-'} | ${q4Map[p.id] ? this.formatUSD(q4Map[p.id]) : '-'} | ${this.formatUSD(s.totalValueUSD)} |\n`;
+    });
+
+    md += `\n---\n\n## 📅 3. Monthly Trading Records (บันทึกประวัติการเทรด)\n\n`;
+    md += `| Period | Product / Strategy | Balance (USD) | Remarks |\n| :--- | :--- | :--- | :--- |\n`;
+
+    for (const [key, item] of Object.entries(this.tradingData || {})) {
+      (item.monthlyBalances || []).forEach(m => {
+        md += `| **[[${m.year}-${String(m.month).padStart(2, '0')}]]** | [[${item.name}]] | ${this.formatUSD(m.balanceUSD)} | ${m.note || '-'} |\n`;
+      });
+    }
+
+    return md;
+  }
+
+  escapeHtml(str) {
+    return (str || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  }
+
+  // 7. SETTINGS & BACKUP VIEW
+  renderSettingsView(container) {
+    let html = `
+      <div class="dime-hero-banner">
+        <h2 style="font-size: 24px; font-weight: 800; color: #fff;">⚙️ การตั้งค่าระบบและฐานข้อมูล</h2>
+        <p style="font-size: 13px; color: var(--text-secondary); margin-top: 4px;">
+          จัดการการเชื่อมต่อ Firebase Cloud Realtime Sync, สำรองข้อมูล, และตั้งค่าทั่วไป
+        </p>
+      </div>
+
+      <div class="analytics-charts-grid">
+        <div class="chart-card">
+          <div class="chart-title">☁️ สถานะการซิงค์ Firebase Cloud</div>
+          <p style="font-size: 13px; color: var(--text-secondary); margin-bottom: 12px;">
+            Project ID: <code>pixel-steward-db</code><br>
+            Database URL: <code>pixel-steward-db-default-rtdb.asia-southeast1.firebasedatabase.app</code>
+          </p>
+          <div style="display: flex; gap: 10px;">
+            <button class="btn btn-primary" id="btn-force-cloud-push">📤 อัปโหลดข้อมูลขึ้น Cloud</button>
+            <button class="btn btn-secondary" id="btn-force-cloud-pull">📥 ดึงข้อมูลล่าสุดจาก Cloud</button>
+          </div>
+        </div>
+
+        <div class="chart-card">
+          <div class="chart-title">💾 สำรองข้อมูลแบบไฟล์ (JSON Backup)</div>
+          <p style="font-size: 13px; color: var(--text-secondary); margin-bottom: 12px;">
+            ดาวน์โหลดไฟล์ JSON สำรองเก็บไว้ในเครื่อง หรือนำเข้าไฟล์ข้อมูล
+          </p>
+          <div style="display: flex; gap: 10px;">
+            <button class="btn btn-secondary" id="btn-export-json">📥 ดาวน์โหลด Backup JSON</button>
+            <label class="btn btn-secondary" style="cursor: pointer;">
+              <span>📤 นำเข้า JSON</span>
+              <input type="file" id="input-import-json" accept=".json" style="display: none;">
+            </label>
+          </div>
+        </div>
+      </div>
+    `;
+
+    container.innerHTML = html;
+  }
+
+  // --- EVENT LISTENERS & INTERACTION ---
+  setupEventListeners() {
+    // Navigation Tabs (Desktop & Mobile)
+    document.querySelectorAll('[data-tab]').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        const tab = e.currentTarget.getAttribute('data-tab');
+        this.switchTab(tab);
+      });
+    });
+
+    // Currency Switcher (USD / THB)
+    document.getElementById('cur-mode-usd')?.addEventListener('click', () => {
+      this.displayCurrency = 'USD';
+      document.getElementById('cur-mode-usd').classList.add('active');
+      document.getElementById('cur-mode-thb').classList.remove('active');
+      this.renderActiveTab();
+    });
+
+    document.getElementById('cur-mode-thb')?.addEventListener('click', () => {
+      this.displayCurrency = 'THB';
+      document.getElementById('cur-mode-thb').classList.add('active');
+      document.getElementById('cur-mode-usd').classList.remove('active');
+      this.renderActiveTab();
+    });
+
+    // Market Sync Buttons
+    document.getElementById('btn-sync-market-top')?.addEventListener('click', () => this.syncLiveMarketPrices());
+    document.getElementById('btn-sync-market-desktop')?.addEventListener('click', () => this.syncLiveMarketPrices());
+
+    // FX Rate Container Click (Opens FX Modal)
+    document.getElementById('fx-rate-container')?.addEventListener('click', () => {
+      document.getElementById('input-fx-rate').value = this.exchangeRate.toFixed(2);
+      this.openModal('modal-fx-settings');
+    });
+
+    // Top Quick Action Button (Opens Trade Modal)
+    document.getElementById('btn-quick-action')?.addEventListener('click', () => {
+      this.populateTradeStockSelect();
+      this.openModal('modal-trade');
+    });
+
+    // Dynamic Delegate clicks inside View Container
+    const container = document.getElementById('app-view-container');
+    container?.addEventListener('click', (e) => {
+      const target = e.target.closest('button, [data-open-port]');
+      if (!target) return;
+
+      // Open Subportfolio from card
+      if (target.hasAttribute('data-open-port')) {
+        this.selectedPortfolioId = target.getAttribute('data-open-port');
+        this.switchTab('portfolios');
+        return;
+      }
+
+      // Subportfolio Selector Button
+      if (target.hasAttribute('data-select-port')) {
+        this.selectedPortfolioId = target.getAttribute('data-select-port');
+        this.renderActiveTab();
+        return;
+      }
+
+      // Add New Subportfolio Modal
+      if (target.id === 'btn-add-portfolio-modal') {
+        this.openPortfolioEditModal(null);
+        return;
+      }
+
+      // Add Stock Modal
+      if (target.id === 'btn-add-holding-modal') {
+        this.openHoldingModal(null, this.selectedPortfolioId);
+        return;
+      }
+
+      // Edit Stock Modal
+      if (target.hasAttribute('data-edit-holding')) {
+        const holdingId = target.getAttribute('data-edit-holding');
+        const portId = target.getAttribute('data-port-id');
+        this.openHoldingModal(holdingId, portId);
+        return;
+      }
+
+      // Quick Trade Modal for specific stock
+      if (target.hasAttribute('data-trade-holding')) {
+        const holdingId = target.getAttribute('data-trade-holding');
+        const portId = target.getAttribute('data-port-id');
+        this.openTradeModalForHolding(holdingId, portId);
+        return;
+      }
+
+      // Manage Cash Buffer
+      if (target.id === 'btn-manage-cash-buffer' || target.hasAttribute('data-port-id') && target.id === 'btn-manage-cash-buffer') {
+        const portId = target.getAttribute('data-port-id') || this.selectedPortfolioId;
+        this.openCashBufferModal(portId);
+        return;
+      }
+
+      // Quick Buy with Cash Buffer
+      if (target.id === 'btn-quick-buy-with-cash') {
+        const portId = target.getAttribute('data-port-id') || this.selectedPortfolioId;
+        this.populateTradeStockSelect(portId);
+        this.openModal('modal-trade');
+        return;
+      }
+
+      // Edit Current Subportfolio
+      if (target.id === 'btn-edit-current-port') {
+        this.openPortfolioEditModal(this.selectedPortfolioId);
+        return;
+      }
+
+      // Save Trading Monthly Balance
+      if (target.hasAttribute('data-save-trading-key')) {
+        const key = target.getAttribute('data-save-trading-key');
+        const input = document.querySelector(`input[data-trading-key="${key}"]`);
+        if (input) {
+          const val = parseFloat(input.value) || 0;
+          const currentMonth = new Date().getMonth() + 1;
+          const currentYear = new Date().getFullYear();
+          const list = this.tradingData[key].monthlyBalances || [];
+          const lastIdx = list.findIndex(m => m.year === currentYear && m.month === currentMonth);
+          if (lastIdx >= 0) {
+            list[lastIdx].balanceUSD = val;
+          } else {
+            list.push({ year: currentYear, month: currentMonth, balanceUSD: val, note: 'อัปเดตรายเดือน' });
+          }
+          this.saveData();
+          alert(`💾 บันทึกยอดเงิน ${this.tradingData[key].name}: $${val.toFixed(2)} สำเร็จ!`);
+        }
+        return;
+      }
+
+      // Add Dividend Modal
+      if (target.id === 'btn-add-dividend-modal') {
+        this.openDividendModal();
+        return;
+      }
+
+      // Delete Dividend
+      if (target.hasAttribute('data-delete-dividend')) {
+        const id = target.getAttribute('data-delete-dividend');
+        if (confirm('ต้องการลบรายการปันผลนี้ใช่หรือไม่?')) {
+          this.dividends = this.dividends.filter(d => d.id !== id);
+          this.saveData();
+        }
+        return;
+      }
+
+      // Take Quarterly Snapshot
+      if (target.id === 'btn-take-quarter-snapshot') {
+        this.takeQuarterlySnapshot();
+        return;
+      }
+
+      // Copy Obsidian Markdown
+      if (target.id === 'btn-copy-obsidian-md') {
+        const md = this.generateObsidianMarkdown();
+        navigator.clipboard.writeText(md).then(() => {
+          alert('📋 คัดลอก Markdown สำหรับ AI และ Obsidian สำเร็จแล้ว!');
+        });
+        return;
+      }
+
+      // Download Obsidian Markdown
+      if (target.id === 'btn-download-obsidian-md') {
+        const md = this.generateObsidianMarkdown();
+        const blob = new Blob([md], { type: 'text/markdown;charset=utf-8' });
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = `Financial_Quarter_Review_${new Date().toISOString().slice(0, 10)}.md`;
+        a.click();
+        return;
+      }
+
+      // Force Cloud Push / Pull
+      if (target.id === 'btn-force-cloud-push') {
+        this.pushDataToCloud();
+        alert('📤 ส่งข้อมูลขึ้น Firebase Cloud สำเร็จ!');
+        return;
+      }
+
+      if (target.id === 'btn-force-cloud-pull') {
+        if (this.dbRef) {
+          this.dbRef.once('value').then(snap => {
+            if (snap.val()) {
+              this.handleCloudSync(snap.val());
+              alert('📥 ดึงข้อมูลล่าสุดจาก Firebase สำเร็จ!');
+            }
+          });
+        }
+        return;
+      }
+
+      // JSON Backup Export
+      if (target.id === 'btn-export-json') {
+        const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify({
+          portfolios: this.portfolios,
+          tradingData: this.tradingData,
+          quarterlySnapshots: this.quarterlySnapshots,
+          dividends: this.dividends,
+          exchangeRate: this.exchangeRate
+        }, null, 2));
+        const a = document.createElement('a');
+        a.href = dataStr;
+        a.download = `pixel_steward_backup_${new Date().toISOString().slice(0, 10)}.json`;
+        a.click();
+        return;
+      }
+    });
+
+    // JSON Backup Import
+    container?.addEventListener('change', (e) => {
+      if (e.target.id === 'input-import-json') {
+        const file = e.target.files[0];
+        if (file) {
+          const reader = new FileReader();
+          reader.onload = (event) => {
+            try {
+              const imported = JSON.parse(event.target.result);
+              if (imported.portfolios) {
+                this.handleCloudSync(imported);
+                alert('📥 นำเข้าข้อมูล JSON สำเร็จเรียบร้อย!');
+              }
+            } catch (err) {
+              alert('❌ ไฟล์ JSON ไม่ถูกต้อง');
+            }
+          };
+          reader.readAsText(file);
+        }
+      }
     });
   }
 
-  openPortfolioModal() { document.getElementById('portfolio-modal').classList.remove('hidden'); }
-  openTransferModal() { document.getElementById('transfer-modal').classList.remove('hidden'); }
-  closeModals() { document.querySelectorAll('.modal-overlay').forEach(m => m.classList.add('hidden')); }
+  switchTab(tabName) {
+    this.currentTab = tabName;
+
+    // Update Nav links
+    document.querySelectorAll('.nav-link, .mobile-nav-item').forEach(btn => {
+      if (btn.getAttribute('data-tab') === tabName) {
+        btn.classList.add('active');
+      } else {
+        btn.classList.remove('active');
+      }
+    });
+
+    // Update Header titles
+    const titleMap = {
+      dashboard: { title: 'แดชบอร์ดภาพรวม', sub: 'สรุปสินทรัพย์และผลการเติบโตตามเป้าหมาย (IPS)' },
+      portfolios: { title: 'แยกพอร์ต (Dime Holdings)', sub: 'รายละเอียดหุ้น, ทศนิยม, ต้นทุนเฉลี่ย, และเงินไว้ช้อน' },
+      trading: { title: 'Forex & Option Trading', sub: 'บันทึกยอดเงินทุนรายเดือนและกราฟการเติบโต' },
+      dividends: { title: 'บันทึกเงินปันผลรับ (Dividend Log)', sub: 'กระแสเงินสดปันผลสะสมและคำนวณหักภาษี 15%' },
+      quarterly: { title: 'เปรียบเทียบผลงานรายไตรมาส', sub: 'ระบบบันทึก Snapshot และเปรียบเทียบการเติบโต Q-on-Q' },
+      obsidian: { title: 'Obsidian & AI Second Brain', sub: 'ส่งออกรายงานการเงินเข้า Luna Vault อัตโนมัติ' },
+      settings: { title: 'ตั้งค่าระบบ & ฐานข้อมูล', sub: 'จัดการ Firebase Realtime Sync และสำรองข้อมูล' }
+    };
+
+    const info = titleMap[tabName] || titleMap.dashboard;
+    const titleEl = document.getElementById('current-page-title');
+    const subEl = document.getElementById('current-page-subtitle');
+    if (titleEl) titleEl.textContent = info.title;
+    if (subEl) subEl.textContent = info.sub;
+
+    this.renderActiveTab();
+  }
+
+  // --- MODAL CONTROLS & FORMS ---
+  setupModals() {
+    // Close modal buttons
+    document.querySelectorAll('[data-close]').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        const modalId = e.currentTarget.getAttribute('data-close');
+        this.closeModal(modalId);
+      });
+    });
+
+    // Close on backdrop click
+    document.querySelectorAll('.modal-backdrop').forEach(modal => {
+      modal.addEventListener('click', (e) => {
+        if (e.target === modal) {
+          modal.classList.remove('open');
+        }
+      });
+    });
+
+    // Trade Type Selector Toggle
+    document.querySelectorAll('.trade-type-selector .radio-card').forEach(card => {
+      card.addEventListener('click', (e) => {
+        const parent = card.closest('.trade-type-selector');
+        parent.querySelectorAll('.radio-card').forEach(c => c.classList.remove('active'));
+        card.classList.add('active');
+        const radio = card.querySelector('input[type="radio"]');
+        if (radio) radio.checked = true;
+
+        if (card.getAttribute('data-type')) {
+          this.updateTradeCalculations();
+        }
+      });
+    });
+
+    // Trade Calculation Live Updates
+    ['trade-shares', 'trade-price'].forEach(id => {
+      document.getElementById(id)?.addEventListener('input', () => this.updateTradeCalculations());
+    });
+
+    document.getElementById('trade-stock-select')?.addEventListener('change', () => this.updateTradeCalculations());
+
+    // Holding Form Submit
+    document.getElementById('form-holding')?.addEventListener('submit', (e) => {
+      e.preventDefault();
+      this.saveHoldingForm();
+    });
+
+    // Trade Form Submit
+    document.getElementById('form-trade')?.addEventListener('submit', (e) => {
+      e.preventDefault();
+      this.executeTrade();
+    });
+
+    // Cash Buffer Form Submit
+    document.getElementById('form-cash-buffer')?.addEventListener('submit', (e) => {
+      e.preventDefault();
+      this.saveCashBufferForm();
+    });
+
+    // Cash Buffer Live THB Calculator
+    document.getElementById('cash-amount-usd')?.addEventListener('input', (e) => {
+      const val = parseFloat(e.target.value) || 0;
+      const thbEl = document.getElementById('cash-amount-thb');
+      if (thbEl) thbEl.value = this.formatTHB(this.usdToThb(val));
+    });
+
+    // Dividend Form Calculations & Submit
+    document.getElementById('dividend-gross-usd')?.addEventListener('input', (e) => {
+      const gross = parseFloat(e.target.value) || 0;
+      const tax = gross * 0.15;
+      const net = gross - tax;
+      const taxInput = document.getElementById('dividend-tax-usd');
+      if (taxInput) taxInput.value = tax.toFixed(2);
+      document.getElementById('dividend-net-usd').textContent = this.formatUSD(net);
+      document.getElementById('dividend-net-thb').textContent = this.formatTHB(this.usdToThb(net));
+    });
+
+    document.getElementById('dividend-tax-usd')?.addEventListener('input', () => {
+      const gross = parseFloat(document.getElementById('dividend-gross-usd').value) || 0;
+      const tax = parseFloat(document.getElementById('dividend-tax-usd').value) || 0;
+      const net = gross - tax;
+      document.getElementById('dividend-net-usd').textContent = this.formatUSD(net);
+      document.getElementById('dividend-net-thb').textContent = this.formatTHB(this.usdToThb(net));
+    });
+
+    document.getElementById('form-dividend')?.addEventListener('submit', (e) => {
+      e.preventDefault();
+      this.saveDividendForm();
+    });
+
+    // FX Rate Form Submit
+    document.getElementById('form-fx-settings')?.addEventListener('submit', (e) => {
+      e.preventDefault();
+      const newRate = parseFloat(document.getElementById('input-fx-rate').value);
+      if (newRate > 0) {
+        this.exchangeRate = newRate;
+        this.updateSidebarFxRate();
+        this.saveData();
+        this.closeModal('modal-fx-settings');
+        alert(`💾 ตั้งค่าอัตราแลกเปลี่ยนเป็น ฿${newRate.toFixed(2)} เรียบร้อยแล้ว!`);
+      }
+    });
+
+    document.getElementById('btn-fetch-live-fx')?.addEventListener('click', async () => {
+      await this.fetchLiveExchangeRate();
+      document.getElementById('input-fx-rate').value = this.exchangeRate.toFixed(2);
+    });
+
+    // Sub-Portfolio Edit Form Submit
+    document.getElementById('form-portfolio-edit')?.addEventListener('submit', (e) => {
+      e.preventDefault();
+      this.savePortfolioEditForm();
+    });
+
+    document.getElementById('edit-port-goal-usd')?.addEventListener('input', (e) => {
+      const usd = parseFloat(e.target.value) || 0;
+      document.getElementById('edit-port-goal-thb').value = this.formatTHB(this.usdToThb(usd));
+    });
+  }
+
+  openModal(modalId) {
+    const modal = document.getElementById(modalId);
+    if (modal) modal.classList.add('open');
+  }
+
+  closeModal(modalId) {
+    const modal = document.getElementById(modalId);
+    if (modal) modal.classList.remove('open');
+  }
+
+  // --- HOLDING ADD / EDIT ---
+  openHoldingModal(holdingId, portfolioId) {
+    const portSelect = document.getElementById('holding-portfolio-id');
+    if (portSelect) {
+      portSelect.innerHTML = this.portfolios.map(p => `
+        <option value="${p.id}" ${p.id === portfolioId ? 'selected' : ''}>${p.emoji || ''} ${p.name}</option>
+      `).join('');
+    }
+
+    const deleteBtn = document.getElementById('btn-delete-holding');
+
+    if (holdingId) {
+      const port = this.portfolios.find(p => p.id === portfolioId);
+      const h = port?.holdings?.find(x => x.id === holdingId);
+      if (h) {
+        document.getElementById('modal-holding-title').textContent = '✏️ แก้ไขสินทรัพย์หุ้น';
+        document.getElementById('holding-id').value = h.id;
+        document.getElementById('holding-ticker').value = h.ticker;
+        document.getElementById('holding-name').value = h.name || '';
+        document.getElementById('holding-shares').value = h.shares;
+        document.getElementById('holding-avg-cost').value = h.avgCostUSD;
+        document.getElementById('holding-current-price').value = h.currentPriceUSD || '';
+        document.getElementById('holding-1d-change').value = h.change1dPct || '';
+        deleteBtn?.classList.remove('hidden');
+
+        deleteBtn.onclick = () => {
+          if (confirm(`ต้องการลบ ${h.ticker} ออกจากพอร์ตใช่หรือไม่?`)) {
+            port.holdings = port.holdings.filter(x => x.id !== h.id);
+            this.saveData();
+            this.closeModal('modal-holding');
+          }
+        };
+      }
+    } else {
+      document.getElementById('modal-holding-title').textContent = '➕ เพิ่มสินทรัพย์หุ้นใหม่';
+      document.getElementById('form-holding').reset();
+      document.getElementById('holding-id').value = '';
+      if (portSelect) portSelect.value = portfolioId || this.selectedPortfolioId;
+      deleteBtn?.classList.add('hidden');
+    }
+
+    this.openModal('modal-holding');
+  }
+
+  saveHoldingForm() {
+    const portId = document.getElementById('holding-portfolio-id').value;
+    const holdingId = document.getElementById('holding-id').value;
+    const ticker = document.getElementById('holding-ticker').value.trim().toUpperCase();
+    const name = document.getElementById('holding-name').value.trim();
+    const shares = parseFloat(document.getElementById('holding-shares').value) || 0;
+    const avgCostUSD = parseFloat(document.getElementById('holding-avg-cost').value) || 0;
+    const currentPriceUSD = parseFloat(document.getElementById('holding-current-price').value) || avgCostUSD;
+    const change1dPct = parseFloat(document.getElementById('holding-1d-change').value) || 0;
+
+    const port = this.portfolios.find(p => p.id === portId);
+    if (!port) return;
+
+    if (!port.holdings) port.holdings = [];
+
+    if (holdingId) {
+      const idx = port.holdings.findIndex(h => h.id === holdingId);
+      if (idx >= 0) {
+        port.holdings[idx] = { ...port.holdings[idx], ticker, name, shares, avgCostUSD, currentPriceUSD, change1dPct };
+      }
+    } else {
+      const newHolding = {
+        id: 'h-' + Date.now(),
+        ticker,
+        name: name || ticker,
+        shares,
+        avgCostUSD,
+        currentPriceUSD,
+        change1dPct
+      };
+      port.holdings.push(newHolding);
+    }
+
+    this.saveData();
+    this.closeModal('modal-holding');
+  }
+
+  // --- TRADE MODAL & DCA ENGINE ---
+  populateTradeStockSelect(preselectedPortId = null, preselectedHoldingId = null) {
+    const select = document.getElementById('trade-stock-select');
+    if (!select) return;
+
+    let html = '';
+    this.portfolios.forEach(p => {
+      html += `<optgroup label="${p.emoji || ''} ${p.name}">`;
+      (p.holdings || []).forEach(h => {
+        const isSelected = (p.id === preselectedPortId && h.id === preselectedHoldingId);
+        html += `<option value="${p.id}:::${h.id}" ${isSelected ? 'selected' : ''}>${h.ticker} (${h.name || h.ticker})</option>`;
+      });
+      html += `</optgroup>`;
+    });
+
+    select.innerHTML = html;
+    this.updateTradeCalculations();
+  }
+
+  openTradeModalForHolding(holdingId, portId) {
+    this.populateTradeStockSelect(portId, holdingId);
+    const port = this.portfolios.find(p => p.id === portId);
+    const h = port?.holdings?.find(x => x.id === holdingId);
+    if (h) {
+      document.getElementById('trade-price').value = (h.currentPriceUSD || h.avgCostUSD || 100).toFixed(2);
+      document.getElementById('trade-shares').value = '';
+    }
+    this.openModal('modal-trade');
+  }
+
+  updateTradeCalculations() {
+    const selectVal = document.getElementById('trade-stock-select')?.value;
+    if (!selectVal) return;
+
+    const [portId, holdingId] = selectVal.split(':::');
+    const port = this.portfolios.find(p => p.id === portId);
+    const h = port?.holdings?.find(x => x.id === holdingId);
+    if (!port || !h) return;
+
+    const type = document.querySelector('input[name="trade-type"]:checked')?.value || 'BUY';
+    const sharesInput = parseFloat(document.getElementById('trade-shares')?.value) || 0;
+    const priceInput = parseFloat(document.getElementById('trade-price')?.value) || (h.currentPriceUSD || h.avgCostUSD || 0);
+
+    const summaryEl = document.getElementById('trade-holding-summary');
+    if (summaryEl) {
+      summaryEl.innerHTML = `
+        <div style="font-size: 13px; color: #fff;"><strong>${port.name} ➔ ${h.ticker}</strong></div>
+        <div style="font-size: 12px; color: var(--text-secondary); margin-top: 2px;">
+          หุ้นปัจจุบัน: <strong class="font-mono">${h.shares.toFixed(6)}</strong> | ต้นทุนเดิม: <strong class="font-mono">$${h.avgCostUSD.toFixed(4)}</strong> | ราคาตลาด: <strong class="font-mono text-emerald">$${(h.currentPriceUSD || h.avgCostUSD).toFixed(2)}</strong>
+        </div>
+      `;
+    }
+
+    const totalUSD = sharesInput * priceInput;
+    const totalTHB = this.usdToThb(totalUSD);
+
+    document.getElementById('trade-total-usd').textContent = this.formatUSD(totalUSD);
+    document.getElementById('trade-total-thb').textContent = this.formatTHB(totalTHB);
+
+    const btnSubmit = document.getElementById('btn-submit-trade');
+    const avgLabel = document.getElementById('trade-avg-label');
+    const avgVal = document.getElementById('trade-new-avg');
+
+    if (type === 'BUY') {
+      btnSubmit.textContent = `🟢 ยืนยันซื้อ ${h.ticker} ($${totalUSD.toFixed(2)})`;
+      btnSubmit.className = 'btn btn-primary btn-glow';
+      avgLabel.textContent = 'ต้นทุนเฉลี่ยใหม่หลังซื้อ (Weighted Avg Cost):';
+
+      const oldTotalCost = (h.shares || 0) * (h.avgCostUSD || 0);
+      const newTotalShares = (h.shares || 0) + sharesInput;
+      const newAvgCost = newTotalShares > 0 ? (oldTotalCost + totalUSD) / newTotalShares : 0;
+      avgVal.textContent = `$${newAvgCost.toFixed(4)}`;
+      avgVal.className = 'font-mono text-emerald';
+    } else {
+      btnSubmit.textContent = `🔴 ยืนยันขาย ${h.ticker} ($${totalUSD.toFixed(2)})`;
+      btnSubmit.className = 'btn btn-danger';
+      avgLabel.textContent = 'กำไร/ขาดทุนรับรู้ (Realized P/L):';
+
+      const costOfSoldShares = sharesInput * (h.avgCostUSD || 0);
+      const realizedPL = totalUSD - costOfSoldShares;
+      const realizedPct = costOfSoldShares > 0 ? (realizedPL / costOfSoldShares) * 100 : 0;
+      avgVal.textContent = `${this.formatUSD(realizedPL)} (${this.formatPercent(realizedPct)})`;
+      avgVal.className = `font-mono ${realizedPL >= 0 ? 'text-emerald' : 'text-rose'}`;
+    }
+
+    // Cash buffer helper text
+    const cashBufEl = document.getElementById('trade-available-cash');
+    if (cashBufEl) {
+      cashBufEl.textContent = `เงินไว้ช้อนคงเหลือใน ${port.name.split(' ')[0]}: ${this.formatUSD(port.cashBufferUSD || 0)} (${this.formatTHB(this.usdToThb(port.cashBufferUSD || 0))})`;
+    }
+  }
+
+  executeTrade() {
+    const selectVal = document.getElementById('trade-stock-select').value;
+    const [portId, holdingId] = selectVal.split(':::');
+    const port = this.portfolios.find(p => p.id === portId);
+    const h = port?.holdings?.find(x => x.id === holdingId);
+    if (!port || !h) return;
+
+    const type = document.querySelector('input[name="trade-type"]:checked').value;
+    const tradeShares = parseFloat(document.getElementById('trade-shares').value) || 0;
+    const tradePrice = parseFloat(document.getElementById('trade-price').value) || 0;
+    const useCashBuffer = document.getElementById('trade-use-cash-buffer').checked;
+
+    if (tradeShares <= 0 || tradePrice <= 0) {
+      alert('กรุณากรอกจำนวนหุ้นและราคาให้ถูกต้อง');
+      return;
+    }
+
+    const tradeTotalUSD = tradeShares * tradePrice;
+
+    if (type === 'BUY') {
+      // Check cash buffer
+      if (useCashBuffer) {
+        if ((port.cashBufferUSD || 0) < tradeTotalUSD) {
+          if (!confirm(`เงินสดไว้ช้อนมี $${(port.cashBufferUSD || 0).toFixed(2)} แต่มูลค่าซื้อคือ $${tradeTotalUSD.toFixed(2)} ต้องการตัดจนหมดและติดลบหรือไม่?`)) {
+            return;
+          }
+        }
+        port.cashBufferUSD = Math.max(0, (port.cashBufferUSD || 0) - tradeTotalUSD);
+      }
+
+      // Calculate new weighted avg cost
+      const oldTotalCost = (h.shares || 0) * (h.avgCostUSD || 0);
+      const newTotalShares = (h.shares || 0) + tradeShares;
+      const newAvgCost = newTotalShares > 0 ? (oldTotalCost + tradeTotalUSD) / newTotalShares : tradePrice;
+
+      h.shares = newTotalShares;
+      h.avgCostUSD = newAvgCost;
+      h.currentPriceUSD = tradePrice; // update latest price
+
+      alert(`🟢 ซื้อ ${h.ticker} จำนวน ${tradeShares} หุ้น สำเร็จ! (ต้นทุนเฉลี่ยใหม่: $${newAvgCost.toFixed(4)})`);
+    } else {
+      // SELL
+      if ((h.shares || 0) < tradeShares) {
+        alert(`มีหุ้นไม่พอขาย! (มี ${h.shares} หุ้น แต่ต้องการขาย ${tradeShares} หุ้น)`);
+        return;
+      }
+
+      h.shares = Math.max(0, (h.shares || 0) - tradeShares);
+      if (useCashBuffer) {
+        port.cashBufferUSD = (port.cashBufferUSD || 0) + tradeTotalUSD;
+      }
+
+      alert(`🔴 ขาย ${h.ticker} จำนวน ${tradeShares} หุ้น สำเร็จ! ได้เงิน $${tradeTotalUSD.toFixed(2)}`);
+    }
+
+    this.saveData();
+    this.closeModal('modal-trade');
+  }
+
+  // --- CASH BUFFER MODAL & LOGIC ---
+  openCashBufferModal(portId) {
+    const port = this.portfolios.find(p => p.id === portId);
+    if (!port) return;
+
+    document.getElementById('cash-buffer-port-id').value = port.id;
+    document.getElementById('cash-buffer-port-name').textContent = `พอร์ต: ${port.emoji || ''} ${port.name}`;
+    document.getElementById('cash-current-usd').textContent = this.formatUSD(port.cashBufferUSD || 0);
+    document.getElementById('cash-current-thb').textContent = this.formatTHB(this.usdToThb(port.cashBufferUSD || 0));
+    document.getElementById('cash-amount-usd').value = '';
+    document.getElementById('cash-amount-thb').value = '';
+    document.getElementById('cash-note').value = '';
+
+    this.openModal('modal-cash-buffer');
+  }
+
+  saveCashBufferForm() {
+    const portId = document.getElementById('cash-buffer-port-id').value;
+    const port = this.portfolios.find(p => p.id === portId);
+    if (!port) return;
+
+    const action = document.querySelector('input[name="cash-action"]:checked').value;
+    const amount = parseFloat(document.getElementById('cash-amount-usd').value) || 0;
+
+    if (amount <= 0 && action !== 'SET') {
+      alert('กรุณาระบุจำนวนเงิน');
+      return;
+    }
+
+    if (action === 'DEPOSIT') {
+      port.cashBufferUSD = (port.cashBufferUSD || 0) + amount;
+    } else if (action === 'WITHDRAW') {
+      port.cashBufferUSD = Math.max(0, (port.cashBufferUSD || 0) - amount);
+    } else if (action === 'SET') {
+      port.cashBufferUSD = amount;
+    }
+
+    this.saveData();
+    this.closeModal('modal-cash-buffer');
+    alert(`💾 อัปเดตเงินไว้ช้อนของ ${port.name}: $${(port.cashBufferUSD || 0).toFixed(2)} สำเร็จ!`);
+  }
+
+  // --- DIVIDEND MODAL & LOGIC ---
+  openDividendModal() {
+    const portSelect = document.getElementById('dividend-portfolio-id');
+    if (portSelect) {
+      portSelect.innerHTML = this.portfolios.map(p => `
+        <option value="${p.id}">${p.emoji || ''} ${p.name}</option>
+      `).join('');
+    }
+
+    document.getElementById('form-dividend').reset();
+    document.getElementById('dividend-date').value = new Date().toISOString().split('T')[0];
+    document.getElementById('dividend-net-usd').textContent = '$0.00';
+    document.getElementById('dividend-net-thb').textContent = '฿0.00';
+
+    this.openModal('modal-dividend');
+  }
+
+  saveDividendForm() {
+    const date = document.getElementById('dividend-date').value;
+    const ticker = document.getElementById('dividend-ticker').value.trim().toUpperCase();
+    const portfolioId = document.getElementById('dividend-portfolio-id').value;
+    const grossUSD = parseFloat(document.getElementById('dividend-gross-usd').value) || 0;
+    const taxUSD = parseFloat(document.getElementById('dividend-tax-usd').value) || 0;
+    const netUSD = grossUSD - taxUSD;
+    const notes = document.getElementById('dividend-notes').value.trim();
+    const addToCash = document.getElementById('dividend-add-to-cash-buffer').checked;
+
+    const newDiv = {
+      id: 'div-' + Date.now(),
+      date,
+      ticker,
+      portfolioId,
+      grossUSD,
+      taxUSD,
+      netUSD,
+      notes
+    };
+
+    this.dividends.unshift(newDiv);
+
+    if (addToCash) {
+      const port = this.portfolios.find(p => p.id === portfolioId);
+      if (port) {
+        port.cashBufferUSD = (port.cashBufferUSD || 0) + netUSD;
+      }
+    }
+
+    this.saveData();
+    this.closeModal('modal-dividend');
+    alert(`💰 บันทึกเงินปันผล ${ticker}: Net $${netUSD.toFixed(2)} เรียบร้อยแล้ว!`);
+  }
+
+  // --- SUBPORTFOLIO EDIT / CREATE MODAL ---
+  openPortfolioEditModal(portId) {
+    if (portId) {
+      const port = this.portfolios.find(p => p.id === portId);
+      if (!port) return;
+
+      document.getElementById('modal-portfolio-title').textContent = '📁 แก้ไขข้อมูลพอร์ตการลงทุน';
+      document.getElementById('edit-port-id').value = port.id;
+      document.getElementById('edit-port-name').value = port.name;
+      document.getElementById('edit-port-emoji').value = port.emoji || '📁';
+      document.getElementById('edit-port-tier').value = port.tier || 'Tier 1';
+      document.getElementById('edit-port-color').value = port.color || '#10b981';
+      document.getElementById('edit-port-goal-usd').value = port.goalUSD || 0;
+      document.getElementById('edit-port-goal-thb').value = this.formatTHB(this.usdToThb(port.goalUSD || 0));
+      document.getElementById('edit-port-notes').value = port.notes || '';
+    } else {
+      document.getElementById('modal-portfolio-title').textContent = '➕ เพิ่มพอร์ตการลงทุนใหม่';
+      document.getElementById('form-portfolio-edit').reset();
+      document.getElementById('edit-port-id').value = '';
+      document.getElementById('edit-port-color').value = '#10b981';
+      document.getElementById('edit-port-goal-thb').value = '฿0.00';
+    }
+
+    this.openModal('modal-portfolio-edit');
+  }
+
+  savePortfolioEditForm() {
+    const portId = document.getElementById('edit-port-id').value;
+    const name = document.getElementById('edit-port-name').value.trim();
+    const emoji = document.getElementById('edit-port-emoji').value.trim() || '📁';
+    const tier = document.getElementById('edit-port-tier').value;
+    const color = document.getElementById('edit-port-color').value;
+    const goalUSD = parseFloat(document.getElementById('edit-port-goal-usd').value) || 0;
+    const notes = document.getElementById('edit-port-notes').value.trim();
+
+    if (portId) {
+      const port = this.portfolios.find(p => p.id === portId);
+      if (port) {
+        port.name = name;
+        port.emoji = emoji;
+        port.tier = tier;
+        port.color = color;
+        port.goalUSD = goalUSD;
+        port.notes = notes;
+      }
+    } else {
+      const newPort = {
+        id: 'port-' + Date.now(),
+        name,
+        emoji,
+        tier,
+        category: 'Custom',
+        color,
+        goalUSD,
+        cashBufferUSD: 0.00,
+        notes,
+        holdings: []
+      };
+      this.portfolios.push(newPort);
+      this.selectedPortfolioId = newPort.id;
+    }
+
+    this.saveData();
+    this.closeModal('modal-portfolio-edit');
+    alert(`💾 บันทึกข้อมูลพอร์ต ${name} เรียบร้อย!`);
+  }
+
+  // --- PWA REGISTRATION ---
+  registerPWA() {
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('./sw.js')
+          .then(reg => console.log('PWA Service Worker registered:', reg.scope))
+          .catch(err => console.log('Service Worker registration failed:', err));
+      });
+    }
+  }
 }
 
-window.app = new PixelStewardApp();
+// --- INSTANTIATE APP ON DOM LOADED ---
+document.addEventListener('DOMContentLoaded', () => {
+  window.pixelApp = new PixelStewardApp();
+});

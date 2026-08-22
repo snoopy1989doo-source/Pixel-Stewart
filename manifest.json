@@ -1,0 +1,24 @@
+{
+  "name": "Pixel Steward - Portfolio Tracker",
+  "short_name": "PixelSteward",
+  "description": "Realtime Goal-Based Investment Portfolio & Asset Tracker (USD/THB)",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#0c0e14",
+  "theme_color": "#0c0e14",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "./assets/foliologo/zero3.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "./assets/foliologo/zero3.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}
