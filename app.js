@@ -387,31 +387,189 @@ class PixelStewardApp {
     }
   }
 
+  getStockLogoUrl(ticker) {
+    if (!ticker) return '';
+    const clean = ticker.replace('.BK', '').toUpperCase().trim();
+    if (['SSO', 'กอช.', 'KEPT', 'CASH', 'THB', 'USD'].includes(clean)) {
+      return '';
+    }
+    if (clean === 'BTC') return 'https://assets.coingecko.com/coins/images/1/small/bitcoin.png';
+    if (clean === 'ETH') return 'https://assets.coingecko.com/coins/images/279/small/ethereum.png';
+    if (clean === 'BNB') return 'https://assets.coingecko.com/coins/images/825/small/bnb-icon2_2x.png';
+    
+    // High-resolution corporate stock logo
+    return `https://assets.parqet.com/logos/symbol/${clean}?format=png`;
+  }
+
+  getTickerCompanyName(ticker) {
+    if (!ticker) return '';
+    const clean = ticker.replace('.BK', '').toUpperCase().trim();
+    const map = {
+      'NVDA': 'NVIDIA Corporation',
+      'MSFT': 'Microsoft Corp.',
+      'TSLA': 'Tesla Inc.',
+      'AAPL': 'Apple Inc.',
+      'AMZN': 'Amazon.com Inc.',
+      'GOOGL': 'Alphabet Inc.',
+      'GOOG': 'Alphabet Inc.',
+      'META': 'Meta Platforms Inc.',
+      'V': 'Visa Inc.',
+      'WMT': 'Walmart Inc.',
+      'CRWD': 'CrowdStrike Holdings',
+      'SMR': 'NuScale Power Corp',
+      'RKLB': 'Rocket Lab USA',
+      'ABBV': 'AbbVie Inc.',
+      'ETN': 'Eaton Corporation',
+      'ABT': 'Abbott Laboratories',
+      'TMO': 'Thermo Fisher Scientific',
+      'NEE': 'NextEra Energy',
+      'JPM': 'JPMorgan Chase & Co.',
+      'PLTR': 'Palantir Technologies',
+      'COST': 'Costco Wholesale Corp.',
+      'LLY': 'Eli Lilly and Company',
+      'UNH': 'UnitedHealth Group',
+      'HD': 'Home Depot Inc.',
+      'MCD': 'McDonald\'s Corp.',
+      'TSM': 'Taiwan Semiconductor (TSMC)',
+      'ASML': 'ASML Holding N.V.',
+      'LMT': 'Lockheed Martin Corp.',
+      'SPGI': 'S&P Global Inc.',
+      'BWXT': 'BWX Technologies',
+      'AMD': 'Advanced Micro Devices',
+      'AVGO': 'Broadcom Inc.',
+      'O': 'Realty Income Corp.',
+      'PG': 'Procter & Gamble Co.',
+      'CVX': 'Chevron Corporation',
+      'KO': 'Coca-Cola Company',
+      'PEP': 'PepsiCo Inc.',
+      'ISRG': 'Intuitive Surgical',
+      'NU': 'Nu Holdings Ltd.',
+      'GEV': 'GE Vernova Inc.',
+      'VOO': 'Vanguard S&P 500 ETF',
+      'QQQ': 'Invesco QQQ Trust',
+      'SPY': 'SPDR S&P 500 ETF',
+      'DE': 'Deere & Company',
+      'BTC': 'Bitcoin',
+      'ETH': 'Ethereum',
+      'BNB': 'BNB Token',
+      'ADVANC': 'Advanced Info Service',
+      'SCB': 'SCB X Public Company',
+      'PTT': 'PTT Public Company',
+      'DIF': 'Digital Telecom Infra Fund',
+      'WHART': 'WHA Premium Growth Freehold',
+      'TISCO': 'TISCO Financial Group',
+      'KEPT': 'Kept by Krungsri (Cash)',
+      'SSO': 'ประกันสังคม',
+      'กอช.': 'กองทุนการออมแห่งชาติ'
+    };
+    return map[clean] || '';
+  }
+
+  updateHoldingTickerPreview(sym) {
+    const logoBox = document.getElementById('holding-ticker-logo-preview');
+    const nameInput = document.getElementById('holding-name');
+    if (!logoBox) return;
+
+    if (!sym) {
+      logoBox.innerHTML = `<span id="holding-ticker-preview-text" style="font-size: 11px; font-weight: 800; color: var(--text-muted);">---</span>`;
+      return;
+    }
+
+    const logoUrl = this.getStockLogoUrl(sym);
+    if (logoUrl) {
+      logoBox.innerHTML = `
+        <img src="${logoUrl}" alt="${sym}" onerror="this.style.display='none'; if(this.nextElementSibling) this.nextElementSibling.style.display='flex';" style="width: 100%; height: 100%; object-fit: contain; padding: 4px; border-radius: 50%;">
+        <span style="display: none; width: 100%; height: 100%; align-items: center; justify-content: center; font-size: 11px; font-weight: 800; color: #fff;">${sym.slice(0, 4)}</span>
+      `;
+    } else {
+      logoBox.innerHTML = `<span style="display: flex; width: 100%; height: 100%; align-items: center; justify-content: center; font-size: 11px; font-weight: 800; color: #fff;">${sym.slice(0, 4)}</span>`;
+    }
+
+    if (nameInput && (!nameInput.value || nameInput.getAttribute('data-autofilled') === 'true')) {
+      const compName = this.getTickerCompanyName(sym);
+      if (compName) {
+        nameInput.value = compName;
+        nameInput.setAttribute('data-autofilled', 'true');
+      }
+    }
+  }
+
   enrichPortfoliosWithIPS(ports) {
     if (!ports || ports.length === 0) return JSON.parse(JSON.stringify(INITIAL_PORTFOLIOS));
     
-    // Filter out RedWing
-    let result = ports.filter(p => p.id !== 'redwing' && !p.name.includes('RedWing'));
+    // 1. Map legacy numeric IDs to standard slug IDs
+    const idMap = {
+      '2': 'zero1',
+      '3': 'zero2',
+      '4': 'zero3',
+      '5': 'zero4',
+      '6': 'zero5',
+      '7': 'us_dividend',
+      '8': 'thai_dividend',
+      '9': 'next_gen'
+    };
 
+    // Filter out RedWing and misplaced Forex/Option portfolios from stock list
+    const filtered = ports.filter(p => {
+      if (!p) return false;
+      const pid = String(p.id).toLowerCase();
+      const pname = (p.name || '').toLowerCase();
+      if (pid === 'redwing' || pname.includes('redwing')) return false;
+      if (['10', '11', '12', 'forex_life', 'forex_bottrade', 'option'].includes(pid)) return false;
+      if (pname.includes('forex') || pname.includes('option')) return false;
+      return true;
+    });
+
+    // Remap IDs and normalize
+    const normalized = filtered.map(p => {
+      const mappedId = idMap[p.id] || p.id;
+      return { ...p, id: mappedId };
+    });
+
+    // Deduplicate by ID
+    const mergedMap = new Map();
+    normalized.forEach(p => {
+      if (!mergedMap.has(p.id)) {
+        mergedMap.set(p.id, p);
+      } else {
+        // If duplicated, merge holdings without duplicate tickers
+        const existing = mergedMap.get(p.id);
+        const existingTickers = new Set((existing.holdings || []).map(h => h.ticker.toUpperCase()));
+        (p.holdings || []).forEach(h => {
+          if (!existingTickers.has(h.ticker.toUpperCase())) {
+            existing.holdings.push(h);
+            existingTickers.add(h.ticker.toUpperCase());
+          }
+        });
+      }
+    });
+
+    const result = Array.from(mergedMap.values());
+
+    // Enrich existing portfolios with IPS targets without re-adding deleted holdings
     INITIAL_PORTFOLIOS.forEach(initP => {
       const existingP = result.find(p => p.id === initP.id);
       if (existingP) {
-        existingP.timeHorizon = initP.timeHorizon;
-        existingP.goalTHB = initP.goalTHB;
-        existingP.goalUSD = initP.goalUSD;
-        if (initP.targetCashBufferTHB) existingP.targetCashBufferTHB = initP.targetCashBufferTHB;
+        existingP.timeHorizon = existingP.timeHorizon || initP.timeHorizon;
+        existingP.goalTHB = existingP.goalTHB || initP.goalTHB;
+        existingP.goalUSD = existingP.goalUSD || initP.goalUSD;
+        existingP.color = existingP.color || initP.color;
+        existingP.emoji = existingP.emoji || initP.emoji;
+        if (initP.targetCashBufferTHB && !existingP.targetCashBufferTHB) {
+          existingP.targetCashBufferTHB = initP.targetCashBufferTHB;
+        }
         
-        // Enrich holdings targetTHB
-        (initP.holdings || []).forEach(initH => {
-          if (!existingP.holdings) existingP.holdings = [];
-          const existingH = existingP.holdings.find(h => h.ticker.toUpperCase() === initH.ticker.toUpperCase());
-          if (existingH) {
-            existingH.targetTHB = initH.targetTHB;
-          } else {
-            existingP.holdings.push(JSON.parse(JSON.stringify(initH)));
-          }
-        });
+        // Enrich targetTHB on EXISTING holdings only (NEVER re-insert deleted holdings)
+        if (existingP.holdings) {
+          existingP.holdings.forEach(h => {
+            const initH = (initP.holdings || []).find(x => x.ticker.toUpperCase() === h.ticker.toUpperCase());
+            if (initH && initH.targetTHB && !h.targetTHB) {
+              h.targetTHB = initH.targetTHB;
+            }
+          });
+        }
       } else {
+        // Brand new portfolio from initial list if totally missing
         result.push(JSON.parse(JSON.stringify(initP)));
       }
     });
@@ -1099,8 +1257,17 @@ class PixelStewardApp {
           <div class="holding-card">
             <div class="holding-header">
               <div class="holding-ticker-group">
-                <div class="ticker-icon-circle" style="border-color: ${port.color || '#10b981'};">
-                  ${h.ticker.slice(0, 4)}
+                <div class="ticker-icon-circle" style="border-color: ${port.color || '#10b981'}; overflow: hidden; background: #151a24; position: relative; display: flex; align-items: center; justify-content: center;">
+                  ${this.getStockLogoUrl(h.ticker) ? `
+                    <img src="${this.getStockLogoUrl(h.ticker)}" 
+                         alt="${h.ticker}" 
+                         loading="lazy"
+                         onerror="this.style.display='none'; if(this.nextElementSibling) this.nextElementSibling.style.display='flex';" 
+                         style="width: 100%; height: 100%; object-fit: contain; padding: 4px; border-radius: 50%;">
+                    <span style="display: none; width: 100%; height: 100%; align-items: center; justify-content: center; font-weight: 800; font-size: 11px; color: #fff;">${h.ticker.slice(0, 4)}</span>
+                  ` : `
+                    <span style="display: flex; width: 100%; height: 100%; align-items: center; justify-content: center; font-weight: 800; font-size: 11px; color: #fff;">${h.ticker.slice(0, 4)}</span>
+                  `}
                 </div>
                 <div class="ticker-name-box">
                   <h4>${h.ticker}</h4>
@@ -1991,6 +2158,55 @@ tags:
       document.getElementById('dividend-net-thb').textContent = this.formatTHB(this.usdToThb(net));
     });
 
+    // Holding Form Submit & Live Ticker Lookup
+    document.getElementById('holding-ticker')?.addEventListener('input', (e) => {
+      const sym = e.target.value.trim().toUpperCase();
+      this.updateHoldingTickerPreview(sym);
+    });
+
+    document.getElementById('form-holding')?.addEventListener('submit', (e) => {
+      e.preventDefault();
+      this.saveHoldingForm();
+    });
+
+    // Trade Form Submit
+    document.getElementById('form-trade')?.addEventListener('submit', (e) => {
+      e.preventDefault();
+      this.executeTrade();
+    });
+
+    // Cash Buffer Form Submit
+    document.getElementById('form-cash-buffer')?.addEventListener('submit', (e) => {
+      e.preventDefault();
+      this.saveCashBufferForm();
+    });
+
+    // Cash Buffer Live THB Calculator
+    document.getElementById('cash-amount-usd')?.addEventListener('input', (e) => {
+      const val = parseFloat(e.target.value) || 0;
+      const thbEl = document.getElementById('cash-amount-thb');
+      if (thbEl) thbEl.value = this.formatTHB(this.usdToThb(val));
+    });
+
+    // Dividend Form Calculations & Submit
+    document.getElementById('dividend-gross-usd')?.addEventListener('input', (e) => {
+      const gross = parseFloat(e.target.value) || 0;
+      const tax = gross * 0.15;
+      const net = gross - tax;
+      const taxInput = document.getElementById('dividend-tax-usd');
+      if (taxInput) taxInput.value = tax.toFixed(2);
+      document.getElementById('dividend-net-usd').textContent = this.formatUSD(net);
+      document.getElementById('dividend-net-thb').textContent = this.formatTHB(this.usdToThb(net));
+    });
+
+    document.getElementById('dividend-tax-usd')?.addEventListener('input', () => {
+      const gross = parseFloat(document.getElementById('dividend-gross-usd').value) || 0;
+      const tax = parseFloat(document.getElementById('dividend-tax-usd').value) || 0;
+      const net = gross - tax;
+      document.getElementById('dividend-net-usd').textContent = this.formatUSD(net);
+      document.getElementById('dividend-net-thb').textContent = this.formatTHB(this.usdToThb(net));
+    });
+
     document.getElementById('form-dividend')?.addEventListener('submit', (e) => {
       e.preventDefault();
       this.saveDividendForm();
@@ -2055,25 +2271,37 @@ tags:
         document.getElementById('holding-id').value = h.id;
         document.getElementById('holding-ticker').value = h.ticker;
         document.getElementById('holding-name').value = h.name || '';
+        document.getElementById('holding-name').removeAttribute('data-autofilled');
         document.getElementById('holding-shares').value = h.shares;
         document.getElementById('holding-avg-cost').value = h.avgCostUSD;
         document.getElementById('holding-current-price').value = h.currentPriceUSD || '';
         document.getElementById('holding-1d-change').value = h.change1dPct || '';
-        deleteBtn?.classList.remove('hidden');
+        
+        this.updateHoldingTickerPreview(h.ticker);
 
-        deleteBtn.onclick = () => {
-          if (confirm(`ต้องการลบ ${h.ticker} ออกจากพอร์ตใช่หรือไม่?`)) {
-            port.holdings = port.holdings.filter(x => x.id !== h.id);
-            this.saveData();
-            this.closeModal('modal-holding');
-          }
-        };
+        if (deleteBtn) {
+          deleteBtn.classList.remove('hidden');
+          deleteBtn.onclick = (e) => {
+            e.preventDefault();
+            if (confirm(`ต้องการลบ ${h.ticker} ออกจากพอร์ตใช่หรือไม่?`)) {
+              const targetPort = this.portfolios.find(p => p.id === portfolioId);
+              if (targetPort && targetPort.holdings) {
+                targetPort.holdings = targetPort.holdings.filter(x => x.id !== h.id);
+                this.saveData();
+                this.closeModal('modal-holding');
+                this.renderActiveTab();
+              }
+            }
+          };
+        }
       }
     } else {
       document.getElementById('modal-holding-title').textContent = '➕ เพิ่มสินทรัพย์หุ้นใหม่';
       document.getElementById('form-holding').reset();
       document.getElementById('holding-id').value = '';
+      document.getElementById('holding-name').removeAttribute('data-autofilled');
       if (portSelect) portSelect.value = portfolioId || this.selectedPortfolioId;
+      this.updateHoldingTickerPreview('');
       deleteBtn?.classList.add('hidden');
     }
 
@@ -2364,6 +2592,8 @@ tags:
 
   // --- SUBPORTFOLIO EDIT / CREATE MODAL ---
   openPortfolioEditModal(portId) {
+    const deletePortBtn = document.getElementById('btn-delete-portfolio');
+
     if (portId) {
       const port = this.portfolios.find(p => p.id === portId);
       if (!port) return;
@@ -2377,12 +2607,30 @@ tags:
       document.getElementById('edit-port-goal-usd').value = port.goalUSD || 0;
       document.getElementById('edit-port-goal-thb').value = this.formatTHB(this.usdToThb(port.goalUSD || 0));
       document.getElementById('edit-port-notes').value = port.notes || '';
+
+      if (deletePortBtn) {
+        deletePortBtn.classList.remove('hidden');
+        deletePortBtn.onclick = (e) => {
+          e.preventDefault();
+          if (confirm(`⚠️ คุณแน่ใจหรือไม่ว่าต้องการลบพอร์ต "${port.name}" และสินทรัพย์ทั้งหมดในพอร์ตนี้?\n(การกระทำนี้ไม่สามารถย้อนกลับได้)`)) {
+            this.portfolios = this.portfolios.filter(p => p.id !== port.id);
+            if (this.selectedPortfolioId === port.id) {
+              this.selectedPortfolioId = this.portfolios[0]?.id || 'zero1';
+            }
+            this.saveData();
+            this.closeModal('modal-portfolio-edit');
+            this.renderActiveTab();
+            alert(`🗑️ ลบพอร์ต ${port.name} เรียบร้อยแล้ว`);
+          }
+        };
+      }
     } else {
       document.getElementById('modal-portfolio-title').textContent = '➕ เพิ่มพอร์ตการลงทุนใหม่';
       document.getElementById('form-portfolio-edit').reset();
       document.getElementById('edit-port-id').value = '';
       document.getElementById('edit-port-color').value = '#10b981';
       document.getElementById('edit-port-goal-thb').value = '฿0.00';
+      if (deletePortBtn) deletePortBtn.classList.add('hidden');
     }
 
     this.openModal('modal-portfolio-edit');
