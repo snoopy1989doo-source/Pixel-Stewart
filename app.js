@@ -24,16 +24,18 @@ const INITIAL_PORTFOLIOS = [
     color: '#ff6b6b',
     category: 'Emergency',
     tier: 'Tier 1',
+    timeHorizon: '4 Years',
+    goalTHB: 95000.00,
     goalUSD: 2915.00,
     cashBufferUSD: 0.00,
-    notes: 'เงินสำรองห้ามแตะต้องเว้นแต่จำเป็น • MSFT, V, WMT, TISCO, KEPT',
+    notes: 'เงินสำรองห้ามแตะต้องเว้นแต่จำเป็น • Horizon: 4 Years',
     logo: 'assets/foliologo/zero1.png',
     holdings: [
-      { id: 'h-msft', ticker: 'MSFT', name: 'Microsoft Corp.', shares: 0.125, avgCostUSD: 365.00, currentPriceUSD: 410.20, change1dPct: 0.45 },
-      { id: 'h-v', ticker: 'V', name: 'Visa Inc.', shares: 0.102, avgCostUSD: 275.50, currentPriceUSD: 285.80, change1dPct: 0.12 },
-      { id: 'h-wmt', ticker: 'WMT', name: 'Walmart Inc.', shares: 0.0470276, avgCostUSD: 116.5887, currentPriceUSD: 103.70, change1dPct: -0.13 },
-      { id: 'h-tisco', ticker: 'TISCO.BK', name: 'TISCO Financial Group', shares: 0.00, avgCostUSD: 2.80, currentPriceUSD: 2.85, change1dPct: 0.00 },
-      { id: 'h-kept', ticker: 'KEPT', name: 'Kept by Krungsri (Cash)', shares: 0.00, avgCostUSD: 1.00, currentPriceUSD: 1.00, change1dPct: 0.00 }
+      { id: 'h-msft', ticker: 'MSFT', name: 'Microsoft Corp.', shares: 0.125, avgCostUSD: 365.00, currentPriceUSD: 410.20, change1dPct: 0.45, targetTHB: 15000 },
+      { id: 'h-v', ticker: 'V', name: 'Visa Inc.', shares: 0.102, avgCostUSD: 275.50, currentPriceUSD: 285.80, change1dPct: 0.12, targetTHB: 20000 },
+      { id: 'h-wmt', ticker: 'WMT', name: 'Walmart Inc.', shares: 0.0470276, avgCostUSD: 116.5887, currentPriceUSD: 103.70, change1dPct: -0.13, targetTHB: 12000 },
+      { id: 'h-tisco', ticker: 'TISCO.BK', name: 'TISCO Financial Group', shares: 0.00, avgCostUSD: 2.80, currentPriceUSD: 2.85, change1dPct: 0.00, targetTHB: 12000 },
+      { id: 'h-kept', ticker: 'KEPT', name: 'Kept by Krungsri (Cash)', shares: 0.00, avgCostUSD: 1.00, currentPriceUSD: 1.00, change1dPct: 0.00, targetTHB: 36000 }
     ]
   },
   {
@@ -43,39 +45,20 @@ const INITIAL_PORTFOLIOS = [
     color: '#a855f7',
     category: 'Asset',
     tier: 'Tier 2',
-    goalUSD: 36820.00,
-    cashBufferUSD: 5523.16,
-    notes: 'สะสมดาวน์รถยนต์คันใหม่ • Cash Buffer = 180,000 ฿',
+    timeHorizon: '3 Years',
+    goalTHB: 1200000.00,
+    goalUSD: 36821.11,
+    targetCashBufferTHB: 180000,
+    cashBufferUSD: 5523.17,
+    notes: 'สะสมดาวน์รถยนต์คันใหม่ • Cash Buffer = 180,000 ฿ • Horizon: 3 Years',
     logo: 'assets/foliologo/zero2.png',
     holdings: [
-      { id: 'h-nvda', ticker: 'NVDA', name: 'NVIDIA Corporation', shares: 0.0651080, avgCostUSD: 199.6858, currentPriceUSD: 214.72, change1dPct: -0.98 },
-      { id: 'h-tmo', ticker: 'TMO', name: 'Thermo Fisher Scientific', shares: 0.0131, avgCostUSD: 550.00, currentPriceUSD: 585.00, change1dPct: 0.85 },
-      { id: 'h-pltr', ticker: 'PLTR', name: 'Palantir Technologies', shares: 0.156, avgCostUSD: 24.50, currentPriceUSD: 31.20, change1dPct: 2.40 },
-      { id: 'h-abt', ticker: 'ABT', name: 'Abbott Laboratories', shares: 0.0028, avgCostUSD: 108.00, currentPriceUSD: 112.50, change1dPct: 0.20 },
-      { id: 'h-nee', ticker: 'NEE', name: 'NextEra Energy', shares: 0.00, avgCostUSD: 72.00, currentPriceUSD: 75.00, change1dPct: 0.00 },
-      { id: 'h-jpm', ticker: 'JPM', name: 'JPMorgan Chase & Co.', shares: 0.00, avgCostUSD: 195.00, currentPriceUSD: 200.00, change1dPct: 0.00 }
-    ]
-  },
-  {
-    id: 'zero3',
-    name: 'Zero 3 (เกษียณ)',
-    emoji: '❄️🧊',
-    color: '#38bdf8',
-    category: 'Retirement',
-    tier: 'Tier 3',
-    goalUSD: 122737.00,
-    cashBufferUSD: 3000.00,
-    notes: 'พอร์ตหลักระยะยาว พลิกฟื้นอิสรภาพ 37 Years',
-    logo: 'assets/foliologo/zero3.png',
-    holdings: [
-      { id: 'h-googl', ticker: 'GOOGL', name: 'Alphabet Inc.', shares: 0.50, avgCostUSD: 165.00, currentPriceUSD: 178.50, change1dPct: 0.70 },
-      { id: 'h-amzn', ticker: 'AMZN', name: 'Amazon.com Inc.', shares: 0.35, avgCostUSD: 180.00, currentPriceUSD: 192.00, change1dPct: 1.10 },
-      { id: 'h-tsla', ticker: 'TSLA', name: 'Tesla Inc.', shares: 0.85, avgCostUSD: 215.00, currentPriceUSD: 235.00, change1dPct: -1.20 },
-      { id: 'h-crwd', ticker: 'CRWD', name: 'CrowdStrike Holdings', shares: 0.20, avgCostUSD: 290.00, currentPriceUSD: 320.00, change1dPct: 1.50 },
-      { id: 'h-smr', ticker: 'SMR', name: 'NuScale Power Corp', shares: 5.00, avgCostUSD: 9.20, currentPriceUSD: 11.50, change1dPct: 3.20 },
-      { id: 'h-rklb', ticker: 'RKLB', name: 'Rocket Lab USA', shares: 10.00, avgCostUSD: 4.80, currentPriceUSD: 5.40, change1dPct: -0.50 },
-      { id: 'h-etn', ticker: 'ETN', name: 'Eaton Corporation', shares: 0.00, avgCostUSD: 310.00, currentPriceUSD: 315.00, change1dPct: 0.00 },
-      { id: 'h-abbv', ticker: 'ABBV', name: 'AbbVie Inc.', shares: 0.00, avgCostUSD: 170.00, currentPriceUSD: 175.00, change1dPct: 0.00 }
+      { id: 'h-nvda', ticker: 'NVDA', name: 'NVIDIA Corporation', shares: 0.0651080, avgCostUSD: 199.6858, currentPriceUSD: 214.72, change1dPct: -0.98, targetTHB: 120000 },
+      { id: 'h-abt', ticker: 'ABT', name: 'Abbott Laboratories', shares: 0.0028, avgCostUSD: 108.00, currentPriceUSD: 112.50, change1dPct: 0.20, targetTHB: 180000 },
+      { id: 'h-tmo', ticker: 'TMO', name: 'Thermo Fisher Scientific', shares: 0.0131, avgCostUSD: 550.00, currentPriceUSD: 585.00, change1dPct: 0.85, targetTHB: 120000 },
+      { id: 'h-nee', ticker: 'NEE', name: 'NextEra Energy', shares: 0.00, avgCostUSD: 72.00, currentPriceUSD: 75.00, change1dPct: 0.00, targetTHB: 300000 },
+      { id: 'h-jpm', ticker: 'JPM', name: 'JPMorgan Chase & Co.', shares: 0.00, avgCostUSD: 195.00, currentPriceUSD: 200.00, change1dPct: 0.00, targetTHB: 120000 },
+      { id: 'h-pltr', ticker: 'PLTR', name: 'Palantir Technologies', shares: 0.156, avgCostUSD: 24.50, currentPriceUSD: 31.20, change1dPct: 2.40, targetTHB: 60000 }
     ]
   },
   {
@@ -85,16 +68,44 @@ const INITIAL_PORTFOLIOS = [
     color: '#ec4899',
     category: 'Life Goal',
     tier: 'Tier 2',
-    goalUSD: 18410.00,
-    cashBufferUSD: 6136.00,
-    notes: 'ทุนแต่งงานในอนาคต 5 Years • Cash Buffer = 200,000 ฿',
+    timeHorizon: '5 Years',
+    goalTHB: 600000.00,
+    goalUSD: 18410.56,
+    targetCashBufferTHB: 200000,
+    cashBufferUSD: 6136.85,
+    notes: 'ทุนแต่งงานในอนาคต • Cash Buffer = 200,000 ฿ • Horizon: 5 Years',
     logo: 'assets/foliologo/zero4.png',
     holdings: [
-      { id: 'h-cost', ticker: 'COST', name: 'Costco Wholesale Corp.', shares: 0.00, avgCostUSD: 850.00, currentPriceUSD: 870.00, change1dPct: 0.00 },
-      { id: 'h-lly', ticker: 'LLY', name: 'Eli Lilly and Company', shares: 0.00, avgCostUSD: 920.00, currentPriceUSD: 940.00, change1dPct: 0.00 },
-      { id: 'h-unh', ticker: 'UNH', name: 'UnitedHealth Group', shares: 0.00, avgCostUSD: 540.00, currentPriceUSD: 550.00, change1dPct: 0.00 },
-      { id: 'h-hd', ticker: 'HD', name: 'Home Depot Inc.', shares: 0.00, avgCostUSD: 360.00, currentPriceUSD: 365.00, change1dPct: 0.00 },
-      { id: 'h-mcd', ticker: 'MCD', name: 'McDonald\'s Corp.', shares: 0.00, avgCostUSD: 280.00, currentPriceUSD: 285.00, change1dPct: 0.00 }
+      { id: 'h-cost', ticker: 'COST', name: 'Costco Wholesale Corp.', shares: 0.00, avgCostUSD: 850.00, currentPriceUSD: 870.00, change1dPct: 0.00, targetTHB: 80000 },
+      { id: 'h-lly', ticker: 'LLY', name: 'Eli Lilly and Company', shares: 0.00, avgCostUSD: 920.00, currentPriceUSD: 940.00, change1dPct: 0.00, targetTHB: 80000 },
+      { id: 'h-unh', ticker: 'UNH', name: 'UnitedHealth Group', shares: 0.00, avgCostUSD: 540.00, currentPriceUSD: 550.00, change1dPct: 0.00, targetTHB: 80000 },
+      { id: 'h-hd', ticker: 'HD', name: 'Home Depot Inc.', shares: 0.00, avgCostUSD: 360.00, currentPriceUSD: 365.00, change1dPct: 0.00, targetTHB: 80000 },
+      { id: 'h-mcd', ticker: 'MCD', name: 'McDonald\'s Corp.', shares: 0.00, avgCostUSD: 280.00, currentPriceUSD: 285.00, change1dPct: 0.00, targetTHB: 80000 }
+    ]
+  },
+  {
+    id: 'zero3',
+    name: 'Zero 3 (เกษียณ)',
+    emoji: '❄️🧊',
+    color: '#38bdf8',
+    category: 'Retirement',
+    tier: 'Tier 3',
+    timeHorizon: '37 Years',
+    goalTHB: 4000000.00,
+    goalUSD: 122737.04,
+    cashBufferUSD: 3000.00,
+    notes: 'พอร์ตหลักระยะยาว พลิกฟื้นอิสรภาพ • Horizon: 37 Years',
+    logo: 'assets/foliologo/zero3.png',
+    holdings: [
+      { id: 'h-googl', ticker: 'GOOGL', name: 'Alphabet Inc.', shares: 0.50, avgCostUSD: 165.00, currentPriceUSD: 178.50, change1dPct: 0.70, targetTHB: 858000 },
+      { id: 'h-tsla', ticker: 'TSLA', name: 'Tesla Inc.', shares: 0.85, avgCostUSD: 215.00, currentPriceUSD: 235.00, change1dPct: -1.20, targetTHB: 785000 },
+      { id: 'h-amzn', ticker: 'AMZN', name: 'Amazon.com Inc.', shares: 0.35, avgCostUSD: 180.00, currentPriceUSD: 192.00, change1dPct: 1.10, targetTHB: 624000 },
+      { id: 'h-crwd', ticker: 'CRWD', name: 'CrowdStrike Holdings', shares: 0.20, avgCostUSD: 290.00, currentPriceUSD: 320.00, change1dPct: 1.50, targetTHB: 390000 },
+      { id: 'h-abbv', ticker: 'ABBV', name: 'AbbVie Inc.', shares: 0.00, avgCostUSD: 170.00, currentPriceUSD: 175.00, change1dPct: 0.00, targetTHB: 390000 },
+      { id: 'h-smr', ticker: 'SMR', name: 'NuScale Power Corp', shares: 5.00, avgCostUSD: 9.20, currentPriceUSD: 11.50, change1dPct: 3.20, targetTHB: 218400 },
+      { id: 'h-etn', ticker: 'ETN', name: 'Eaton Corporation', shares: 0.00, avgCostUSD: 310.00, currentPriceUSD: 315.00, change1dPct: 0.00, targetTHB: 205600 },
+      { id: 'h-rklb', ticker: 'RKLB', name: 'Rocket Lab USA', shares: 10.00, avgCostUSD: 4.80, currentPriceUSD: 5.40, change1dPct: -0.50, targetTHB: 195000 },
+      { id: 'h-gpf', ticker: 'กอช.', name: 'กองทุนการออมแห่งชาติ', shares: 0.00, avgCostUSD: 1.00, currentPriceUSD: 1.00, change1dPct: 0.00, targetTHB: 100000 }
     ]
   },
   {
@@ -104,17 +115,20 @@ const INITIAL_PORTFOLIOS = [
     color: '#eab308',
     category: 'Asset',
     tier: 'Tier 3',
-    goalUSD: 46026.00,
-    cashBufferUSD: 9205.00,
-    notes: 'เป้าหมายระยะกลางสำหรับที่อยู่อาศัย • Cash Buffer = 300,000 ฿',
+    timeHorizon: '37 Years',
+    goalTHB: 1500000.00,
+    goalUSD: 46026.39,
+    targetCashBufferTHB: 300000,
+    cashBufferUSD: 9205.28,
+    notes: 'เป้าหมายระยะกลางสำหรับที่อยู่อาศัย • Cash Buffer = 300,000 ฿ • Horizon: 37 Years',
     logo: 'assets/foliologo/zero5.png',
     holdings: [
-      { id: 'h-tsm', ticker: 'TSM', name: 'Taiwan Semiconductor (TSMC)', shares: 0.00, avgCostUSD: 165.00, currentPriceUSD: 172.00, change1dPct: 0.00 },
-      { id: 'h-asml', ticker: 'ASML', name: 'ASML Holding N.V.', shares: 0.00, avgCostUSD: 850.00, currentPriceUSD: 880.00, change1dPct: 0.00 },
-      { id: 'h-amd', ticker: 'AMD', name: 'Advanced Micro Devices', shares: 0.00, avgCostUSD: 145.00, currentPriceUSD: 150.00, change1dPct: 0.00 },
-      { id: 'h-bwxt', ticker: 'BWXT', name: 'BWX Technologies', shares: 0.00, avgCostUSD: 95.00, currentPriceUSD: 98.00, change1dPct: 0.00 },
-      { id: 'h-spgi', ticker: 'SPGI', name: 'S&P Global Inc.', shares: 0.00, avgCostUSD: 480.00, currentPriceUSD: 490.00, change1dPct: 0.00 },
-      { id: 'h-lmt', ticker: 'LMT', name: 'Lockheed Martin Corp.', shares: 0.00, avgCostUSD: 540.00, currentPriceUSD: 555.00, change1dPct: 0.00 }
+      { id: 'h-tsm', ticker: 'TSM', name: 'Taiwan Semiconductor (TSMC)', shares: 0.00, avgCostUSD: 165.00, currentPriceUSD: 172.00, change1dPct: 0.00, targetTHB: 300000 },
+      { id: 'h-asml', ticker: 'ASML', name: 'ASML Holding N.V.', shares: 0.00, avgCostUSD: 850.00, currentPriceUSD: 880.00, change1dPct: 0.00, targetTHB: 240000 },
+      { id: 'h-lmt', ticker: 'LMT', name: 'Lockheed Martin Corp.', shares: 0.00, avgCostUSD: 540.00, currentPriceUSD: 555.00, change1dPct: 0.00, targetTHB: 240000 },
+      { id: 'h-spgi', ticker: 'SPGI', name: 'S&P Global Inc.', shares: 0.00, avgCostUSD: 480.00, currentPriceUSD: 490.00, change1dPct: 0.00, targetTHB: 180000 },
+      { id: 'h-bwxt', ticker: 'BWXT', name: 'BWX Technologies', shares: 0.00, avgCostUSD: 95.00, currentPriceUSD: 98.00, change1dPct: 0.00, targetTHB: 140000 },
+      { id: 'h-amd', ticker: 'AMD', name: 'Advanced Micro Devices', shares: 0.00, avgCostUSD: 145.00, currentPriceUSD: 150.00, change1dPct: 0.00, targetTHB: 100000 }
     ]
   },
   {
@@ -124,16 +138,18 @@ const INITIAL_PORTFOLIOS = [
     color: '#10b981',
     category: 'Global Stock',
     tier: 'Tier 4',
-    goalUSD: 9205.00,
+    timeHorizon: 'Ongoing',
+    goalTHB: 300000.00,
+    goalUSD: 9205.28,
     cashBufferUSD: 613.68,
-    notes: 'ปันผลสม่ำเสมอ ลดความเสี่ยงค่าเงิน • PG, KO, PEP, AVGO, CVX',
+    notes: 'ปันผลสม่ำเสมอ ลดความเสี่ยงค่าเงิน • Ongoing',
     logo: 'assets/foliologo/usdividentyield.png',
     holdings: [
-      { id: 'h-pg', ticker: 'PG', name: 'Procter & Gamble Co.', shares: 0.65, avgCostUSD: 162.00, currentPriceUSD: 168.40, change1dPct: 0.30 },
-      { id: 'h-cvx', ticker: 'CVX', name: 'Chevron Corporation', shares: 0.12, avgCostUSD: 148.00, currentPriceUSD: 152.00, change1dPct: -0.40 },
-      { id: 'h-ko', ticker: 'KO', name: 'Coca-Cola Company', shares: 0.00, avgCostUSD: 68.00, currentPriceUSD: 69.50, change1dPct: 0.00 },
-      { id: 'h-pep', ticker: 'PEP', name: 'PepsiCo Inc.', shares: 0.00, avgCostUSD: 170.00, currentPriceUSD: 172.00, change1dPct: 0.00 },
-      { id: 'h-avgo', ticker: 'AVGO', name: 'Broadcom Inc.', shares: 0.00, avgCostUSD: 160.00, currentPriceUSD: 165.00, change1dPct: 0.00 }
+      { id: 'h-pg', ticker: 'PG', name: 'Procter & Gamble Co.', shares: 0.65, avgCostUSD: 162.00, currentPriceUSD: 168.40, change1dPct: 0.30, targetTHB: 75000 },
+      { id: 'h-ko', ticker: 'KO', name: 'Coca-Cola Company', shares: 0.00, avgCostUSD: 68.00, currentPriceUSD: 69.50, change1dPct: 0.00, targetTHB: 75000 },
+      { id: 'h-pep', ticker: 'PEP', name: 'PepsiCo Inc.', shares: 0.00, avgCostUSD: 170.00, currentPriceUSD: 172.00, change1dPct: 0.00, targetTHB: 60000 },
+      { id: 'h-avgo', ticker: 'AVGO', name: 'Broadcom Inc.', shares: 0.00, avgCostUSD: 160.00, currentPriceUSD: 165.00, change1dPct: 0.00, targetTHB: 45000 },
+      { id: 'h-cvx', ticker: 'CVX', name: 'Chevron Corporation', shares: 0.12, avgCostUSD: 148.00, currentPriceUSD: 152.00, change1dPct: -0.40, targetTHB: 45000 }
     ]
   },
   {
@@ -143,16 +159,18 @@ const INITIAL_PORTFOLIOS = [
     color: '#6366f1',
     category: 'Thai Stock',
     tier: 'Tier 4',
-    goalUSD: 3068.00,
+    timeHorizon: 'Ongoing',
+    goalTHB: 100000.00,
+    goalUSD: 3068.43,
     cashBufferUSD: 306.84,
-    notes: 'เน้นกระแสเงินสดจากปันผลในประเทศ • ADVANC, SCB, PTT, DIF, WHART',
+    notes: 'เน้นกระแสเงินสดจากปันผลในประเทศ • Ongoing',
     logo: 'assets/foliologo/thaidivident.png',
     holdings: [
-      { id: 'h-advanc', ticker: 'ADVANC.BK', name: 'Advanced Info Service', shares: 0.00, avgCostUSD: 7.20, currentPriceUSD: 7.30, change1dPct: 0.00 },
-      { id: 'h-scb', ticker: 'SCB.BK', name: 'SCB X Public Company', shares: 0.00, avgCostUSD: 3.10, currentPriceUSD: 3.15, change1dPct: 0.00 },
-      { id: 'h-ptt', ticker: 'PTT.BK', name: 'PTT Public Company', shares: 0.00, avgCostUSD: 0.95, currentPriceUSD: 0.98, change1dPct: 0.00 },
-      { id: 'h-dif', ticker: 'DIF.BK', name: 'Digital Telecom Infra Fund', shares: 0.00, avgCostUSD: 0.22, currentPriceUSD: 0.23, change1dPct: 0.00 },
-      { id: 'h-whart', ticker: 'WHART.BK', name: 'WHA Premium Growth Freehold', shares: 0.00, avgCostUSD: 0.28, currentPriceUSD: 0.29, change1dPct: 0.00 }
+      { id: 'h-advanc', ticker: 'ADVANC.BK', name: 'Advanced Info Service', shares: 0.00, avgCostUSD: 7.20, currentPriceUSD: 7.30, change1dPct: 0.00, targetTHB: 25000 },
+      { id: 'h-scb', ticker: 'SCB.BK', name: 'SCB X Public Company', shares: 0.00, avgCostUSD: 3.10, currentPriceUSD: 3.15, change1dPct: 0.00, targetTHB: 20000 },
+      { id: 'h-ptt', ticker: 'PTT.BK', name: 'PTT Public Company', shares: 0.00, avgCostUSD: 0.95, currentPriceUSD: 0.98, change1dPct: 0.00, targetTHB: 20000 },
+      { id: 'h-dif', ticker: 'DIF.BK', name: 'Digital Telecom Infra Fund', shares: 0.00, avgCostUSD: 0.22, currentPriceUSD: 0.23, change1dPct: 0.00, targetTHB: 20000 },
+      { id: 'h-whart', ticker: 'WHART.BK', name: 'WHA Premium Growth Freehold', shares: 0.00, avgCostUSD: 0.28, currentPriceUSD: 0.29, change1dPct: 0.00, targetTHB: 15000 }
     ]
   },
   {
@@ -162,16 +180,18 @@ const INITIAL_PORTFOLIOS = [
     color: '#f97316',
     category: 'Growth Stock',
     tier: 'Tier 5',
-    goalUSD: 15000.00,
+    timeHorizon: 'Watchlist / รอจัดสรรงบ',
+    goalTHB: 500000.00,
+    goalUSD: 15342.13,
     cashBufferUSD: 500.00,
     notes: 'พอร์ตซิ่ง ดุดัน ไม่เกรงใจใคร โตระยะยาว • DE, GEV, ISRG, NU, VOO',
     logo: 'assets/foliologo/nextgen.png',
     holdings: [
-      { id: 'h-nu', ticker: 'NU', name: 'Nu Holdings Ltd.', shares: 14.50, avgCostUSD: 12.20, currentPriceUSD: 14.80, change1dPct: 1.80 },
-      { id: 'h-voo', ticker: 'VOO', name: 'Vanguard S&P 500 ETF', shares: 0.00, avgCostUSD: 510.00, currentPriceUSD: 520.00, change1dPct: 0.00 },
-      { id: 'h-de', ticker: 'DE', name: 'Deere & Company', shares: 0.00, avgCostUSD: 380.00, currentPriceUSD: 390.00, change1dPct: 0.00 },
-      { id: 'h-gev', ticker: 'GEV', name: 'GE Vernova Inc.', shares: 0.00, avgCostUSD: 240.00, currentPriceUSD: 255.00, change1dPct: 0.00 },
-      { id: 'h-isrg', ticker: 'ISRG', name: 'Intuitive Surgical', shares: 0.00, avgCostUSD: 460.00, currentPriceUSD: 475.00, change1dPct: 0.00 }
+      { id: 'h-nu', ticker: 'NU', name: 'Nu Holdings Ltd.', shares: 14.50, avgCostUSD: 12.20, currentPriceUSD: 14.80, change1dPct: 1.80, targetTHB: 100000 },
+      { id: 'h-voo', ticker: 'VOO', name: 'Vanguard S&P 500 ETF', shares: 0.00, avgCostUSD: 510.00, currentPriceUSD: 520.00, change1dPct: 0.00, targetTHB: 100000 },
+      { id: 'h-de', ticker: 'DE', name: 'Deere & Company', shares: 0.00, avgCostUSD: 380.00, currentPriceUSD: 390.00, change1dPct: 0.00, targetTHB: 100000 },
+      { id: 'h-gev', ticker: 'GEV', name: 'GE Vernova Inc.', shares: 0.00, avgCostUSD: 240.00, currentPriceUSD: 255.00, change1dPct: 0.00, targetTHB: 100000 },
+      { id: 'h-isrg', ticker: 'ISRG', name: 'Intuitive Surgical', shares: 0.00, avgCostUSD: 460.00, currentPriceUSD: 475.00, change1dPct: 0.00, targetTHB: 100000 }
     ]
   },
   {
@@ -181,14 +201,16 @@ const INITIAL_PORTFOLIOS = [
     color: '#f59e0b',
     category: 'Crypto',
     tier: 'Tier 5',
-    goalUSD: 5000.00,
+    timeHorizon: 'Ongoing / เก็งกำไร',
+    goalTHB: 165000.00,
+    goalUSD: 5062.90,
     cashBufferUSD: 100.00,
     notes: 'สินทรัพย์ดิจิทัลและเก็งกำไร • BTC, BNB, ETH',
     logo: 'assets/foliologo/crypto.png',
     holdings: [
-      { id: 'h-btc', ticker: 'BTC', name: 'Bitcoin', shares: 0.0015, avgCostUSD: 62000.00, currentPriceUSD: 64500.00, change1dPct: 1.40 },
-      { id: 'h-eth', ticker: 'ETH', name: 'Ethereum', shares: 0.025, avgCostUSD: 3100.00, currentPriceUSD: 3350.00, change1dPct: 2.10 },
-      { id: 'h-bnb', ticker: 'BNB', name: 'BNB Token', shares: 0.00, avgCostUSD: 550.00, currentPriceUSD: 580.00, change1dPct: 0.00 }
+      { id: 'h-btc', ticker: 'BTC', name: 'Bitcoin', shares: 0.0015, avgCostUSD: 62000.00, currentPriceUSD: 64500.00, change1dPct: 1.40, targetTHB: 80000 },
+      { id: 'h-eth', ticker: 'ETH', name: 'Ethereum', shares: 0.025, avgCostUSD: 3100.00, currentPriceUSD: 3350.00, change1dPct: 2.10, targetTHB: 50000 },
+      { id: 'h-bnb', ticker: 'BNB', name: 'BNB Token', shares: 0.00, avgCostUSD: 550.00, currentPriceUSD: 580.00, change1dPct: 0.00, targetTHB: 35000 }
     ]
   }
 ];
@@ -350,12 +372,44 @@ class PixelStewardApp {
     }
   }
 
+  enrichPortfoliosWithIPS(ports) {
+    if (!ports || ports.length === 0) return JSON.parse(JSON.stringify(INITIAL_PORTFOLIOS));
+    
+    // Filter out RedWing
+    let result = ports.filter(p => p.id !== 'redwing' && !p.name.includes('RedWing'));
+
+    INITIAL_PORTFOLIOS.forEach(initP => {
+      const existingP = result.find(p => p.id === initP.id);
+      if (existingP) {
+        existingP.timeHorizon = initP.timeHorizon;
+        existingP.goalTHB = initP.goalTHB;
+        existingP.goalUSD = initP.goalUSD;
+        if (initP.targetCashBufferTHB) existingP.targetCashBufferTHB = initP.targetCashBufferTHB;
+        
+        // Enrich holdings targetTHB
+        (initP.holdings || []).forEach(initH => {
+          if (!existingP.holdings) existingP.holdings = [];
+          const existingH = existingP.holdings.find(h => h.ticker.toUpperCase() === initH.ticker.toUpperCase());
+          if (existingH) {
+            existingH.targetTHB = initH.targetTHB;
+          } else {
+            existingP.holdings.push(JSON.parse(JSON.stringify(initH)));
+          }
+        });
+      } else {
+        result.push(JSON.parse(JSON.stringify(initP)));
+      }
+    });
+
+    return result;
+  }
+
   loadLocalData() {
     try {
       const saved = localStorage.getItem('pixel_steward_data_v2');
       if (saved) {
         const parsed = JSON.parse(saved);
-        this.portfolios = parsed.portfolios || INITIAL_PORTFOLIOS;
+        this.portfolios = this.enrichPortfoliosWithIPS(parsed.portfolios);
         this.tradingData = parsed.tradingData || INITIAL_TRADING_DATA;
         this.quarterlySnapshots = parsed.quarterlySnapshots || INITIAL_QUARTERLY_DATA;
         this.dividends = parsed.dividends || INITIAL_DIVIDENDS;
@@ -374,7 +428,6 @@ class PixelStewardApp {
       this.dividends = JSON.parse(JSON.stringify(INITIAL_DIVIDENDS));
     }
 
-    // Always sanitize to ensure RedWing is completely removed
     this.portfolios = this.portfolios.filter(p => p.id !== 'redwing' && !p.name.includes('RedWing'));
     this.updateSidebarFxRate();
   }
@@ -411,7 +464,7 @@ class PixelStewardApp {
 
   handleCloudSync(cloudData) {
     if (cloudData.portfolios) {
-      this.portfolios = cloudData.portfolios.filter(p => p.id !== 'redwing' && !p.name.includes('RedWing'));
+      this.portfolios = this.enrichPortfoliosWithIPS(cloudData.portfolios);
     }
     if (cloudData.tradingData) this.tradingData = cloudData.tradingData;
     if (cloudData.quarterlySnapshots) this.quarterlySnapshots = cloudData.quarterlySnapshots;
@@ -947,12 +1000,15 @@ class PixelStewardApp {
 
         <div class="subport-hero-main">
           <div>
-            <div style="font-size: 13px; color: ${port.color}; font-weight: 700; text-transform: uppercase;">${port.tier} • ${port.category}</div>
+            <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+              <span style="font-size: 13px; color: ${port.color}; font-weight: 700; text-transform: uppercase;">${port.tier} • ${port.category}</span>
+              ${port.timeHorizon ? `<span class="badge font-mono" style="background: rgba(255,255,255,0.08); padding: 2px 8px; border-radius: var(--radius-full); font-size: 11px; color: var(--text-secondary);">⏱️ Horizon: ${port.timeHorizon}</span>` : ''}
+            </div>
             <h2 style="font-size: 26px; font-weight: 800; color: #fff; margin-top: 2px;">${port.emoji || ''} ${port.name}</h2>
             <div class="subport-target-goal-text font-mono">
-              เป้าหมาย: ${dualGoal.main} (${dualGoal.sub}) • ความคืบหน้า <strong>${stats.goalProgressPct.toFixed(1)}%</strong>
+              🎯 เป้าหมายพอร์ต: <strong class="text-white">${this.formatTHB(port.goalTHB || this.usdToThb(stats.goalUSD))}</strong> (${this.formatUSD(stats.goalUSD)}) • ความคืบหน้า <strong>${stats.goalProgressPct.toFixed(1)}%</strong>
             </div>
-            <div class="progress-bar-bg" style="width: 260px; margin-top: 8px;">
+            <div class="progress-bar-bg" style="width: 280px; margin-top: 8px;">
               <div class="progress-bar-fill" style="width: ${stats.goalProgressPct}%; background: ${port.color || '#10b981'};"></div>
             </div>
           </div>
@@ -978,7 +1034,7 @@ class PixelStewardApp {
           <div>
             <div class="cash-box-title">Cash Buffer (เงินสดไว้ช้อนซื้อหุ้นของพอร์ตนี้)</div>
             <div class="cash-box-val font-mono">${dualCash.main}</div>
-            <div class="cash-box-sub font-mono">${dualCash.sub}</div>
+            <div class="cash-box-sub font-mono">${dualCash.sub} ${port.targetCashBufferTHB ? `• (เป้าหมายตาม IPS: ${this.formatTHB(port.targetCashBufferTHB)})` : ''}</div>
           </div>
         </div>
         <div class="cash-box-actions">
@@ -1022,6 +1078,7 @@ class PixelStewardApp {
         const s = this.calculateHoldingStats(h);
         const dualMarket = this.formatDual(s.marketValueUSD);
         const weightPct = stats.totalValueUSD > 0 ? ((s.marketValueUSD / stats.totalValueUSD) * 100).toFixed(2) : '0.00';
+        const targetProgressPct = h.targetTHB > 0 ? Math.min(100, Math.max(0, (s.marketValueTHB / h.targetTHB) * 100)) : null;
 
         html += `
           <div class="holding-card">
@@ -1067,6 +1124,18 @@ class PixelStewardApp {
                 <span class="metric-cell-val">${this.formatUSD(s.totalCostUSD)}</span>
               </div>
             </div>
+
+            ${h.targetTHB ? `
+              <div style="margin: -6px 0 16px 0; padding: 10px 14px; background: rgba(255,255,255,0.03); border: 1px solid var(--border-subtle); border-radius: var(--radius-md);">
+                <div style="display: flex; justify-content: space-between; font-size: 12px; margin-bottom: 5px;" class="font-mono">
+                  <span style="color: var(--text-secondary);">🎯 เป้าหมายตาม IPS: <strong class="text-white">${this.formatTHB(h.targetTHB)} (${this.formatUSD(h.targetTHB / this.exchangeRate)})</strong></span>
+                  <strong class="${(s.marketValueTHB >= h.targetTHB) ? 'text-emerald' : 'text-amber'}">${((s.marketValueTHB / h.targetTHB) * 100).toFixed(1)}%</strong>
+                </div>
+                <div class="progress-bar-bg" style="height: 5px;">
+                  <div class="progress-bar-fill" style="width: ${targetProgressPct}%; background: ${port.color || '#10b981'};"></div>
+                </div>
+              </div>
+            ` : ''}
 
             <div class="holding-actions-row">
               <button class="btn btn-sm btn-secondary" data-edit-holding="${h.id}" data-port-id="${port.id}">✏️ แก้ไข</button>
