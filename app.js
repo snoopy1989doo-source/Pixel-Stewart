@@ -15,7 +15,7 @@ const firebaseConfig = {
   appId: "1:36576321084:web:315c61237093e616e06d39"
 };
 
-// --- 2. DEFAULT INVESTMENT POLICY (Strictly Goal-Based IPS, RedWing Removed) ---
+// --- 2. DEFAULT INVESTMENT POLICY (Loaded from Latest User Backup & IPS) ---
 const INITIAL_PORTFOLIOS = [
   {
     id: 'zero1',
@@ -27,14 +27,14 @@ const INITIAL_PORTFOLIOS = [
     timeHorizon: '4 Years',
     goalTHB: 95000.00,
     goalUSD: 2915.00,
-    cashBufferUSD: 0.00,
+    cashBufferUSD: 15.08,
     notes: 'เงินสำรองห้ามแตะต้องเว้นแต่จำเป็น • Horizon: 4 Years',
     logo: 'assets/foliologo/zero1.png',
     holdings: [
-      { id: 'h-msft', ticker: 'MSFT', name: 'Microsoft Corp.', shares: 0.125, avgCostUSD: 365.00, currentPriceUSD: 410.20, change1dPct: 0.45, targetTHB: 15000 },
-      { id: 'h-v', ticker: 'V', name: 'Visa Inc.', shares: 0.102, avgCostUSD: 275.50, currentPriceUSD: 285.80, change1dPct: 0.12, targetTHB: 20000 },
-      { id: 'h-wmt', ticker: 'WMT', name: 'Walmart Inc.', shares: 0.0470276, avgCostUSD: 116.5887, currentPriceUSD: 103.70, change1dPct: -0.13, targetTHB: 12000 },
-      { id: 'h-tisco', ticker: 'TISCO.BK', name: 'TISCO Financial Group', shares: 0.00, avgCostUSD: 2.80, currentPriceUSD: 2.85, change1dPct: 0.00, targetTHB: 12000 },
+      { id: 'h-wmt', ticker: 'WMT', name: 'Walmart Inc.', shares: 0.0470276, avgCostUSD: 116.5887, currentPriceUSD: 116.53, change1dPct: -0.13, targetTHB: 12000 },
+      { id: 'h-msft', ticker: 'MSFT', name: 'Microsoft Corp.', shares: 0.0036587, avgCostUSD: 428.356, currentPriceUSD: 495.40, change1dPct: 0.45, targetTHB: 15000 },
+      { id: 'h-v', ticker: 'V', name: 'Visa Inc.', shares: 0.0026955, avgCostUSD: 309.968, currentPriceUSD: 364.15, change1dPct: 0.12, targetTHB: 20000 },
+      { id: 'h-tisco', ticker: 'TISCO.BK', name: 'TISCO Financial Group', shares: 0.00, avgCostUSD: 2.85, currentPriceUSD: 2.85, change1dPct: 0.00, targetTHB: 12000 },
       { id: 'h-kept', ticker: 'KEPT', name: 'Kept by Krungsri (Cash)', shares: 0.00, avgCostUSD: 1.00, currentPriceUSD: 1.00, change1dPct: 0.00, targetTHB: 36000 }
     ]
   },
@@ -49,16 +49,16 @@ const INITIAL_PORTFOLIOS = [
     goalTHB: 1200000.00,
     goalUSD: 36821.11,
     targetCashBufferTHB: 180000,
-    cashBufferUSD: 5523.17,
+    cashBufferUSD: 0.00,
     notes: 'สะสมดาวน์รถยนต์คันใหม่ • Cash Buffer = 180,000 ฿ • Horizon: 3 Years',
     logo: 'assets/foliologo/zero2.png',
     holdings: [
-      { id: 'h-nvda', ticker: 'NVDA', name: 'NVIDIA Corporation', shares: 0.0651080, avgCostUSD: 199.6858, currentPriceUSD: 214.72, change1dPct: -0.98, targetTHB: 120000 },
-      { id: 'h-abt', ticker: 'ABT', name: 'Abbott Laboratories', shares: 0.0028, avgCostUSD: 108.00, currentPriceUSD: 112.50, change1dPct: 0.20, targetTHB: 180000 },
-      { id: 'h-tmo', ticker: 'TMO', name: 'Thermo Fisher Scientific', shares: 0.0131, avgCostUSD: 550.00, currentPriceUSD: 585.00, change1dPct: 0.85, targetTHB: 120000 },
-      { id: 'h-nee', ticker: 'NEE', name: 'NextEra Energy', shares: 0.00, avgCostUSD: 72.00, currentPriceUSD: 75.00, change1dPct: 0.00, targetTHB: 300000 },
-      { id: 'h-jpm', ticker: 'JPM', name: 'JPMorgan Chase & Co.', shares: 0.00, avgCostUSD: 195.00, currentPriceUSD: 200.00, change1dPct: 0.00, targetTHB: 120000 },
-      { id: 'h-pltr', ticker: 'PLTR', name: 'Palantir Technologies', shares: 0.156, avgCostUSD: 24.50, currentPriceUSD: 31.20, change1dPct: 2.40, targetTHB: 60000 }
+      { id: 'h-nvda', ticker: 'NVDA', name: 'NVIDIA Corporation', shares: 0.065108, avgCostUSD: 199.6682, currentPriceUSD: 225.16, change1dPct: -0.98, targetTHB: 120000 },
+      { id: 'h-tmo', ticker: 'TMO', name: 'Thermo Fisher Scientific', shares: 0.012168, avgCostUSD: 585.4779, currentPriceUSD: 588.29, change1dPct: 0.85, targetTHB: 120000 },
+      { id: 'h-pltr', ticker: 'PLTR', name: 'Palantir Technologies', shares: 0.0225434, avgCostUSD: 131.9289, currentPriceUSD: 174.04, change1dPct: 2.40, targetTHB: 60000 },
+      { id: 'h-abt', ticker: 'ABT', name: 'Abbott Laboratories', shares: 0.0026639, avgCostUSD: 109.044, currentPriceUSD: 111.25, change1dPct: 0.20, targetTHB: 180000 },
+      { id: 'h-nee', ticker: 'NEE', name: 'NextEra Energy', shares: 0.00, avgCostUSD: 75.00, currentPriceUSD: 75.00, change1dPct: 0.00, targetTHB: 300000 },
+      { id: 'h-jpm', ticker: 'JPM', name: 'JPMorgan Chase & Co.', shares: 0.00, avgCostUSD: 200.00, currentPriceUSD: 200.00, change1dPct: 0.00, targetTHB: 120000 }
     ]
   },
   {
@@ -72,7 +72,7 @@ const INITIAL_PORTFOLIOS = [
     goalTHB: 600000.00,
     goalUSD: 18410.56,
     targetCashBufferTHB: 200000,
-    cashBufferUSD: 6136.85,
+    cashBufferUSD: 0.00,
     notes: 'ทุนแต่งงานในอนาคต • Cash Buffer = 200,000 ฿ • Horizon: 5 Years',
     logo: 'assets/foliologo/zero4.png',
     holdings: [
@@ -93,19 +93,20 @@ const INITIAL_PORTFOLIOS = [
     timeHorizon: '37 Years',
     goalTHB: 4000000.00,
     goalUSD: 122737.04,
-    cashBufferUSD: 3000.00,
+    cashBufferUSD: 0.00,
     notes: 'พอร์ตหลักระยะยาว พลิกฟื้นอิสรภาพ • Horizon: 37 Years',
     logo: 'assets/foliologo/zero3.png',
     holdings: [
-      { id: 'h-googl', ticker: 'GOOGL', name: 'Alphabet Inc.', shares: 0.50, avgCostUSD: 165.00, currentPriceUSD: 178.50, change1dPct: 0.70, targetTHB: 858000 },
-      { id: 'h-tsla', ticker: 'TSLA', name: 'Tesla Inc.', shares: 0.85, avgCostUSD: 215.00, currentPriceUSD: 235.00, change1dPct: -1.20, targetTHB: 785000 },
-      { id: 'h-amzn', ticker: 'AMZN', name: 'Amazon.com Inc.', shares: 0.35, avgCostUSD: 180.00, currentPriceUSD: 192.00, change1dPct: 1.10, targetTHB: 624000 },
-      { id: 'h-crwd', ticker: 'CRWD', name: 'CrowdStrike Holdings', shares: 0.20, avgCostUSD: 290.00, currentPriceUSD: 320.00, change1dPct: 1.50, targetTHB: 390000 },
-      { id: 'h-abbv', ticker: 'ABBV', name: 'AbbVie Inc.', shares: 0.00, avgCostUSD: 170.00, currentPriceUSD: 175.00, change1dPct: 0.00, targetTHB: 390000 },
-      { id: 'h-smr', ticker: 'SMR', name: 'NuScale Power Corp', shares: 5.00, avgCostUSD: 9.20, currentPriceUSD: 11.50, change1dPct: 3.20, targetTHB: 218400 },
-      { id: 'h-etn', ticker: 'ETN', name: 'Eaton Corporation', shares: 0.00, avgCostUSD: 310.00, currentPriceUSD: 315.00, change1dPct: 0.00, targetTHB: 205600 },
-      { id: 'h-rklb', ticker: 'RKLB', name: 'Rocket Lab USA', shares: 10.00, avgCostUSD: 4.80, currentPriceUSD: 5.40, change1dPct: -0.50, targetTHB: 195000 },
-      { id: 'h-gpf', ticker: 'กอช.', name: 'กองทุนการออมแห่งชาติ', shares: 0.00, avgCostUSD: 1.00, currentPriceUSD: 1.00, change1dPct: 0.00, targetTHB: 100000 }
+      { id: 'h-tsla', ticker: 'TSLA', name: 'Tesla Inc.', shares: 0.0735078, avgCostUSD: 338.3906, currentPriceUSD: 342.27, change1dPct: -1.20, targetTHB: 785000 },
+      { id: 'h-smr', ticker: 'SMR', name: 'NuScale Power Corp', shares: 2.0829913, avgCostUSD: 8.627, currentPriceUSD: 9.39, change1dPct: 3.20, targetTHB: 218400 },
+      { id: 'h-crwd', ticker: 'CRWD', name: 'CrowdStrike Holdings', shares: 0.0050469, avgCostUSD: 89.09, currentPriceUSD: 216.95, change1dPct: 1.50, targetTHB: 390000 },
+      { id: 'h-amzn', ticker: 'AMZN', name: 'Amazon.com Inc.', shares: 0.0005938, avgCostUSD: 205.43, currentPriceUSD: 262.65, change1dPct: 1.10, targetTHB: 624000 },
+      { id: 'h-rklb', ticker: 'RKLB', name: 'Rocket Lab USA', shares: 0.0008445, avgCostUSD: 66.07, currentPriceUSD: 80.25, change1dPct: -0.50, targetTHB: 195000 },
+      { id: 'h-sso', ticker: 'SSO', name: 'ประกันสังคม', shares: 1.00, avgCostUSD: 141.61, currentPriceUSD: 141.61, change1dPct: 0.00, targetTHB: 141.61 },
+      { id: 'h-gpf', ticker: 'กอช.', name: 'กองทุนการออมแห่งชาติ', shares: 1.00, avgCostUSD: 76.52, currentPriceUSD: 76.52, change1dPct: 0.00, targetTHB: 100000 },
+      { id: 'h-googl', ticker: 'GOOGL', name: 'Alphabet Inc.', shares: 0.00, avgCostUSD: 178.50, currentPriceUSD: 178.50, change1dPct: 0.70, targetTHB: 858000 },
+      { id: 'h-etn', ticker: 'ETN', name: 'Eaton Corporation', shares: 0.00, avgCostUSD: 315.00, currentPriceUSD: 315.00, change1dPct: 0.00, targetTHB: 205600 },
+      { id: 'h-abbv', ticker: 'ABBV', name: 'AbbVie Inc.', shares: 0.00, avgCostUSD: 175.00, currentPriceUSD: 175.00, change1dPct: 0.00, targetTHB: 390000 }
     ]
   },
   {
@@ -119,7 +120,7 @@ const INITIAL_PORTFOLIOS = [
     goalTHB: 1500000.00,
     goalUSD: 46026.39,
     targetCashBufferTHB: 300000,
-    cashBufferUSD: 9205.28,
+    cashBufferUSD: 0.00,
     notes: 'เป้าหมายระยะกลางสำหรับที่อยู่อาศัย • Cash Buffer = 300,000 ฿ • Horizon: 37 Years',
     logo: 'assets/foliologo/zero5.png',
     holdings: [
@@ -133,7 +134,7 @@ const INITIAL_PORTFOLIOS = [
   },
   {
     id: 'us_dividend',
-    name: 'US Dividend Yield',
+    name: 'Dividend Yield (หุ้นโลก)',
     emoji: '💰',
     color: '#10b981',
     category: 'Global Stock',
@@ -141,20 +142,21 @@ const INITIAL_PORTFOLIOS = [
     timeHorizon: 'Ongoing',
     goalTHB: 300000.00,
     goalUSD: 9205.28,
-    cashBufferUSD: 613.68,
+    cashBufferUSD: 0.00,
     notes: 'ปันผลสม่ำเสมอ ลดความเสี่ยงค่าเงิน • Ongoing',
     logo: 'assets/foliologo/usdividentyield.png',
     holdings: [
-      { id: 'h-pg', ticker: 'PG', name: 'Procter & Gamble Co.', shares: 0.65, avgCostUSD: 162.00, currentPriceUSD: 168.40, change1dPct: 0.30, targetTHB: 75000 },
-      { id: 'h-ko', ticker: 'KO', name: 'Coca-Cola Company', shares: 0.00, avgCostUSD: 68.00, currentPriceUSD: 69.50, change1dPct: 0.00, targetTHB: 75000 },
-      { id: 'h-pep', ticker: 'PEP', name: 'PepsiCo Inc.', shares: 0.00, avgCostUSD: 170.00, currentPriceUSD: 172.00, change1dPct: 0.00, targetTHB: 60000 },
-      { id: 'h-avgo', ticker: 'AVGO', name: 'Broadcom Inc.', shares: 0.00, avgCostUSD: 160.00, currentPriceUSD: 165.00, change1dPct: 0.00, targetTHB: 45000 },
-      { id: 'h-cvx', ticker: 'CVX', name: 'Chevron Corporation', shares: 0.12, avgCostUSD: 148.00, currentPriceUSD: 152.00, change1dPct: -0.40, targetTHB: 45000 }
+      { id: 'h-avgo', ticker: 'AVGO', name: 'Broadcom Inc.', shares: 0.0459276, avgCostUSD: 388.6551, currentPriceUSD: 392.99, change1dPct: 0.00, targetTHB: 45000 },
+      { id: 'h-o', ticker: 'O', name: 'Realty Income Corp.', shares: 0.1262319, avgCostUSD: 61.7118, currentPriceUSD: 62.74, change1dPct: 0.20, targetTHB: 45000 },
+      { id: 'h-pg', ticker: 'PG', name: 'Procter & Gamble Co.', shares: 0.0327893, avgCostUSD: 144.3276, currentPriceUSD: 144.56, change1dPct: 0.30, targetTHB: 75000 },
+      { id: 'h-cvx', ticker: 'CVX', name: 'Chevron Corporation', shares: 0.0185039, avgCostUSD: 180.1572, currentPriceUSD: 200.00, change1dPct: -0.40, targetTHB: 45000 },
+      { id: 'h-ko', ticker: 'KO', name: 'Coca-Cola Company', shares: 0.0177449, avgCostUSD: 83.968, currentPriceUSD: 87.71, change1dPct: 0.00, targetTHB: 75000 },
+      { id: 'h-pep', ticker: 'PEP', name: 'PepsiCo Inc.', shares: 0.00, avgCostUSD: 170.00, currentPriceUSD: 172.00, change1dPct: 0.00, targetTHB: 60000 }
     ]
   },
   {
     id: 'thai_dividend',
-    name: 'THAI Dividend',
+    name: 'THAI Dividend (หุ้นไทย)',
     emoji: '🇹🇭',
     color: '#6366f1',
     category: 'Thai Stock',
@@ -162,7 +164,7 @@ const INITIAL_PORTFOLIOS = [
     timeHorizon: 'Ongoing',
     goalTHB: 100000.00,
     goalUSD: 3068.43,
-    cashBufferUSD: 306.84,
+    cashBufferUSD: 0.00,
     notes: 'เน้นกระแสเงินสดจากปันผลในประเทศ • Ongoing',
     logo: 'assets/foliologo/thaidivident.png',
     holdings: [
@@ -183,15 +185,15 @@ const INITIAL_PORTFOLIOS = [
     timeHorizon: 'Watchlist / รอจัดสรรงบ',
     goalTHB: 500000.00,
     goalUSD: 15342.13,
-    cashBufferUSD: 500.00,
+    cashBufferUSD: 0.00,
     notes: 'พอร์ตซิ่ง ดุดัน ไม่เกรงใจใคร โตระยะยาว • DE, GEV, ISRG, NU, VOO',
     logo: 'assets/foliologo/nextgen.png',
     holdings: [
-      { id: 'h-nu', ticker: 'NU', name: 'Nu Holdings Ltd.', shares: 14.50, avgCostUSD: 12.20, currentPriceUSD: 14.80, change1dPct: 1.80, targetTHB: 100000 },
+      { id: 'h-isrg', ticker: 'ISRG', name: 'Intuitive Surgical', shares: 0.0313562, avgCostUSD: 379.829, currentPriceUSD: 394.51, change1dPct: 0.00, targetTHB: 100000 },
+      { id: 'h-nu', ticker: 'NU', name: 'Nu Holdings Ltd.', shares: 0.4767802, avgCostUSD: 12.92, currentPriceUSD: 15.23, change1dPct: 1.80, targetTHB: 100000 },
+      { id: 'h-gev', ticker: 'GEV', name: 'GE Vernova Inc.', shares: 0.0057378, avgCostUSD: 1030.004, currentPriceUSD: 1063.25, change1dPct: 0.00, targetTHB: 100000 },
       { id: 'h-voo', ticker: 'VOO', name: 'Vanguard S&P 500 ETF', shares: 0.00, avgCostUSD: 510.00, currentPriceUSD: 520.00, change1dPct: 0.00, targetTHB: 100000 },
-      { id: 'h-de', ticker: 'DE', name: 'Deere & Company', shares: 0.00, avgCostUSD: 380.00, currentPriceUSD: 390.00, change1dPct: 0.00, targetTHB: 100000 },
-      { id: 'h-gev', ticker: 'GEV', name: 'GE Vernova Inc.', shares: 0.00, avgCostUSD: 240.00, currentPriceUSD: 255.00, change1dPct: 0.00, targetTHB: 100000 },
-      { id: 'h-isrg', ticker: 'ISRG', name: 'Intuitive Surgical', shares: 0.00, avgCostUSD: 460.00, currentPriceUSD: 475.00, change1dPct: 0.00, targetTHB: 100000 }
+      { id: 'h-de', ticker: 'DE', name: 'Deere & Company', shares: 0.00, avgCostUSD: 380.00, currentPriceUSD: 390.00, change1dPct: 0.00, targetTHB: 100000 }
     ]
   },
   {
@@ -204,98 +206,111 @@ const INITIAL_PORTFOLIOS = [
     timeHorizon: 'Ongoing / เก็งกำไร',
     goalTHB: 165000.00,
     goalUSD: 5062.90,
-    cashBufferUSD: 100.00,
+    cashBufferUSD: 0.00,
     notes: 'สินทรัพย์ดิจิทัลและเก็งกำไร • BTC, BNB, ETH',
     logo: 'assets/foliologo/crypto.png',
     holdings: [
-      { id: 'h-btc', ticker: 'BTC', name: 'Bitcoin', shares: 0.0015, avgCostUSD: 62000.00, currentPriceUSD: 64500.00, change1dPct: 1.40, targetTHB: 80000 },
-      { id: 'h-eth', ticker: 'ETH', name: 'Ethereum', shares: 0.025, avgCostUSD: 3100.00, currentPriceUSD: 3350.00, change1dPct: 2.10, targetTHB: 50000 },
+      { id: 'h-btc', ticker: 'BTC', name: 'Bitcoin', shares: 0.00, avgCostUSD: 62000.00, currentPriceUSD: 64500.00, change1dPct: 1.40, targetTHB: 80000 },
+      { id: 'h-eth', ticker: 'ETH', name: 'Ethereum', shares: 0.00, avgCostUSD: 3100.00, currentPriceUSD: 3350.00, change1dPct: 2.10, targetTHB: 50000 },
       { id: 'h-bnb', ticker: 'BNB', name: 'BNB Token', shares: 0.00, avgCostUSD: 550.00, currentPriceUSD: 580.00, change1dPct: 0.00, targetTHB: 35000 }
     ]
   }
 ];
 
-// Default Monthly Forex & Option Trading Snapshots
+// Default Monthly Forex & Option Trading Snapshots (From Backup)
 const INITIAL_TRADING_DATA = {
   forex_life: {
     name: 'FOREX LIFE',
     monthlyBalances: [
-      { year: 2026, month: 6, balanceUSD: 100.00, note: 'เทรดกระแสเงินสด EURUSD' },
-      { year: 2026, month: 7, balanceUSD: 120.00, note: 'รันเทรนด์ช่วงตลาดเปิดลอนดอน' },
-      { year: 2026, month: 8, balanceUSD: 145.00, note: 'ยอดล่าสุดปัจจุบัน' }
+      { year: 2025, month: 10, balanceUSD: 450.00, note: 'เทรดคู่ EURUSD รันเทรนดสวยงาม' },
+      { year: 2025, month: 11, balanceUSD: 520.00, note: 'ตลาดเคลื่อนไหวตามกรอบ Sideway' },
+      { year: 2025, month: 12, balanceUSD: -120.00, note: 'มีโดน Stop Loss ปลายปีเนื่องจากปริมาณการซื้อขายเบาบาง' },
+      { year: 2026, month: 8, balanceUSD: 100.00, note: 'ยอดล่าสุดปัจจุบัน' }
     ]
   },
   forex_bottrade: {
-    name: 'FOREX BOTTRADE (RISK)',
+    name: 'FOREX RISK (BOTTRADE)',
     monthlyBalances: [
-      { year: 2026, month: 6, balanceUSD: 50.00, note: 'รันบอท Gold XAUUSD เสี่ยงสูง' },
-      { year: 2026, month: 7, balanceUSD: 65.00, note: 'เก็บกำไรตามรอบ' },
-      { year: 2026, month: 8, balanceUSD: 80.00, note: 'ยอดล่าสุดปัจจุบัน' }
+      { year: 2025, month: 10, balanceUSD: 180.00, note: 'เทรดทองคำ (XAUUSD) เสี่ยงสูง' },
+      { year: 2025, month: 11, balanceUSD: -90.00, note: 'ล้างพอร์ทย่อยบางส่วนแต่กู้คืนมาได้' },
+      { year: 2025, month: 12, balanceUSD: 310.00, note: 'ได้ไม้สไนเปอร์ช่วง FOMC' },
+      { year: 2026, month: 8, balanceUSD: 50.00, note: 'ยอดล่าสุดปัจจุบัน' }
     ]
   },
   option: {
     name: 'OPTION TRADING',
     monthlyBalances: [
-      { year: 2026, month: 6, balanceUSD: 80.00, note: 'กลยุทธ์ Iron Condor' },
-      { year: 2026, month: 7, balanceUSD: 95.00, note: 'รับพรีเมียมรายสัปดาห์' },
-      { year: 2026, month: 8, balanceUSD: 110.00, note: 'ยอดล่าสุดปัจจุบัน' }
+      { year: 2025, month: 10, balanceUSD: 280.00, note: 'Hedging ค่าเงินด้วย Option' },
+      { year: 2025, month: 11, balanceUSD: 340.00, note: 'กลยุทธ์ Iron Condor ได้พรีเมียมเต็ม' },
+      { year: 2025, month: 12, balanceUSD: -80.00, note: 'โดนสควีซช่วงสิ้นปี' },
+      { year: 2026, month: 8, balanceUSD: 80.00, note: 'ยอดล่าสุดปัจจุบัน' }
     ]
   }
 };
 
-// Default Quarterly Snapshots
+// Default Quarterly Snapshots (From Backup)
 const INITIAL_QUARTERLY_DATA = [
   {
-    year: 2026,
+    year: 2025,
     quarter: 'Q1',
-    date: '2026-03-31',
-    exchangeRate: 32.50,
+    date: '2025-03-31',
+    exchangeRate: 32.68,
     portValuesUSD: {
-      zero1: 152.90,
-      zero2: 86.00,
-      zero3: 351.57,
-      zero4: 0.00,
-      zero5: 0.00,
-      us_dividend: 118.52,
-      thai_dividend: 0.00,
-      next_gen: 205.31,
-      crypto: 50.00,
-      forex_life: 80.00,
-      forex_bottrade: 40.00,
-      option: 60.00
+      zero3: 18360.00,
+      us_dividend: 2754.00,
+      thai_dividend: 1530.00,
+      next_gen: 91800.00
     },
-    totalUSD: 1144.30,
-    notes: 'สรุปผลงานไตรมาสแรก 2026'
+    totalUSD: 114444.00,
+    notes: 'บันทึกไตรมาส 1/2025'
   },
   {
-    year: 2026,
+    year: 2025,
     quarter: 'Q2',
-    date: '2026-06-30',
-    exchangeRate: 32.59,
+    date: '2025-06-30',
+    exchangeRate: 32.68,
     portValuesUSD: {
-      zero1: 140.90,
-      zero2: 85.68,
-      zero3: 381.54,
-      zero4: 0.00,
-      zero5: 0.00,
-      us_dividend: 123.35,
-      thai_dividend: 0.00,
-      next_gen: 200.37,
-      crypto: 65.00,
-      forex_life: 100.00,
-      forex_bottrade: 50.00,
-      option: 80.00
+      zero3: 20808.00,
+      us_dividend: 3060.00,
+      thai_dividend: 1683.00,
+      next_gen: 107100.00
     },
-    totalUSD: 1226.84,
-    notes: 'สรุปผลงานไตรมาส 2'
+    totalUSD: 132651.00,
+    notes: 'บันทึกไตรมาส 2/2025'
+  },
+  {
+    year: 2025,
+    quarter: 'Q3',
+    date: '2025-09-30',
+    exchangeRate: 32.68,
+    portValuesUSD: {
+      zero3: 22950.00,
+      us_dividend: 3366.00,
+      thai_dividend: 1774.80,
+      next_gen: 122400.00
+    },
+    totalUSD: 150490.80,
+    notes: 'บันทึกไตรมาส 3/2025'
+  },
+  {
+    year: 2025,
+    quarter: 'Q4',
+    date: '2025-12-31',
+    exchangeRate: 32.68,
+    portValuesUSD: {
+      zero3: 25092.00,
+      us_dividend: 3610.80,
+      thai_dividend: 1897.20,
+      next_gen: 131580.00
+    },
+    totalUSD: 162180.00,
+    notes: 'บันทึกไตรมาส 4/2025'
   }
 ];
 
-// Default Dividend Records
+// Default Dividend Records (From Backup)
 const INITIAL_DIVIDENDS = [
-  { id: 'div-1', date: '2026-05-15', ticker: 'PG', portfolioId: 'us_dividend', grossUSD: 8.50, taxUSD: 1.28, netUSD: 7.22, notes: 'ปันผล Q1/2026' },
-  { id: 'div-2', date: '2026-06-20', ticker: 'NVDA', portfolioId: 'zero2', grossUSD: 1.20, taxUSD: 0.18, netUSD: 1.02, notes: 'ปันผล Q2/2026' },
-  { id: 'div-3', date: '2026-07-10', ticker: 'MSFT', portfolioId: 'zero1', grossUSD: 3.40, taxUSD: 0.51, netUSD: 2.89, notes: 'ปันผลประจำไตรมาส' }
+  { id: 'div-1', date: '2026-08-18', ticker: 'PG', portfolioId: 'us_dividend', grossUSD: 0.02, taxUSD: 0.00, netUSD: 0.02, notes: 'ปันผล PG' }
 ];
 
 // --- 3. MAIN APPLICATION CLASS ---
