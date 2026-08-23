@@ -1517,22 +1517,209 @@ body {
   }
 
   .mobile-nav-item.active {
-    color: var(--color-emerald);
+    color: var(--color-purple);
   }
+}
 
-  .mob-icon {
-    font-size: 20px;
-  }
+/* ==========================================================================
+   v2.2 UPGRADES: PRIVACY MODE, BUY-THE-DIP, MILESTONES, SIMULATOR & REBALANCE
+   ========================================================================== */
 
-  .dime-main-value {
-    font-size: 32px;
-  }
+/* 1. Privacy Mode Blur Filter */
+body.privacy-mode .dime-main-value,
+body.privacy-mode .dime-sub-value,
+body.privacy-mode .holding-market-val-thb,
+body.privacy-mode .holding-market-val-usd,
+body.privacy-mode .holding-pl-badge,
+body.privacy-mode .metric-cell-val,
+body.privacy-mode .cash-box-val,
+body.privacy-mode .cash-box-sub,
+body.privacy-mode .trading-balance-input,
+body.privacy-mode .div-stat-box .font-mono,
+body.privacy-mode .quarter-net-val,
+body.privacy-mode .sim-stat-box-val {
+  filter: blur(8px);
+  user-select: none;
+  transition: filter 0.2s ease;
+}
 
-  .portfolios-grid {
+body.privacy-mode #privacy-icon {
+  filter: drop-shadow(0 0 8px rgba(168, 85, 247, 0.8));
+}
+
+/* 2. Buy-The-Dip Golden Highlights */
+.holding-card.dip-active {
+  border-color: #f59e0b !important;
+  box-shadow: 0 0 16px rgba(245, 158, 11, 0.15);
+}
+
+.dip-alert-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(245, 158, 11, 0.15);
+  border: 1px solid rgba(245, 158, 11, 0.4);
+  color: #f59e0b;
+  padding: 4px 10px;
+  border-radius: var(--radius-full);
+  font-size: 11px;
+  font-weight: 700;
+  animation: pulse-gold 2s infinite ease-in-out;
+}
+
+@keyframes pulse-gold {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.8; transform: scale(0.98); }
+}
+
+/* 3. Milestone Badges Grid */
+.milestones-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 12px;
+  margin-bottom: 24px;
+}
+
+.milestone-badge-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border-card);
+  border-radius: var(--radius-md);
+  padding: 14px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  transition: all 0.2s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.milestone-badge-card.unlocked {
+  border-color: rgba(16, 185, 129, 0.4);
+  background: linear-gradient(135deg, rgba(16, 185, 129, 0.08) 0%, rgba(15, 19, 26, 0.8) 100%);
+}
+
+.milestone-badge-card.locked {
+  opacity: 0.45;
+  filter: grayscale(0.8);
+}
+
+.milestone-badge-icon {
+  font-size: 28px;
+  flex-shrink: 0;
+}
+
+.milestone-badge-info h5 {
+  font-size: 13px;
+  font-weight: 700;
+  margin-bottom: 2px;
+  color: #fff;
+}
+
+.milestone-badge-info p {
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+/* 4. Future Net Worth Simulator Layout */
+.simulator-layout {
+  display: grid;
+  grid-template-columns: 1fr 1.4fr;
+  gap: 24px;
+}
+
+@media (max-width: 900px) {
+  .simulator-layout {
     grid-template-columns: 1fr;
   }
+}
 
-  .analytics-charts-grid {
-    grid-template-columns: 1fr;
-  }
+.sim-slider-group {
+  margin-bottom: 20px;
+}
+
+.sim-slider-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.sim-slider-label {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+.sim-slider-val {
+  font-family: var(--font-mono);
+  font-weight: 700;
+  color: var(--color-purple);
+}
+
+.sim-range-input {
+  width: 100%;
+  accent-color: var(--color-purple);
+  cursor: pointer;
+}
+
+.sim-stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.sim-stat-box {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  padding: 14px;
+  text-align: center;
+}
+
+.sim-stat-box-label {
+  font-size: 11px;
+  color: var(--text-muted);
+  margin-bottom: 4px;
+}
+
+.sim-stat-box-val {
+  font-family: var(--font-mono);
+  font-size: 16px;
+  font-weight: 700;
+}
+
+/* 5. Smart Rebalance Plan UI */
+.rebalance-plan-card {
+  background: rgba(0, 0, 0, 0.3);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: var(--radius-md);
+  padding: 14px;
+  margin-bottom: 10px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.rebalance-plan-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.rebalance-plan-ticker {
+  font-weight: 800;
+  font-size: 14px;
+  color: #fff;
+}
+
+.rebalance-plan-shares {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.rebalance-plan-amount {
+  text-align: right;
+  font-family: var(--font-mono);
+  font-weight: 700;
 }

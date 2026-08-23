@@ -324,6 +324,7 @@ class PixelStewardApp {
     this.displayCurrency = 'USD'; // 'USD' or 'THB'
     this.currentTab = 'dashboard';
     this.selectedPortfolioId = 'zero1';
+    this.isPrivacyMode = false;
     
     // Firebase & Sync State
     this.dbRef = null;
@@ -336,11 +337,105 @@ class PixelStewardApp {
   async init() {
     this.initFirebase();
     this.loadLocalData();
+    this.loadPrivacyPreference();
     this.setupEventListeners();
     this.setupModals();
     this.renderActiveTab();
     this.fetchLiveExchangeRate();
     this.registerPWA();
+  }
+
+  // --- PRIVACY MODE ---
+  loadPrivacyPreference() {
+    this.isPrivacyMode = localStorage.getItem('pixel_privacy_mode') === '1';
+    this.applyPrivacyMode();
+  }
+
+  togglePrivacyMode() {
+    this.isPrivacyMode = !this.isPrivacyMode;
+    localStorage.setItem('pixel_privacy_mode', this.isPrivacyMode ? '1' : '0');
+    this.applyPrivacyMode();
+  }
+
+  applyPrivacyMode() {
+    const icon = document.getElementById('privacy-icon');
+    if (this.isPrivacyMode) {
+      document.body.classList.add('privacy-mode');
+      if (icon) icon.textContent = '🙈';
+    } else {
+      document.body.classList.remove('privacy-mode');
+      if (icon) icon.textContent = '👁️';
+    }
+  }
+
+  // --- GAMIFICATION & MILESTONE BADGES ---
+  evaluateMilestones() {
+    const grand = this.calculateGrandTotalStats();
+    const zero1 = this.portfolios.find(p => p.id === 'zero1');
+    const zero1Stats = zero1 ? this.calculatePortfolioStats(zero1) : null;
+    const totalDivUSD = this.dividends.reduce((acc, d) => acc + (parseFloat(d.netUSD) || 0), 0);
+    
+    let totalCash = 0;
+    this.portfolios.forEach(p => totalCash += (parseFloat(p.cashBufferUSD) || 0));
+
+    const totalHoldingsCount = this.portfolios.reduce((c, p) => c + (p.holdings || []).length, 0);
+
+    const badges = [
+      {
+        id: 'emergency_shield',
+        icon: '🛡️',
+        name: 'Emergency Shield',
+        desc: 'มีเงินสำรองฉุกเฉิน (Zero 1) ครบ 100%',
+        unlocked: zero1Stats ? zero1Stats.goalProgressPct >= 100 : false
+      },
+      {
+        id: 'cash_buffer',
+        icon: '💧',
+        name: 'Cash Buffer Master',
+        desc: 'มีเงินสดไว้ช้อนรวมกันมากกว่า $50',
+        unlocked: totalCash >= 50
+      },
+      {
+        id: 'dividend_starter',
+        icon: '💰',
+        name: 'Dividend Pioneer',
+        desc: 'ได้รับเงินปันผลสะสมเข้าพอร์ตแล้ว',
+        unlocked: totalDivUSD > 0
+      },
+      {
+        id: 'trader_discipline',
+        icon: '📈',
+        name: 'Cashflow Disciplined',
+        desc: 'บันทึกยอดเงินเทรด Forex/Option ครบถ้วน',
+        unlocked: grand.totalTradingUSD > 0
+      },
+      {
+        id: 'portfolio_diversity',
+        icon: '🌐',
+        name: 'World Class Diversified',
+        desc: 'มีสินทรัพย์ในพอร์ตมากกว่า 5 รายการ',
+        unlocked: totalHoldingsCount >= 5
+      },
+      {
+        id: 'millionaire_path',
+        icon: '👑',
+        name: 'Freedom Seeker',
+        desc: 'มูลค่าสินทรัพย์รวมแตะระดับ $1,000',
+        unlocked: grand.grandTotalUSD >= 1000
+      }
+    ];
+
+    return badges;
+  }
+
+  triggerCelebration() {
+    if (typeof confetti === 'function') {
+      confetti({
+        particleCount: 100,
+        spread: 70,
+        origin: { y: 0.6 }
+      });
+    }
   }
 
   // --- FIREBASE INITIALIZATION & REALTIME SYNC ---
@@ -1125,6 +1220,9 @@ class PixelStewardApp {
       case 'dividends':
         this.renderDividendsView(container);
         break;
+      case 'simulator':
+        this.renderSimulatorView(container);
+        break;
       case 'quarterly':
         this.renderQuarterlyView(container);
         break;
@@ -1144,6 +1242,8 @@ class PixelStewardApp {
     const grand = this.calculateGrandTotalStats();
     const dualMain = this.formatDual(grand.grandTotalUSD);
     const dateStr = new Date().toLocaleDateString('th-TH', { year: '2-digit', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+    const milestones = this.evaluateMilestones();
+    const unlockedCount = milestones.filter(m => m.unlocked).length;
 
     let html = `
       <!-- DIME HERO BANNER -->
@@ -1169,6 +1269,25 @@ class PixelStewardApp {
             </span>
           </div>
         </div>
+      </div>
+
+      <!-- GAMIFICATION: MILESTONE BADGES -->
+      <div class="section-header">
+        <div class="section-title">
+          <span>🎯 เหรียญตราความสำเร็จทางการเงิน (Milestones & Badges)</span>
+          <span class="section-count-badge font-mono">${unlockedCount}/${milestones.length} ปลดล็อก</span>
+        </div>
+      </div>
+      <div class="milestones-grid">
+        ${milestones.map(b => `
+          <div class="milestone-badge-card ${b.unlocked ? 'unlocked' : 'locked'}" title="${b.desc}">
+            <div class="milestone-badge-icon">${b.icon}</div>
+            <div class="milestone-badge-info">
+              <h5>${b.name} ${b.unlocked ? '✅' : '🔒'}</h5>
+              <p>${b.desc}</p>
+            </div>
+          </div>
+        `).join('')}
       </div>
 
       <!-- ANALYTICS DONUT CHARTS (DIME ANALYTICS STYLE) -->
@@ -1479,13 +1598,18 @@ class PixelStewardApp {
         const weightPct = stats.totalValueUSD > 0 ? ((s.marketValueUSD / stats.totalValueUSD) * 100).toFixed(2) : '0.00';
         const targetProgressPct = h.targetTHB > 0 ? Math.min(100, Math.max(0, (s.marketValueTHB / h.targetTHB) * 100)) : null;
 
+        const isDipActive = h.dipTargetUSD > 0 && s.currentPrice > 0 && s.currentPrice <= h.dipTargetUSD;
+
         html += `
-          <div class="holding-card">
+          <div class="holding-card ${isDipActive ? 'dip-active' : ''}">
             <div class="holding-header">
               <div class="holding-ticker-group">
                 ${this.renderStockLogoHTML(h.ticker, port.color || '#10b981', 42)}
                 <div class="ticker-name-box">
-                  <h4>${h.ticker}</h4>
+                  <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+                    <h4 style="margin: 0;">${h.ticker}</h4>
+                    ${isDipActive ? `<span class="dip-alert-badge">🔥 ถึงจุดช้อน ($${s.currentPrice.toFixed(2)} ≤ $${h.dipTargetUSD.toFixed(2)})</span>` : (h.dipTargetUSD ? `<span style="font-size: 11px; color: var(--text-muted); font-family: var(--font-mono);">🎯 เล็งช้อน: $${h.dipTargetUSD.toFixed(2)}</span>` : '')}
+                  </div>
                   <div class="ticker-subname">${h.name || h.ticker}</div>
                 </div>
               </div>
@@ -1905,6 +2029,313 @@ class PixelStewardApp {
     alert(`📸 บันทึก Snapshot ไตรมาส ${currentQuarter}/${currentYear} เรียบร้อยแล้ว!`);
   }
 
+  // 5. FUTURE NET WORTH & COMPOUND INTEREST SIMULATOR VIEW
+  renderSimulatorView(container) {
+    const grand = this.calculateGrandTotalStats();
+    const initCapital = Math.round(grand.grandTotalUSD) || 1000;
+
+    let html = `
+      <div class="dime-hero-banner" style="background: linear-gradient(135deg, #1e1b4b 0%, #17112d 40%, #0f131a 100%); border-color: rgba(168, 85, 247, 0.3);">
+        <div class="dime-hero-header">
+          <span class="dime-hero-label text-purple">🔮 จำลองการเติบโตของพอร์ต & ดอกเบี้ยทบต้น (Compound Simulator)</span>
+        </div>
+        <div class="dime-main-value font-mono" id="sim-hero-future-val">$0.00</div>
+        <div class="dime-sub-value font-mono" id="sim-hero-future-thb">≈ ฿0.00 • พลังของดอกเบี้ยทบต้น (The Power of Compounding)</div>
+      </div>
+
+      <div class="simulator-layout">
+        <!-- SIMULATOR CONTROLS CARD -->
+        <div class="chart-card">
+          <div class="chart-title">
+            <span>⚙️ ปรับแต่งตัวแปรการลงทุน (Simulation Parameters)</span>
+          </div>
+
+          <div class="sim-slider-group">
+            <div class="sim-slider-header">
+              <span class="sim-slider-label">เงินลงทุนเริ่มต้น (Initial Capital)</span>
+              <span class="sim-slider-val" id="sim-val-init">$${initCapital.toLocaleString()}</span>
+            </div>
+            <input type="range" min="0" max="50000" step="100" value="${initCapital}" class="sim-range-input" id="sim-slider-init">
+          </div>
+
+          <div class="sim-slider-group">
+            <div class="sim-slider-header">
+              <span class="sim-slider-label">เงินออมเติมพอร์ตต่อเดือน (Monthly DCA)</span>
+              <span class="sim-slider-val" id="sim-val-monthly">$100 / เดือน</span>
+            </div>
+            <input type="range" min="0" max="2000" step="10" value="100" class="sim-range-input" id="sim-slider-monthly">
+          </div>
+
+          <div class="sim-slider-group">
+            <div class="sim-slider-header">
+              <span class="sim-slider-label">ผลตอบแทนคาดหวังเฉลี่ยต่อปี (CAGR %)</span>
+              <span class="sim-slider-val" id="sim-val-cagr">10.0% / ปี</span>
+            </div>
+            <input type="range" min="4" max="25" step="0.5" value="10" class="sim-range-input" id="sim-slider-cagr">
+          </div>
+
+          <div class="sim-slider-group">
+            <div class="sim-slider-header">
+              <span class="sim-slider-label">ระยะเวลาลงทุน (Investment Horizon)</span>
+              <span class="sim-slider-val" id="sim-val-years">10 ปี</span>
+            </div>
+            <input type="range" min="1" max="30" step="1" value="10" class="sim-range-input" id="sim-slider-years">
+          </div>
+
+          <button id="btn-trigger-celebrate-sim" class="btn btn-sm btn-secondary" style="width: 100%; margin-top: 10px;">
+            <span>🎉 จุดพลุฉลองความสำเร็จ (Test Confetti)</span>
+          </button>
+        </div>
+
+        <!-- SIMULATOR CHART & RESULT STATS -->
+        <div class="chart-card">
+          <div class="chart-title">
+            <span>📈 กราฟเงินต้น vs ดอกเบี้ยทบต้น (Wealth Projection Curve)</span>
+          </div>
+
+          <div class="sim-stats-grid">
+            <div class="sim-stat-box">
+              <div class="sim-stat-box-label">เงินต้นรวมที่ใส่ไป</div>
+              <div class="sim-stat-box-val text-blue font-mono" id="sim-stat-principal">$0.00</div>
+            </div>
+            <div class="sim-stat-box">
+              <div class="sim-stat-box-label">กำไรทบต้นที่งอกเงย</div>
+              <div class="sim-stat-box-val text-emerald font-mono" id="sim-stat-interest">$0.00</div>
+            </div>
+            <div class="sim-stat-box">
+              <div class="sim-stat-box-label">มูลค่ารวมสุทธิ</div>
+              <div class="sim-stat-box-val text-purple font-mono" id="sim-stat-total">$0.00</div>
+            </div>
+          </div>
+
+          <div class="chart-canvas-container" style="height: 280px;">
+            <canvas id="chart-compound-simulator"></canvas>
+          </div>
+        </div>
+      </div>
+    `;
+
+    container.innerHTML = html;
+
+    setTimeout(() => {
+      this.initSimulatorEvents();
+      this.updateSimulatorChart();
+    }, 50);
+  }
+
+  initSimulatorEvents() {
+    ['init', 'monthly', 'cagr', 'years'].forEach(key => {
+      const slider = document.getElementById(`sim-slider-${key}`);
+      slider?.addEventListener('input', () => this.updateSimulatorChart());
+    });
+
+    document.getElementById('btn-trigger-celebrate-sim')?.addEventListener('click', () => {
+      this.triggerCelebration();
+    });
+  }
+
+  updateSimulatorChart() {
+    const initCap = parseFloat(document.getElementById('sim-slider-init')?.value) || 0;
+    const monthly = parseFloat(document.getElementById('sim-slider-monthly')?.value) || 0;
+    const cagr = parseFloat(document.getElementById('sim-slider-cagr')?.value) || 10;
+    const years = parseInt(document.getElementById('sim-slider-years')?.value) || 10;
+
+    // Update label text
+    const initEl = document.getElementById('sim-val-init');
+    if (initEl) initEl.textContent = `$${initCap.toLocaleString()} (≈ ฿${Math.round(this.usdToThb(initCap)).toLocaleString()})`;
+    const monthlyEl = document.getElementById('sim-val-monthly');
+    if (monthlyEl) monthlyEl.textContent = `$${monthly.toLocaleString()} / เดือน (≈ ฿${Math.round(this.usdToThb(monthly)).toLocaleString()})`;
+    const cagrEl = document.getElementById('sim-val-cagr');
+    if (cagrEl) cagrEl.textContent = `${cagr.toFixed(1)}% / ปี`;
+    const yearsEl = document.getElementById('sim-val-years');
+    if (yearsEl) yearsEl.textContent = `${years} ปี`;
+
+    // Monthly compound calculation
+    const r = (cagr / 100) / 12;
+    const labels = [];
+    const principalData = [];
+    const totalData = [];
+
+    let currentBalance = initCap;
+    let currentPrincipal = initCap;
+
+    labels.push('ปี 0');
+    principalData.push(Math.round(currentPrincipal));
+    totalData.push(Math.round(currentBalance));
+
+    for (let y = 1; y <= years; y++) {
+      for (let m = 1; m <= 12; m++) {
+        currentBalance = (currentBalance + monthly) * (1 + r);
+        currentPrincipal += monthly;
+      }
+      labels.push(`ปี ${y}`);
+      principalData.push(Math.round(currentPrincipal));
+      totalData.push(Math.round(currentBalance));
+    }
+
+    const finalTotalUSD = currentBalance;
+    const finalPrincipalUSD = currentPrincipal;
+    const finalInterestUSD = Math.max(0, currentBalance - currentPrincipal);
+
+    // Update stat boxes & hero
+    const heroMain = document.getElementById('sim-hero-future-val');
+    if (heroMain) heroMain.textContent = this.formatUSD(finalTotalUSD);
+    const heroSub = document.getElementById('sim-hero-future-thb');
+    if (heroSub) heroSub.textContent = `≈ ${this.formatTHB(this.usdToThb(finalTotalUSD))} • พลังของดอกเบี้ยทบต้น (${years} ปี)`;
+
+    const statP = document.getElementById('sim-stat-principal');
+    if (statP) statP.textContent = this.formatUSD(finalPrincipalUSD);
+    const statI = document.getElementById('sim-stat-interest');
+    if (statI) statI.textContent = this.formatUSD(finalInterestUSD);
+    const statT = document.getElementById('sim-stat-total');
+    if (statT) statT.textContent = this.formatUSD(finalTotalUSD);
+
+    // Draw Chart
+    const ctx = document.getElementById('chart-compound-simulator')?.getContext('2d');
+    if (!ctx) return;
+
+    if (this.charts.compound) {
+      this.charts.compound.destroy();
+    }
+
+    this.charts.compound = new Chart(ctx, {
+      type: 'line',
+      data: {
+        labels,
+        datasets: [
+          {
+            label: 'มูลค่ารวมสุทธิ (Total Net Worth)',
+            data: totalData,
+            borderColor: '#a855f7',
+            backgroundColor: 'rgba(168, 85, 247, 0.15)',
+            fill: true,
+            tension: 0.3
+          },
+          {
+            label: 'เงินต้นที่ออม (Total Principal)',
+            data: principalData,
+            borderColor: '#38bdf8',
+            backgroundColor: 'rgba(56, 189, 248, 0.15)',
+            fill: true,
+            tension: 0.3
+          }
+        ]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: { position: 'top', labels: { color: '#94a3b8' } },
+          tooltip: {
+            callbacks: {
+              label: (c) => ` ${c.dataset.label}: $${c.raw.toLocaleString()} (฿${Math.round(this.usdToThb(c.raw)).toLocaleString()})`
+            }
+          }
+        },
+        scales: {
+          y: {
+            grid: { color: 'rgba(255,255,255,0.06)' },
+            ticks: { color: '#64748b', callback: v => '$' + v.toLocaleString() }
+          },
+          x: {
+            grid: { color: 'rgba(255,255,255,0.06)' },
+            ticks: { color: '#64748b' }
+          }
+        }
+      }
+    });
+  }
+
+  // --- SMART REBALANCE & DCA CALCULATOR MODAL ---
+  openRebalanceModal() {
+    const select = document.getElementById('rebalance-port-select');
+    if (select) {
+      select.innerHTML = this.portfolios.map(p => `
+        <option value="${p.id}" ${p.id === this.selectedPortfolioId ? 'selected' : ''}>${p.emoji || '📁'} ${p.name} (Goal: $${(p.goalUSD || 0).toLocaleString()})</option>
+      `).join('');
+    }
+    this.updateRebalanceDepositHint();
+    this.calculateAndRenderSmartDCA();
+    this.openModal('modal-rebalance-calculator');
+  }
+
+  updateRebalanceDepositHint() {
+    const val = parseFloat(document.getElementById('rebalance-deposit-usd')?.value) || 0;
+    const hint = document.getElementById('rebalance-deposit-thb-hint');
+    if (hint) hint.textContent = `≈ ${this.formatTHB(this.usdToThb(val))}`;
+  }
+
+  calculateAndRenderSmartDCA() {
+    const portId = document.getElementById('rebalance-port-select')?.value || this.selectedPortfolioId;
+    const depositUSD = parseFloat(document.getElementById('rebalance-deposit-usd')?.value) || 0;
+    const container = document.getElementById('rebalance-results-container');
+    if (!container) return;
+
+    const port = this.portfolios.find(p => p.id === portId);
+    if (!port || !port.holdings || port.holdings.length === 0) {
+      container.innerHTML = `<div style="text-align: center; color: var(--text-muted); padding: 20px;">ไม่มีรายการหุ้นในพอร์ตนี้</div>`;
+      return;
+    }
+
+    if (depositUSD <= 0) {
+      container.innerHTML = `<div style="text-align: center; color: var(--text-muted); padding: 20px;">กรุณาระบุจำนวนเงินที่จะเติม</div>`;
+      return;
+    }
+
+    // Smart Allocation Algorithm
+    const holdingItems = port.holdings.map(h => {
+      const stats = this.calculateHoldingStats(h);
+      const targetUSD = h.targetTHB > 0 ? this.thbToUsd(h.targetTHB) : (port.goalUSD / port.holdings.length);
+      const gapUSD = Math.max(0, targetUSD - stats.marketValueUSD);
+      return {
+        holding: h,
+        stats,
+        targetUSD,
+        gapUSD
+      };
+    });
+
+    const totalGap = holdingItems.reduce((sum, item) => sum + item.gapUSD, 0);
+
+    const allocation = holdingItems.map(item => {
+      let shareUSD = 0;
+      if (totalGap > 0) {
+        shareUSD = (item.gapUSD / totalGap) * depositUSD;
+      } else {
+        shareUSD = depositUSD / holdingItems.length;
+      }
+      const buyShares = item.stats.currentPrice > 0 ? (shareUSD / item.stats.currentPrice) : 0;
+      return {
+        ticker: item.holding.ticker,
+        name: item.holding.name,
+        currentPrice: item.stats.currentPrice,
+        shareUSD,
+        buyShares,
+        targetUSD: item.targetUSD,
+        currentVal: item.stats.marketValueUSD
+      };
+    });
+
+    container.innerHTML = `
+      <div style="font-size: 13px; font-weight: 700; color: #fff; margin-bottom: 10px;">📋 แผนการแบ่งเงินซื้อ ($${depositUSD.toFixed(2)}):</div>
+      ${allocation.map(a => `
+        <div class="rebalance-plan-card">
+          <div class="rebalance-plan-left">
+            ${this.renderStockLogoHTML(a.ticker, port.color || '#10b981', 38)}
+            <div>
+              <div class="rebalance-plan-ticker">${a.ticker}</div>
+              <div class="rebalance-plan-shares">ช้อนซื้อ: <strong class="text-emerald font-mono">+${a.buyShares.toFixed(6)} หุ้น</strong> (@ $${a.currentPrice.toFixed(2)})</div>
+            </div>
+          </div>
+          <div class="rebalance-plan-amount">
+            <div class="text-emerald font-mono" style="font-size: 15px;">+$${a.shareUSD.toFixed(2)}</div>
+            <div style="font-size: 11px; color: var(--text-muted); font-mono">≈ ฿${this.usdToThb(a.shareUSD).toFixed(0)}</div>
+          </div>
+        </div>
+      `).join('')}
+    `;
+  }
+
   // 6. OBSIDIAN VAULT & AI SECOND BRAIN 1-CLICK EXPORT VIEW
   renderObsidianExportView(container) {
     const mdContent = this.generateObsidianMarkdown();
@@ -2084,6 +2515,15 @@ tags:
       document.getElementById('cur-mode-usd').classList.remove('active');
       this.renderActiveTab();
     });
+
+    // Privacy Mode Toggle Button
+    document.getElementById('btn-toggle-privacy')?.addEventListener('click', () => this.togglePrivacyMode());
+
+    // Smart Rebalance Modal & Calculator
+    document.getElementById('btn-open-rebalance-modal')?.addEventListener('click', () => this.openRebalanceModal());
+    document.getElementById('btn-calc-smart-dca')?.addEventListener('click', () => this.calculateAndRenderSmartDCA());
+    document.getElementById('rebalance-deposit-usd')?.addEventListener('input', () => this.updateRebalanceDepositHint());
+    document.getElementById('rebalance-port-select')?.addEventListener('change', () => this.calculateAndRenderSmartDCA());
 
     // Market Sync Buttons
     document.getElementById('btn-sync-market-top')?.addEventListener('click', () => this.syncLiveMarketPrices());
@@ -2340,6 +2780,7 @@ tags:
       portfolios: { title: 'แยกพอร์ต (Dime Holdings)', sub: 'รายละเอียดหุ้น, ทศนิยม, ต้นทุนเฉลี่ย, และเงินไว้ช้อน' },
       trading: { title: 'Forex & Option Trading', sub: 'บันทึกยอดเงินทุนรายเดือนและกราฟการเติบโต' },
       dividends: { title: 'บันทึกเงินปันผลรับ (Dividend Log)', sub: 'กระแสเงินสดปันผลสะสมและคำนวณหักภาษี 15%' },
+      simulator: { title: 'จำลองเงินล้าน & ดอกเบี้ยทบต้น', sub: 'คำนวณและคาดการณ์มูลค่าพอร์ตในอนาคต (The Power of Compounding)' },
       quarterly: { title: 'เปรียบเทียบผลงานรายไตรมาส', sub: 'ระบบบันทึก Snapshot และเปรียบเทียบการเติบโต Q-on-Q' },
       obsidian: { title: 'Obsidian & AI Second Brain', sub: 'ส่งออกรายงานการเงินเข้า Luna Vault อัตโนมัติ' },
       settings: { title: 'ตั้งค่าระบบ & ฐานข้อมูล', sub: 'จัดการ Firebase Realtime Sync และสำรองข้อมูล' }
@@ -2569,6 +3010,7 @@ tags:
         document.getElementById('holding-avg-cost').value = h.avgCostUSD;
         document.getElementById('holding-current-price').value = h.currentPriceUSD || '';
         document.getElementById('holding-1d-change').value = h.change1dPct || '';
+        document.getElementById('holding-dip-target').value = h.dipTargetUSD || '';
         
         this.updateHoldingTickerPreview(h.ticker);
 
@@ -2592,6 +3034,7 @@ tags:
       document.getElementById('modal-holding-title').textContent = '➕ เพิ่มสินทรัพย์หุ้นใหม่';
       document.getElementById('form-holding').reset();
       document.getElementById('holding-id').value = '';
+      document.getElementById('holding-dip-target').value = '';
       document.getElementById('holding-name').removeAttribute('data-autofilled');
       if (portSelect) portSelect.value = portfolioId || this.selectedPortfolioId;
       this.updateHoldingTickerPreview('');
@@ -2610,6 +3053,7 @@ tags:
     const avgCostUSD = parseFloat(document.getElementById('holding-avg-cost').value) || 0;
     const currentPriceUSD = parseFloat(document.getElementById('holding-current-price').value) || avgCostUSD;
     const change1dPct = parseFloat(document.getElementById('holding-1d-change').value) || 0;
+    const dipTargetUSD = parseFloat(document.getElementById('holding-dip-target').value) || null;
 
     const port = this.portfolios.find(p => p.id === portId);
     if (!port) return;
@@ -2619,7 +3063,7 @@ tags:
     if (holdingId) {
       const idx = port.holdings.findIndex(h => h.id === holdingId);
       if (idx >= 0) {
-        port.holdings[idx] = { ...port.holdings[idx], ticker, name, shares, avgCostUSD, currentPriceUSD, change1dPct };
+        port.holdings[idx] = { ...port.holdings[idx], ticker, name, shares, avgCostUSD, currentPriceUSD, change1dPct, dipTargetUSD };
       }
     } else {
       const newHolding = {
@@ -2629,7 +3073,8 @@ tags:
         shares,
         avgCostUSD,
         currentPriceUSD,
-        change1dPct
+        change1dPct,
+        dipTargetUSD
       };
       port.holdings.push(newHolding);
     }
