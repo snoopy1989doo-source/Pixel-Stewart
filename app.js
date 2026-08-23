@@ -805,20 +805,196 @@ class PixelStewardApp {
     };
   }
 
-  // --- LIVE MARKET DATA FETCHER ---
-  async fetchLiveExchangeRate() {
+  // --- ULTRA-FAST & RESILIENT LIVE MARKET DATA ENGINE ---
+  async fetchWithTimeout(url, timeoutMs = 4500) {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), timeoutMs);
     try {
-      const res = await fetch('https://open.er-api.com/v6/latest/USD');
-      if (res.ok) {
-        const data = await res.json();
-        if (data && data.rates && data.rates.THB) {
-          this.exchangeRate = parseFloat(data.rates.THB);
+      const response = await fetch(url, { signal: controller.signal });
+      clearTimeout(timer);
+      return response;
+    } catch (e) {
+      clearTimeout(timer);
+      throw e;
+    }
+  }
+
+  async fetchViaFastProxies(targetUrl) {
+    const proxies = [
+      (u) => `https://corsproxy.io/?url=${encodeURIComponent(u)}`,
+      (u) => `https://api.allorigins.win/raw?url=${encodeURIComponent(u)}`,
+      (u) => `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(u)}`
+    ];
+
+    for (const proxyFn of proxies) {
+      try {
+        const proxyUrl = proxyFn(targetUrl);
+        const res = await this.fetchWithTimeout(proxyUrl, 4000);
+        if (res.ok) {
+          const data = await res.json();
+          if (data) return data;
+        }
+      } catch (e) {
+        // Fallback to next proxy
+      }
+    }
+    return null;
+  }
+
+  async fetchLiveExchangeRate() {
+    const fxEndpoints = [
+      async () => {
+        const res = await this.fetchWithTimeout('https://open.er-api.com/v6/latest/USD', 3000);
+        if (res.ok) {
+          const data = await res.json();
+          return parseFloat(data?.rates?.THB);
+        }
+        return null;
+      },
+      async () => {
+        const res = await this.fetchWithTimeout('https://api.exchangerate-api.com/v4/latest/USD', 3000);
+        if (res.ok) {
+          const data = await res.json();
+          return parseFloat(data?.rates?.THB);
+        }
+        return null;
+      },
+      async () => {
+        const res = await this.fetchWithTimeout('https://cdn.jsdelivr.net/npm/@fawazahmed0/currency-api@latest/v1/currencies/usd.json', 3000);
+        if (res.ok) {
+          const data = await res.json();
+          return parseFloat(data?.usd?.thb);
+        }
+        return null;
+      }
+    ];
+
+    for (const fetcher of fxEndpoints) {
+      try {
+        const rate = await fetcher();
+        if (rate && rate > 20 && rate < 50) {
+          this.exchangeRate = rate;
           this.updateSidebarFxRate();
-          this.renderActiveTab();
+          return rate;
+        }
+      } catch (e) {
+        // Continue to next FX provider
+      }
+    }
+    return this.exchangeRate;
+  }
+
+  async fetchCryptoPrices(cryptoTickers, priceUpdates) {
+    if (!cryptoTickers || cryptoTickers.length === 0) return;
+
+    // 1. Direct Binance Public API (CORS enabled, 0 proxy lag, sub-100ms)
+    try {
+      const symbolsParam = JSON.stringify(cryptoTickers.map(c => `${c}USDT`));
+      const res = await this.fetchWithTimeout(`https://api.binance.com/api/v3/ticker/24hr?symbols=${encodeURIComponent(symbolsParam)}`, 3000);
+      if (res.ok) {
+        const items = await res.json();
+        if (Array.isArray(items)) {
+          items.forEach(item => {
+            const sym = item.symbol.replace('USDT', '');
+            const price = parseFloat(item.lastPrice);
+            const changePct = parseFloat(item.priceChangePercent);
+            if (price > 0) {
+              priceUpdates[sym] = { priceUSD: price, change1dPct: changePct };
+            }
+          });
+          return;
         }
       }
     } catch (e) {
-      console.warn('Live FX fetch failed, using stored rate:', e);
+      console.warn('Binance crypto fast fetch fallback:', e);
+    }
+
+    // 2. CoinGecko Fallback
+    try {
+      const geckoMap = { 'BTC': 'bitcoin', 'ETH': 'ethereum', 'BNB': 'binancecoin', 'SOL': 'solana', 'XRP': 'ripple' };
+      const ids = cryptoTickers.map(c => geckoMap[c]).filter(Boolean).join(',');
+      if (ids) {
+        const res = await this.fetchWithTimeout(`https://api.coingecko.com/api/v3/simple/price?ids=${ids}&vs_currencies=usd&include_24hr_change=true`, 3500);
+        if (res.ok) {
+          const data = await res.json();
+          for (const [sym, gid] of Object.entries(geckoMap)) {
+            if (data[gid]) {
+              const price = data[gid].usd;
+              const change = data[gid].usd_24h_change || 0;
+              if (price > 0) {
+                priceUpdates[sym] = { priceUSD: price, change1dPct: change };
+              }
+            }
+          }
+        }
+      }
+    } catch (e) {
+      console.warn('CoinGecko crypto fetch fallback:', e);
+    }
+  }
+
+  async fetchBatchStockPrices(tickers, priceUpdates) {
+    if (!tickers || tickers.length === 0) return;
+
+    // Fast Single-Batch Request for all US stocks via Yahoo Finance Quote API
+    const symbolsStr = tickers.join(',');
+    const quoteUrl = `https://query1.finance.yahoo.com/v7/finance/quote?symbols=${encodeURIComponent(symbolsStr)}`;
+    
+    const data = await this.fetchViaFastProxies(quoteUrl);
+    const results = data?.quoteResponse?.result;
+    
+    if (Array.isArray(results) && results.length > 0) {
+      results.forEach(q => {
+        const sym = q.symbol?.toUpperCase();
+        const price = q.regularMarketPrice || q.postMarketPrice || q.preMarketPrice;
+        const changePct = q.regularMarketChangePercent ?? 0;
+        if (sym && price > 0) {
+          priceUpdates[sym] = { priceUSD: price, change1dPct: changePct };
+        }
+      });
+    }
+
+    // Check if any ticker was missed, and query individual chart in parallel
+    const missingTickers = tickers.filter(t => !priceUpdates[t]);
+    if (missingTickers.length > 0) {
+      const fallbackPromises = missingTickers.map(async (sym) => {
+        try {
+          const chartUrl = `https://query1.finance.yahoo.com/v8/finance/chart/${sym}?interval=1d&range=2d`;
+          const chartData = await this.fetchViaFastProxies(chartUrl);
+          const meta = chartData?.chart?.result?.[0]?.meta;
+          if (meta && meta.regularMarketPrice) {
+            const price = meta.regularMarketPrice;
+            const prev = meta.previousClose || meta.chartPreviousClose || price;
+            const changePct = prev > 0 ? ((price - prev) / prev) * 100 : 0;
+            priceUpdates[sym] = { priceUSD: price, change1dPct: changePct };
+          }
+        } catch (e) {
+          // Ignore individual failure
+        }
+      });
+      await Promise.allSettled(fallbackPromises);
+    }
+  }
+
+  async fetchThaiStockPrices(thaiTickers, priceUpdates) {
+    if (!thaiTickers || thaiTickers.length === 0) return;
+
+    const symbolsStr = thaiTickers.join(',');
+    const quoteUrl = `https://query1.finance.yahoo.com/v7/finance/quote?symbols=${encodeURIComponent(symbolsStr)}`;
+    
+    const data = await this.fetchViaFastProxies(quoteUrl);
+    const results = data?.quoteResponse?.result;
+
+    if (Array.isArray(results)) {
+      results.forEach(q => {
+        const sym = q.symbol?.toUpperCase();
+        const priceTHB = q.regularMarketPrice;
+        const changePct = q.regularMarketChangePercent ?? 0;
+        if (sym && priceTHB > 0) {
+          const priceUSD = priceTHB / (this.exchangeRate || 32.59);
+          priceUpdates[sym] = { priceUSD, change1dPct: changePct };
+        }
+      });
     }
   }
 
@@ -826,55 +1002,81 @@ class PixelStewardApp {
     const btnTop = document.getElementById('btn-sync-market-top');
     const btnSide = document.getElementById('btn-sync-market-desktop');
     if (btnTop) btnTop.classList.add('spinning');
+    if (btnSide) btnSide.classList.add('spinning');
 
-    // Collect all unique stock tickers
-    const tickers = new Set();
+    const startTime = performance.now();
+
+    // 1. Separate tickers into Categories: US Stocks, Crypto, Thai Stocks
+    const usTickers = new Set();
+    const cryptoTickers = new Set();
+    const thaiTickers = new Set();
+
+    const ignored = ['SSO', 'กอช.', 'KEPT', 'CASH', 'THB', 'USD'];
+
     this.portfolios.forEach(p => {
       (p.holdings || []).forEach(h => {
-        if (h.ticker && !h.ticker.includes('KEPT') && !h.ticker.includes('กอช')) {
-          tickers.add(h.ticker.trim().toUpperCase());
+        if (!h.ticker) return;
+        const clean = h.ticker.trim().toUpperCase();
+        if (ignored.includes(clean)) return;
+
+        if (['BTC', 'ETH', 'BNB', 'SOL', 'XRP', 'DOGE'].includes(clean)) {
+          cryptoTickers.add(clean);
+        } else if (clean.endsWith('.BK')) {
+          thaiTickers.add(clean);
+        } else {
+          usTickers.add(clean);
         }
       });
     });
 
-    let updatedCount = 0;
-    for (const ticker of tickers) {
-      try {
-        // Query Yahoo Finance chart API via public CORS proxy
-        const targetUrl = `https://query1.finance.yahoo.com/v8/finance/chart/${ticker}?interval=1d&range=2d`;
-        const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(targetUrl)}`;
-        
-        const res = await fetch(proxyUrl);
-        if (res.ok) {
-          const jsonWrapper = await res.json();
-          const parsed = JSON.parse(jsonWrapper.contents);
-          const meta = parsed.chart?.result?.[0]?.meta;
-          if (meta && meta.regularMarketPrice) {
-            const price = meta.regularMarketPrice;
-            const prevClose = meta.previousClose || meta.chartPreviousClose || price;
-            const changePct = prevClose > 0 ? ((price - prevClose) / prevClose) * 100 : 0;
+    const priceUpdates = {};
+    const parallelTasks = [];
 
-            // Update in all matching holdings
-            this.portfolios.forEach(p => {
-              (p.holdings || []).forEach(h => {
-                if (h.ticker.toUpperCase() === ticker) {
-                  h.currentPriceUSD = price;
-                  h.change1dPct = changePct;
-                  updatedCount++;
-                }
-              });
-            });
-          }
-        }
-      } catch (err) {
-        console.warn(`Price fetch failed for ${ticker}:`, err);
-      }
+    // Parallel Task 1: Live Exchange Rate
+    parallelTasks.push(this.fetchLiveExchangeRate());
+
+    // Parallel Task 2: Crypto (Direct Binance API, sub-100ms)
+    if (cryptoTickers.size > 0) {
+      parallelTasks.push(this.fetchCryptoPrices(Array.from(cryptoTickers), priceUpdates));
     }
 
-    await this.fetchLiveExchangeRate();
+    // Parallel Task 3: US Stocks (Batch Yahoo Quote API via fast multi-proxies)
+    if (usTickers.size > 0) {
+      parallelTasks.push(this.fetchBatchStockPrices(Array.from(usTickers), priceUpdates));
+    }
+
+    // Parallel Task 4: Thai Stocks (.BK)
+    if (thaiTickers.size > 0) {
+      parallelTasks.push(this.fetchThaiStockPrices(Array.from(thaiTickers), priceUpdates));
+    }
+
+    // Run all tasks concurrently
+    await Promise.allSettled(parallelTasks);
+
+    // Apply updates
+    let updatedCount = 0;
+    this.portfolios.forEach(p => {
+      (p.holdings || []).forEach(h => {
+        const clean = h.ticker?.trim().toUpperCase();
+        if (clean && priceUpdates[clean]) {
+          const update = priceUpdates[clean];
+          if (update.priceUSD > 0) {
+            h.currentPriceUSD = update.priceUSD;
+            h.change1dPct = update.change1dPct;
+            updatedCount++;
+          }
+        }
+      });
+    });
+
+    const elapsedSec = ((performance.now() - startTime) / 1000).toFixed(2);
+
     if (btnTop) btnTop.classList.remove('spinning');
+    if (btnSide) btnSide.classList.remove('spinning');
+
     this.saveData();
-    alert(`⚡ อัปเดตราคาตลาดสำเร็จ! (อัปเดตไป ${updatedCount} สินทรัพย์, อัตราแลกเปลี่ยน: ฿${this.exchangeRate.toFixed(2)})`);
+
+    alert(`⚡ อัปเดตราคาตลาดสำเร็จ!\n• ปรับปรุง ${updatedCount} สินทรัพย์\n• ความเร็ว: ${elapsedSec} วินาที\n• อัตราแลกเปลี่ยน: ฿${this.exchangeRate.toFixed(2)} / USD`);
   }
 
   // --- VIEW RENDERING ENGINE ---
