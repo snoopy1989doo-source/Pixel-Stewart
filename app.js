@@ -387,18 +387,50 @@ class PixelStewardApp {
     }
   }
 
-  getStockLogoUrl(ticker) {
+  renderStockLogoHTML(ticker, borderColor = '#10b981', size = 42) {
     if (!ticker) return '';
     const clean = ticker.replace('.BK', '').toUpperCase().trim();
-    if (['SSO', 'กอช.', 'KEPT', 'CASH', 'THB', 'USD'].includes(clean)) {
-      return '';
+
+    if (clean === 'BTC') {
+      return `<div class="ticker-icon-circle" style="width:${size}px; height:${size}px; border-color:${borderColor}; background:#151a24; overflow:hidden;"><img src="https://assets.coingecko.com/coins/images/1/small/bitcoin.png" alt="BTC" style="width:100%; height:100%; object-fit:contain; padding:4px;" referrerpolicy="no-referrer"></div>`;
     }
-    if (clean === 'BTC') return 'https://assets.coingecko.com/coins/images/1/small/bitcoin.png';
-    if (clean === 'ETH') return 'https://assets.coingecko.com/coins/images/279/small/ethereum.png';
-    if (clean === 'BNB') return 'https://assets.coingecko.com/coins/images/825/small/bnb-icon2_2x.png';
-    
-    // High-resolution corporate stock logo
-    return `https://assets.parqet.com/logos/symbol/${clean}?format=png`;
+    if (clean === 'ETH') {
+      return `<div class="ticker-icon-circle" style="width:${size}px; height:${size}px; border-color:${borderColor}; background:#151a24; overflow:hidden;"><img src="https://assets.coingecko.com/coins/images/279/small/ethereum.png" alt="ETH" style="width:100%; height:100%; object-fit:contain; padding:4px;" referrerpolicy="no-referrer"></div>`;
+    }
+    if (clean === 'BNB') {
+      return `<div class="ticker-icon-circle" style="width:${size}px; height:${size}px; border-color:${borderColor}; background:#151a24; overflow:hidden;"><img src="https://assets.coingecko.com/coins/images/825/small/bnb-icon2_2x.png" alt="BNB" style="width:100%; height:100%; object-fit:contain; padding:4px;" referrerpolicy="no-referrer"></div>`;
+    }
+
+    if (['SSO', 'กอช.', 'KEPT', 'CASH', 'THB', 'USD'].includes(clean)) {
+      return `<div class="ticker-icon-circle" style="width:${size}px; height:${size}px; border-color:${borderColor}; background:#151a24; display:flex; align-items:center; justify-content:center; font-weight:800; font-size:${size > 36 ? 11 : 9}px; color:#fff;">${clean.slice(0, 4)}</div>`;
+    }
+
+    const primaryUrl = `https://assets.parqet.com/logos/symbol/${clean}?format=png`;
+    const fallback1 = `https://financialmodelingprep.com/image-stock/${clean}.png`;
+    const fallback2 = `https://raw.githubusercontent.com/nvstly/icons/main/ticker_icons/${clean}.png`;
+
+    return `
+      <div class="ticker-icon-circle" style="width:${size}px; height:${size}px; border-color:${borderColor}; background:#151a24; position:relative; overflow:hidden; display:flex; align-items:center; justify-content:center;">
+        <img src="${primaryUrl}" 
+             alt="${clean}" 
+             loading="lazy" 
+             referrerpolicy="no-referrer"
+             onerror="
+               if (!this.dataset.step) {
+                 this.dataset.step = '1';
+                 this.src = '${fallback1}';
+               } else if (this.dataset.step === '1') {
+                 this.dataset.step = '2';
+                 this.src = '${fallback2}';
+               } else {
+                 this.style.display = 'none';
+                 if (this.nextElementSibling) this.nextElementSibling.style.display = 'flex';
+               }
+             " 
+             style="width:100%; height:100%; object-fit:contain; padding:4px; border-radius:50%;">
+        <span style="display:none; width:100%; height:100%; align-items:center; justify-content:center; font-weight:800; font-size:${size > 36 ? 11 : 9}px; color:#fff;">${clean.slice(0, 4)}</span>
+      </div>
+    `;
   }
 
   getTickerCompanyName(ticker) {
@@ -475,15 +507,7 @@ class PixelStewardApp {
       return;
     }
 
-    const logoUrl = this.getStockLogoUrl(sym);
-    if (logoUrl) {
-      logoBox.innerHTML = `
-        <img src="${logoUrl}" alt="${sym}" onerror="this.style.display='none'; if(this.nextElementSibling) this.nextElementSibling.style.display='flex';" style="width: 100%; height: 100%; object-fit: contain; padding: 4px; border-radius: 50%;">
-        <span style="display: none; width: 100%; height: 100%; align-items: center; justify-content: center; font-size: 11px; font-weight: 800; color: #fff;">${sym.slice(0, 4)}</span>
-      `;
-    } else {
-      logoBox.innerHTML = `<span style="display: flex; width: 100%; height: 100%; align-items: center; justify-content: center; font-size: 11px; font-weight: 800; color: #fff;">${sym.slice(0, 4)}</span>`;
-    }
+    logoBox.innerHTML = this.renderStockLogoHTML(sym, '#10b981', 42);
 
     if (nameInput && (!nameInput.value || nameInput.getAttribute('data-autofilled') === 'true')) {
       const compName = this.getTickerCompanyName(sym);
@@ -1459,18 +1483,7 @@ class PixelStewardApp {
           <div class="holding-card">
             <div class="holding-header">
               <div class="holding-ticker-group">
-                <div class="ticker-icon-circle" style="border-color: ${port.color || '#10b981'}; overflow: hidden; background: #151a24; position: relative; display: flex; align-items: center; justify-content: center;">
-                  ${this.getStockLogoUrl(h.ticker) ? `
-                    <img src="${this.getStockLogoUrl(h.ticker)}" 
-                         alt="${h.ticker}" 
-                         loading="lazy"
-                         onerror="this.style.display='none'; if(this.nextElementSibling) this.nextElementSibling.style.display='flex';" 
-                         style="width: 100%; height: 100%; object-fit: contain; padding: 4px; border-radius: 50%;">
-                    <span style="display: none; width: 100%; height: 100%; align-items: center; justify-content: center; font-weight: 800; font-size: 11px; color: #fff;">${h.ticker.slice(0, 4)}</span>
-                  ` : `
-                    <span style="display: flex; width: 100%; height: 100%; align-items: center; justify-content: center; font-weight: 800; font-size: 11px; color: #fff;">${h.ticker.slice(0, 4)}</span>
-                  `}
-                </div>
+                ${this.renderStockLogoHTML(h.ticker, port.color || '#10b981', 42)}
                 <div class="ticker-name-box">
                   <h4>${h.ticker}</h4>
                   <div class="ticker-subname">${h.name || h.ticker}</div>
