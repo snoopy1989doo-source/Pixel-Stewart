@@ -1,10 +1,10 @@
-// Service Worker for Pixel Steward PWA
-const CACHE_NAME = 'pixel-steward-v2.0.0';
+// Service Worker for Pixel Steward PWA (Network-First Strategy)
+const CACHE_NAME = 'pixel-steward-v2.1.1';
 const ASSETS_TO_CACHE = [
   './',
   './index.html',
-  './style.css',
-  './app.js',
+  './style.css?v=2.1.1',
+  './app.js?v=2.1.1',
   './manifest.json',
   './assets/foliologo/zero1.png',
   './assets/foliologo/zero2.png',
@@ -18,14 +18,14 @@ const ASSETS_TO_CACHE = [
 ];
 
 self.addEventListener('install', (event) => {
+  self.skipWaiting();
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => {
       return cache.addAll(ASSETS_TO_CACHE).catch((err) => {
-        console.warn('Some assets could not be cached on install:', err);
+        console.warn('Assets cache install warning:', err);
       });
     })
   );
-  self.skipWaiting();
 });
 
 self.addEventListener('activate', (event) => {
@@ -34,49 +34,48 @@ self.addEventListener('activate', (event) => {
       return Promise.all(
         keys.map((key) => {
           if (key !== CACHE_NAME) {
+            console.log('Purging old ServiceWorker cache:', key);
             return caches.delete(key);
           }
         })
       );
-    })
+    }).then(() => self.clients.claim())
   );
-  self.clients.claim();
 });
 
+// Network-First for core code & Dynamic Fallback
 self.addEventListener('fetch', (event) => {
-  // Let network handle Firebase and external API calls directly
+  // Let external APIs bypass Service Worker cache
   if (
     event.request.url.includes('firebasedatabase.app') ||
     event.request.url.includes('googleapis.com') ||
-    event.request.url.includes('query1.finance.yahoo.com') ||
-    event.request.url.includes('exchangerate-api.com') ||
+    event.request.url.includes('yahoo.com') ||
     event.request.url.includes('coingecko.com') ||
-    event.request.url.includes('api.allorigins.win')
+    event.request.url.includes('binance.com') ||
+    event.request.url.includes('parqet.com') ||
+    event.request.url.includes('financialmodelingprep.com') ||
+    event.request.url.includes('githubusercontent.com') ||
+    event.request.url.includes('api.allorigins.win') ||
+    event.request.url.includes('corsproxy.io')
   ) {
     return;
   }
 
+  // Network-First Strategy
   event.respondWith(
-    caches.match(event.request).then((cachedResponse) => {
-      if (cachedResponse) {
-        return cachedResponse;
-      }
-      return fetch(event.request).then((networkResponse) => {
-        if (
-          networkResponse &&
-          networkResponse.status === 200 &&
-          networkResponse.type === 'basic'
-        ) {
+    fetch(event.request)
+      .then((networkResponse) => {
+        if (networkResponse && networkResponse.status === 200 && networkResponse.type === 'basic') {
           const responseToCache = networkResponse.clone();
           caches.open(CACHE_NAME).then((cache) => {
             cache.put(event.request, responseToCache);
           });
         }
         return networkResponse;
-      }).catch(() => {
-        // Offline fallback
-        return cachedResponse;
-      });
-    })
+      })
+      .catch(() => {
+        // Fallback to cache when offline
+        return caches.match(event.request);
+      })
   );
 });
