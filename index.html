@@ -527,6 +527,99 @@
     </div>
   </div>
 
+  <!-- MODAL: ADD / EDIT TRADING PORTFOLIO (จัดการพอร์ตเทรด Forex & Option) -->
+  <div class="modal-backdrop" id="modal-trading-port-edit">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3 id="modal-trading-port-title">💱 จัดการพอร์ตเทรด (Trading Account)</h3>
+        <button class="btn-close-modal" data-close="modal-trading-port-edit">&times;</button>
+      </div>
+      <form id="form-trading-port-edit" class="modal-body">
+        <input type="hidden" id="edit-trading-key">
+        
+        <div class="form-group">
+          <label>ชื่อพอร์ตเทรด <span class="req">*</span></label>
+          <input type="text" id="edit-trading-name" class="form-input" placeholder="เช่น FOREX LIFE, PROP FIRM, GOLD BOT" required>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group flex-1">
+            <label>สีกราฟ / ประจำพอร์ต</label>
+            <input type="color" id="edit-trading-color" class="form-input form-color" value="#38bdf8">
+          </div>
+          <div class="form-group flex-2">
+            <label>ยอดเงินปัจจุบัน ($ USD) <span class="req">*</span></label>
+            <input type="number" step="any" id="edit-trading-balance" class="form-input font-mono" placeholder="100.00" required>
+          </div>
+        </div>
+
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-close="modal-trading-port-edit">ยกเลิก</button>
+          <button type="button" id="btn-delete-trading-port" class="btn btn-danger hidden">🗑️ ลบพอร์ตเทรดนี้</button>
+          <button type="submit" class="btn btn-primary">💾 บันทึกข้อมูลพอร์ตเทรด</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- MODAL: MONTHLY TRADING HISTORY (ประวัติรายเดือน) -->
+  <div class="modal-backdrop" id="modal-trading-history">
+    <div class="modal-card" style="max-width: 540px;">
+      <div class="modal-header">
+        <h3 id="modal-trading-history-title">📅 ประวัติรายเดือน</h3>
+        <button class="btn-close-modal" data-close="modal-trading-history">&times;</button>
+      </div>
+      <div class="modal-body">
+        <input type="hidden" id="history-trading-key">
+        
+        <!-- Add Month Form -->
+        <form id="form-add-trading-month" style="background: rgba(255,255,255,0.03); padding: 12px; border-radius: var(--radius-md); border: 1px solid var(--border-subtle); margin-bottom: 16px;">
+          <div style="font-size: 12px; font-weight: 700; color: var(--text-secondary); margin-bottom: 8px;">➕ บันทึกยอดเงินเดือนใหม่</div>
+          <div class="form-row">
+            <div class="form-group flex-1">
+              <label>ปี (Year)</label>
+              <input type="number" id="hist-year" class="form-input font-mono" value="2026" required>
+            </div>
+            <div class="form-group flex-1">
+              <label>เดือน (Month)</label>
+              <select id="hist-month" class="form-select font-mono" required>
+                <option value="1">1 (ม.ค.)</option>
+                <option value="2">2 (ก.พ.)</option>
+                <option value="3">3 (มี.ค.)</option>
+                <option value="4">4 (เม.ย.)</option>
+                <option value="5">5 (พ.ค.)</option>
+                <option value="6">6 (มิ.ย.)</option>
+                <option value="7">7 (ก.ค.)</option>
+                <option value="8" selected>8 (ส.ค.)</option>
+                <option value="9">9 (ก.ย.)</option>
+                <option value="10">10 (ต.ค.)</option>
+                <option value="11">11 (พ.ย.)</option>
+                <option value="12">12 (ธ.ค.)</option>
+              </select>
+            </div>
+            <div class="form-group flex-1">
+              <label>ยอด ($ USD)</label>
+              <input type="number" step="any" id="hist-balance" class="form-input font-mono" placeholder="150" required>
+            </div>
+          </div>
+          <div class="form-group">
+            <label>บันทึกช่วยจำ (Note)</label>
+            <input type="text" id="hist-note" class="form-input" placeholder="เทรดตามระบบ TP สวยงาม">
+          </div>
+          <button type="submit" class="btn btn-sm btn-primary" style="width: 100%;">💾 บันทึกยอดเดือนนี้</button>
+        </form>
+
+        <div style="font-size: 13px; font-weight: 700; color: var(--text-primary); margin-bottom: 8px;">ประวัติที่บันทึกไว้</div>
+        <div id="trading-history-list" style="max-height: 220px; overflow-y: auto; display: flex; flex-direction: column; gap: 8px;">
+          <!-- Populated dynamically -->
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-close="modal-trading-history">ปิด</button>
+      </div>
+    </div>
+  </div>
+
   <!-- Core JavaScript Application -->
   <script src="app.js?v=2.1.1"></script>
 </body>

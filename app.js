@@ -1561,6 +1561,17 @@ class PixelStewardApp {
         <div class="dime-sub-value font-mono">${dualTotal.sub} • อัปเดตเฉพาะยอดเงินรวมรายเดือน (USD)</div>
       </div>
 
+      <!-- SECTION HEADER WITH ADD TRADING PORTFOLIO BUTTON -->
+      <div class="section-header">
+        <div class="section-title">
+          <span>รายการพอร์ตเทรด (Trading Accounts)</span>
+          <span class="section-count-badge font-mono">${Object.keys(this.tradingData || {}).length} พอร์ต</span>
+        </div>
+        <button class="btn btn-sm btn-primary" id="btn-add-trading-port-modal">
+          <span>➕ เพิ่มพอร์ตเทรดใหม่</span>
+        </button>
+      </div>
+
       <div class="trading-summary-cards">
     `;
 
@@ -1570,9 +1581,12 @@ class PixelStewardApp {
       const latestUSD = latest.balanceUSD || 0;
 
       html += `
-        <div class="trading-port-card">
+        <div class="trading-port-card" style="border-top: 3px solid ${item.color || '#38bdf8'};">
           <div class="trading-port-header">
-            <div class="trading-title">${item.name}</div>
+            <div style="display: flex; align-items: center; gap: 8px;">
+              <span class="trading-title">${item.name}</span>
+              <button class="btn-icon-xs" data-edit-trading-port="${key}" title="แก้ไขชื่อหรือลบพอร์ต">⚙️ แก้ไข/ลบ</button>
+            </div>
             <span class="badge font-mono text-amber">Latest: ${this.formatUSD(latestUSD)}</span>
           </div>
 
@@ -1615,19 +1629,41 @@ class PixelStewardApp {
     const ctx = document.getElementById('chart-trading-equity')?.getContext('2d');
     if (!ctx) return;
 
-    const labels = ['2026-06', '2026-07', '2026-08'];
+    // Collect all unique sorted months
+    const monthSet = new Set();
+    for (const item of Object.values(this.tradingData || {})) {
+      (item.monthlyBalances || []).forEach(m => {
+        monthSet.add(`${m.year}-${String(m.month).padStart(2, '0')}`);
+      });
+    }
+
+    let labels = Array.from(monthSet).sort();
+    if (labels.length === 0) {
+      labels = ['2026-06', '2026-07', '2026-08'];
+    }
+
+    const defaultColors = ['#38bdf8', '#f43f5e', '#a855f7', '#10b981', '#f59e0b', '#ec4899', '#6366f1'];
     const datasets = [];
 
-    const colors = { forex_life: '#38bdf8', forex_bottrade: '#f43f5e', option: '#a855f7' };
-
+    let colorIdx = 0;
     for (const [key, item] of Object.entries(this.tradingData || {})) {
-      const data = (item.monthlyBalances || []).map(m => m.balanceUSD);
+      const color = item.color || defaultColors[colorIdx % defaultColors.length];
+      colorIdx++;
+
+      const monthMap = {};
+      (item.monthlyBalances || []).forEach(m => {
+        monthMap[`${m.year}-${String(m.month).padStart(2, '0')}`] = m.balanceUSD;
+      });
+
+      const data = labels.map(lbl => monthMap[lbl] !== undefined ? monthMap[lbl] : null);
+
       datasets.push({
         label: item.name,
-        data: data.length > 0 ? data : [0, 0, 0],
-        borderColor: colors[key] || '#10b981',
-        backgroundColor: colors[key] ? colors[key] + '20' : '#10b98120',
+        data,
+        borderColor: color,
+        backgroundColor: color + '20',
         fill: true,
+        spanGaps: true,
         tension: 0.3
       });
     }
@@ -2134,15 +2170,44 @@ tags:
         return;
       }
 
+      // Add Trading Portfolio Modal
+      if (target.id === 'btn-add-trading-port-modal') {
+        this.openTradingPortEditModal(null);
+        return;
+      }
+
+      // Edit Trading Portfolio Modal
+      if (target.hasAttribute('data-edit-trading-port')) {
+        const key = target.getAttribute('data-edit-trading-port');
+        this.openTradingPortEditModal(key);
+        return;
+      }
+
+      // Open Trading History Modal
+      if (target.hasAttribute('data-log-trading-history')) {
+        const key = target.getAttribute('data-log-trading-history');
+        this.openTradingHistoryModal(key);
+        return;
+      }
+
+      // Delete Trading History Month Entry
+      if (target.hasAttribute('data-delete-trading-month')) {
+        const idx = parseInt(target.getAttribute('data-delete-trading-month'));
+        const key = target.getAttribute('data-trading-key');
+        this.deleteTradingHistoryEntry(key, idx);
+        return;
+      }
+
       // Save Trading Monthly Balance
       if (target.hasAttribute('data-save-trading-key')) {
         const key = target.getAttribute('data-save-trading-key');
         const input = document.querySelector(`input[data-trading-key="${key}"]`);
-        if (input) {
+        if (input && this.tradingData[key]) {
           const val = parseFloat(input.value) || 0;
           const currentMonth = new Date().getMonth() + 1;
           const currentYear = new Date().getFullYear();
-          const list = this.tradingData[key].monthlyBalances || [];
+          if (!this.tradingData[key].monthlyBalances) this.tradingData[key].monthlyBalances = [];
+          const list = this.tradingData[key].monthlyBalances;
           const lastIdx = list.findIndex(m => m.year === currentYear && m.month === currentMonth);
           if (lastIdx >= 0) {
             list[lastIdx].balanceUSD = val;
@@ -2150,6 +2215,7 @@ tags:
             list.push({ year: currentYear, month: currentMonth, balanceUSD: val, note: 'อัปเดตรายเดือน' });
           }
           this.saveData();
+          this.renderActiveTab();
           alert(`💾 บันทึกยอดเงิน ${this.tradingData[key].name}: $${val.toFixed(2)} สำเร็จ!`);
         }
         return;
@@ -2454,6 +2520,18 @@ tags:
     document.getElementById('edit-port-goal-usd')?.addEventListener('input', (e) => {
       const usd = parseFloat(e.target.value) || 0;
       document.getElementById('edit-port-goal-thb').value = this.formatTHB(this.usdToThb(usd));
+    });
+
+    // Trading Port Edit Form Submit
+    document.getElementById('form-trading-port-edit')?.addEventListener('submit', (e) => {
+      e.preventDefault();
+      this.saveTradingPortEditForm();
+    });
+
+    // Trading Month Add Form Submit
+    document.getElementById('form-add-trading-month')?.addEventListener('submit', (e) => {
+      e.preventDefault();
+      this.saveTradingMonthForm();
     });
   }
 
@@ -2890,6 +2968,166 @@ tags:
     this.saveData();
     this.closeModal('modal-portfolio-edit');
     alert(`💾 บันทึกข้อมูลพอร์ต ${name} เรียบร้อย!`);
+  }
+
+  // --- TRADING PORTFOLIO CRUD & HISTORY METHODS ---
+  openTradingPortEditModal(key) {
+    const deleteBtn = document.getElementById('btn-delete-trading-port');
+    if (key && this.tradingData[key]) {
+      const item = this.tradingData[key];
+      const list = item.monthlyBalances || [];
+      const latestUSD = list.length > 0 ? list[list.length - 1].balanceUSD : 0;
+
+      document.getElementById('modal-trading-port-title').textContent = '⚙️ แก้ไขข้อมูลพอร์ตเทรด';
+      document.getElementById('edit-trading-key').value = key;
+      document.getElementById('edit-trading-name').value = item.name;
+      document.getElementById('edit-trading-color').value = item.color || '#38bdf8';
+      document.getElementById('edit-trading-balance').value = latestUSD;
+
+      if (deleteBtn) {
+        deleteBtn.classList.remove('hidden');
+        deleteBtn.onclick = (e) => {
+          e.preventDefault();
+          if (confirm(`⚠️ คุณแน่ใจหรือไม่ว่าต้องการลบพอร์ตเทรด "${item.name}" และประวัติทั้งหมด?\n(การกระทำนี้ไม่สามารถย้อนกลับได้)`)) {
+            delete this.tradingData[key];
+            this.saveData();
+            this.closeModal('modal-trading-port-edit');
+            this.renderActiveTab();
+            alert(`🗑️ ลบพอร์ตเทรด ${item.name} เรียบร้อยแล้ว`);
+          }
+        };
+      }
+    } else {
+      document.getElementById('modal-trading-port-title').textContent = '➕ เพิ่มพอร์ตเทรดใหม่';
+      document.getElementById('form-trading-port-edit').reset();
+      document.getElementById('edit-trading-key').value = '';
+      document.getElementById('edit-trading-color').value = '#38bdf8';
+      document.getElementById('edit-trading-balance').value = '0';
+      if (deleteBtn) deleteBtn.classList.add('hidden');
+    }
+
+    this.openModal('modal-trading-port-edit');
+  }
+
+  saveTradingPortEditForm() {
+    const key = document.getElementById('edit-trading-key').value;
+    const name = document.getElementById('edit-trading-name').value.trim();
+    const color = document.getElementById('edit-trading-color').value;
+    const balanceUSD = parseFloat(document.getElementById('edit-trading-balance').value) || 0;
+
+    if (!this.tradingData) this.tradingData = {};
+
+    const currentYear = new Date().getFullYear();
+    const currentMonth = new Date().getMonth() + 1;
+
+    if (key && this.tradingData[key]) {
+      this.tradingData[key].name = name;
+      this.tradingData[key].color = color;
+      
+      const list = this.tradingData[key].monthlyBalances || [];
+      const lastIdx = list.findIndex(m => m.year === currentYear && m.month === currentMonth);
+      if (lastIdx >= 0) {
+        list[lastIdx].balanceUSD = balanceUSD;
+      } else {
+        list.push({ year: currentYear, month: currentMonth, balanceUSD, note: 'อัปเดตรายเดือน' });
+      }
+    } else {
+      const newKey = 'trade_' + Date.now();
+      this.tradingData[newKey] = {
+        name,
+        color,
+        monthlyBalances: [
+          { year: currentYear, month: currentMonth, balanceUSD, note: 'เปิดพอร์ต' }
+        ]
+      };
+    }
+
+    this.saveData();
+    this.closeModal('modal-trading-port-edit');
+    this.renderActiveTab();
+    alert(`💾 บันทึกพอร์ตเทรด "${name}" สำเร็จ!`);
+  }
+
+  openTradingHistoryModal(key) {
+    if (!key || !this.tradingData[key]) return;
+    const item = this.tradingData[key];
+
+    document.getElementById('modal-trading-history-title').textContent = `📅 ประวัติรายเดือน: ${item.name}`;
+    document.getElementById('history-trading-key').value = key;
+    document.getElementById('hist-year').value = new Date().getFullYear();
+    document.getElementById('hist-month').value = new Date().getMonth() + 1;
+    document.getElementById('hist-balance').value = '';
+    document.getElementById('hist-note').value = '';
+
+    this.renderTradingHistoryList(key);
+    this.openModal('modal-trading-history');
+  }
+
+  renderTradingHistoryList(key) {
+    const listEl = document.getElementById('trading-history-list');
+    if (!listEl || !this.tradingData[key]) return;
+
+    const balances = this.tradingData[key].monthlyBalances || [];
+    if (balances.length === 0) {
+      listEl.innerHTML = `<div style="text-align: center; color: var(--text-muted); padding: 12px;">ยังไม่มีประวัติรายเดือน</div>`;
+      return;
+    }
+
+    const sorted = [...balances].reverse();
+
+    listEl.innerHTML = sorted.map((m) => {
+      const origIdx = balances.indexOf(m);
+      return `
+        <div style="display: flex; justify-content: space-between; align-items: center; background: rgba(0,0,0,0.3); padding: 8px 12px; border-radius: var(--radius-sm); border: 1px solid rgba(255,255,255,0.05);">
+          <div>
+            <div class="font-mono" style="font-weight: 700; color: #fff; font-size: 14px;">${m.year}-${String(m.month).padStart(2, '0')}: <span class="text-amber">$${(m.balanceUSD || 0).toFixed(2)}</span></div>
+            <div style="font-size: 11px; color: var(--text-muted);">${m.note || 'ไม่มีโน้ต'}</div>
+          </div>
+          <button class="btn-icon-xs text-rose" data-delete-trading-month="${origIdx}" data-trading-key="${key}" title="ลบรายการนี้">🗑️</button>
+        </div>
+      `;
+    }).join('');
+  }
+
+  saveTradingMonthForm() {
+    const key = document.getElementById('history-trading-key').value;
+    if (!key || !this.tradingData[key]) return;
+
+    const year = parseInt(document.getElementById('hist-year').value) || new Date().getFullYear();
+    const month = parseInt(document.getElementById('hist-month').value) || 1;
+    const balanceUSD = parseFloat(document.getElementById('hist-balance').value) || 0;
+    const note = document.getElementById('hist-note').value.trim();
+
+    if (!this.tradingData[key].monthlyBalances) {
+      this.tradingData[key].monthlyBalances = [];
+    }
+
+    const list = this.tradingData[key].monthlyBalances;
+    const existIdx = list.findIndex(m => m.year === year && m.month === month);
+    if (existIdx >= 0) {
+      list[existIdx] = { year, month, balanceUSD, note };
+    } else {
+      list.push({ year, month, balanceUSD, note });
+      list.sort((a, b) => (a.year * 100 + a.month) - (b.year * 100 + b.month));
+    }
+
+    this.saveData();
+    this.renderTradingHistoryList(key);
+    this.renderActiveTab();
+    alert(`💾 บันทึกยอดเงินเดือน ${year}-${String(month).padStart(2, '0')} เรียบร้อย!`);
+  }
+
+  deleteTradingHistoryEntry(key, index) {
+    if (!key || !this.tradingData[key]) return;
+    if (confirm('ต้องการลบประวัติของเดือนนี้ใช่หรือไม่?')) {
+      const list = this.tradingData[key].monthlyBalances || [];
+      if (index >= 0 && index < list.length) {
+        list.splice(index, 1);
+        this.saveData();
+        this.renderTradingHistoryList(key);
+        this.renderActiveTab();
+      }
+    }
   }
 
   // --- PWA REGISTRATION ---
