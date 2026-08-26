@@ -248,65 +248,8 @@ const INITIAL_TRADING_DATA = {
   }
 };
 
-// Default Quarterly Snapshots (From Backup)
-const INITIAL_QUARTERLY_DATA = [
-  {
-    year: 2025,
-    quarter: 'Q1',
-    date: '2025-03-31',
-    exchangeRate: 32.68,
-    portValuesUSD: {
-      zero3: 18360.00,
-      us_dividend: 2754.00,
-      thai_dividend: 1530.00,
-      next_gen: 91800.00
-    },
-    totalUSD: 114444.00,
-    notes: 'บันทึกไตรมาส 1/2025'
-  },
-  {
-    year: 2025,
-    quarter: 'Q2',
-    date: '2025-06-30',
-    exchangeRate: 32.68,
-    portValuesUSD: {
-      zero3: 20808.00,
-      us_dividend: 3060.00,
-      thai_dividend: 1683.00,
-      next_gen: 107100.00
-    },
-    totalUSD: 132651.00,
-    notes: 'บันทึกไตรมาส 2/2025'
-  },
-  {
-    year: 2025,
-    quarter: 'Q3',
-    date: '2025-09-30',
-    exchangeRate: 32.68,
-    portValuesUSD: {
-      zero3: 22950.00,
-      us_dividend: 3366.00,
-      thai_dividend: 1774.80,
-      next_gen: 122400.00
-    },
-    totalUSD: 150490.80,
-    notes: 'บันทึกไตรมาส 3/2025'
-  },
-  {
-    year: 2025,
-    quarter: 'Q4',
-    date: '2025-12-31',
-    exchangeRate: 32.68,
-    portValuesUSD: {
-      zero3: 25092.00,
-      us_dividend: 3610.80,
-      thai_dividend: 1897.20,
-      next_gen: 131580.00
-    },
-    totalUSD: 162180.00,
-    notes: 'บันทึกไตรมาส 4/2025'
-  }
-];
+// Default Quarterly Snapshots (Auto-recorded at Q1: 31 Mar, Q2: 30 Jun, Q3: 30 Sep, Q4: 31 Dec)
+const INITIAL_QUARTERLY_DATA = [];
 
 // Default Dividend Records (From Backup)
 const INITIAL_DIVIDENDS = [
@@ -324,6 +267,7 @@ class PixelStewardApp {
     this.displayCurrency = 'USD'; // 'USD' or 'THB'
     this.currentTab = 'dashboard';
     this.selectedPortfolioId = 'zero1';
+    this.selectedQuarterYear = new Date().getFullYear();
     this.isPrivacyMode = false;
     
     // Firebase & Sync State
@@ -337,6 +281,7 @@ class PixelStewardApp {
   async init() {
     this.initFirebase();
     this.loadLocalData();
+    this.checkAndAutoRecordQuarterlySnapshots();
     this.loadPrivacyPreference();
     this.setupEventListeners();
     this.setupModals();
@@ -721,6 +666,15 @@ class PixelStewardApp {
     }
 
     this.portfolios = this.portfolios.filter(p => p.id !== 'redwing' && !p.name.includes('RedWing'));
+
+    // Sanitize old 2025 mock quarterly snapshots with fake inflated numbers
+    this.quarterlySnapshots = (this.quarterlySnapshots || []).filter(q => {
+      if (q.year === 2025 && q.totalUSD > 50000 && q.portValuesUSD && q.portValuesUSD.next_gen > 10000) {
+        return false;
+      }
+      return true;
+    });
+
     this.updateSidebarFxRate();
   }
 
@@ -2076,91 +2030,49 @@ class PixelStewardApp {
     container.innerHTML = html;
   }
 
-  // 5. QUARTERLY COMPARISON & AUTO-SNAPSHOT VIEW
-  renderQuarterlyView(container) {
-    const currentYear = new Date().getFullYear();
-    const currentQuarter = 'Q' + Math.ceil((new Date().getMonth() + 1) / 3);
+  // --- AUTO QUARTERLY SNAPSHOT ENGINE (Q1: 31 Mar, Q2: 30 Jun, Q3: 30 Sep, Q4: 31 Dec) ---
+  checkAndAutoRecordQuarterlySnapshots() {
+    const now = new Date();
+    const currentYear = now.getFullYear();
 
-    let html = `
-      <div class="quarterly-action-banner">
-        <div>
-          <h3 style="font-size: 18px; font-weight: 700; color: #fff;">📸 ระบบบันทึกเปรียบเทียบการเติบโตรายไตรมาส (Quarterly Engine)</h3>
-          <p style="font-size: 13px; color: var(--text-secondary); margin-top: 4px;">
-            บันทึก Snapshot สถานะพอร์ตล่าสุดลง Firebase อัตโนมัติ เพื่อเปรียบเทียบการเติบโต Q-on-Q
-          </p>
-        </div>
-        <button class="btn btn-primary btn-glow" id="btn-take-quarter-snapshot">
-          <span>📸 บันทึก Snapshot (${currentQuarter}/${currentYear})</span>
-        </button>
-      </div>
+    // 4 Quarter End Milestones specified by User:
+    // Q1 = 31 มีนาคม (31 March)
+    // Q2 = 30 มิถุนายน (30 June)
+    // Q3 = 30 กันยายน (30 September)
+    // Q4 = 31 ธันวาคม (31 December)
+    const quarterMilestones = [
+      { quarter: 'Q1', month: 2, day: 31, dateStr: `${currentYear}-03-31`, label: 'Q1 (31 มี.ค.)' },
+      { quarter: 'Q2', month: 5, day: 30, dateStr: `${currentYear}-06-30`, label: 'Q2 (30 มิ.ย.)' },
+      { quarter: 'Q3', month: 8, day: 30, dateStr: `${currentYear}-09-30`, label: 'Q3 (30 ก.ย.)' },
+      { quarter: 'Q4', month: 11, day: 31, dateStr: `${currentYear}-12-31`, label: 'Q4 (31 ธ.ค.)' }
+    ];
 
-      <div class="section-header">
-        <div class="section-title">
-          <span>ตารางเปรียบเทียบผลงานรายไตรมาส (Quarterly Records)</span>
-        </div>
-      </div>
+    if (!Array.isArray(this.quarterlySnapshots)) {
+      this.quarterlySnapshots = [];
+    }
 
-      <div class="div-table-wrap">
-        <table class="custom-table font-mono">
-          <thead>
-            <tr>
-              <th>พอร์ตการลงทุน</th>
-              <th>Q1 Value ($)</th>
-              <th>Q2 Value ($)</th>
-              <th>Q3 Value ($)</th>
-              <th>Q4 Value ($)</th>
-              <th>ล่าสุด ($)</th>
-              <th>การเติบโต</th>
-            </tr>
-          </thead>
-          <tbody>
-    `;
+    let hasNewSnapshot = false;
 
-    const q1Map = this.quarterlySnapshots.find(q => q.quarter === 'Q1')?.portValuesUSD || {};
-    const q2Map = this.quarterlySnapshots.find(q => q.quarter === 'Q2')?.portValuesUSD || {};
-    const q3Map = this.quarterlySnapshots.find(q => q.quarter === 'Q3')?.portValuesUSD || {};
-    const q4Map = this.quarterlySnapshots.find(q => q.quarter === 'Q4')?.portValuesUSD || {};
-
-    this.portfolios.forEach(p => {
-      const s = this.calculatePortfolioStats(p);
-      const q1Val = q1Map[p.id] || 0;
-      const q2Val = q2Map[p.id] || 0;
-      const q3Val = q3Map[p.id] || 0;
-      const q4Val = q4Map[p.id] || 0;
-
-      const baseVal = q1Val || q2Val || s.totalValueUSD;
-      const diff = s.totalValueUSD - baseVal;
-      const pct = baseVal > 0 ? (diff / baseVal) * 100 : 0;
-
-      html += `
-        <tr>
-          <td style="font-family: var(--font-ui); font-weight: 700;">${p.emoji || ''} ${p.name}</td>
-          <td>${q1Val > 0 ? this.formatUSD(q1Val) : '-'}</td>
-          <td>${q2Val > 0 ? this.formatUSD(q2Val) : '-'}</td>
-          <td>${q3Val > 0 ? this.formatUSD(q3Val) : '-'}</td>
-          <td>${q4Val > 0 ? this.formatUSD(q4Val) : '-'}</td>
-          <td class="font-bold">${this.formatUSD(s.totalValueUSD)}</td>
-          <td class="${pct >= 0 ? 'text-emerald' : 'text-rose'} font-bold">
-            ${pct >= 0 ? '+' : ''}${this.formatUSD(diff)} (${this.formatPercent(pct)})
-          </td>
-        </tr>
-      `;
+    quarterMilestones.forEach(q => {
+      const qDate = new Date(currentYear, q.month, q.day, 23, 59, 59);
+      
+      // If current date has reached or passed this quarter's cutoff
+      if (now >= qDate) {
+        const existingIdx = this.quarterlySnapshots.findIndex(s => s.year === currentYear && s.quarter === q.quarter);
+        if (existingIdx < 0) {
+          const snapshot = this.createCurrentPortfolioSnapshot(currentYear, q.quarter, q.dateStr, `บันทึกอัตโนมัติสิ้น ${q.label}`);
+          this.quarterlySnapshots.push(snapshot);
+          hasNewSnapshot = true;
+        }
+      }
     });
 
-    html += `
-          </tbody>
-        </table>
-      </div>
-    `;
-
-    container.innerHTML = html;
+    if (hasNewSnapshot) {
+      this.saveData();
+    }
   }
 
-  takeQuarterlySnapshot() {
-    const currentYear = new Date().getFullYear();
-    const currentQuarter = 'Q' + Math.ceil((new Date().getMonth() + 1) / 3);
-    const dateStr = new Date().toISOString().split('T')[0];
-
+  createCurrentPortfolioSnapshot(year, quarter, dateStr, notes = '') {
     const portValuesUSD = {};
     let totalUSD = 0;
 
@@ -2174,26 +2086,225 @@ class PixelStewardApp {
     Object.assign(portValuesUSD, balances);
     totalUSD += totalTradingUSD;
 
-    // Check if exists
-    const idx = this.quarterlySnapshots.findIndex(q => q.year === currentYear && q.quarter === currentQuarter);
-    const newSnapshot = {
-      year: currentYear,
-      quarter: currentQuarter,
-      date: dateStr,
+    return {
+      year: parseInt(year),
+      quarter,
+      date: dateStr || new Date().toISOString().split('T')[0],
       exchangeRate: this.exchangeRate,
       portValuesUSD,
       totalUSD,
-      notes: `Snapshot อัตโนมัติ ${currentQuarter}/${currentYear}`
+      notes: notes || `Snapshot ${quarter}/${year}`
     };
+  }
 
+  // 5. QUARTERLY COMPARISON & AUTO-SNAPSHOT VIEW
+  renderQuarterlyView(container) {
+    const now = new Date();
+    const currentYear = now.getFullYear();
+    this.selectedQuarterYear = this.selectedQuarterYear || currentYear;
+    const currentQuarter = 'Q' + Math.ceil((now.getMonth() + 1) / 3);
+
+    // Auto-record any due quarters on view open
+    this.checkAndAutoRecordQuarterlySnapshots();
+
+    // Get available snapshot years
+    const availableYears = Array.from(new Set([
+      currentYear,
+      ...this.quarterlySnapshots.map(q => q.year)
+    ])).sort((a, b) => b - a);
+
+    const yearSnapshots = this.quarterlySnapshots.filter(q => q.year === this.selectedQuarterYear);
+    const q1Obj = yearSnapshots.find(q => q.quarter === 'Q1');
+    const q2Obj = yearSnapshots.find(q => q.quarter === 'Q2');
+    const q3Obj = yearSnapshots.find(q => q.quarter === 'Q3');
+    const q4Obj = yearSnapshots.find(q => q.quarter === 'Q4');
+
+    const q1Map = q1Obj?.portValuesUSD || {};
+    const q2Map = q2Obj?.portValuesUSD || {};
+    const q3Map = q3Obj?.portValuesUSD || {};
+    const q4Map = q4Obj?.portValuesUSD || {};
+
+    let html = `
+      <div class="quarterly-action-banner">
+        <div>
+          <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 4px;">
+            <h3 style="font-size: 18px; font-weight: 700; color: #fff; margin: 0;">📸 ระบบบันทึกเปรียบเทียบการเติบโตรายไตรมาส</h3>
+            <span class="badge font-mono" style="background: rgba(16, 185, 129, 0.15); color: var(--color-emerald); border: 1px solid rgba(16, 185, 129, 0.3); font-size: 11px; padding: 2px 8px; border-radius: var(--radius-full);">
+              ⚡ Auto Snapshot: 31 มี.ค. | 30 มิ.ย. | 30 ก.ย. | 31 ธ.ค.
+            </span>
+          </div>
+          <p style="font-size: 13px; color: var(--text-secondary); margin: 0;">
+            บันทึก Snapshot มูลค่าพอร์ตอัตโนมัติทุกสิ้นไตรมาสเพื่อวิเคราะห์การเติบโต Q-on-Q ที่แม่นยำ
+          </p>
+        </div>
+        <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+          <button class="btn btn-primary btn-glow" id="btn-take-quarter-snapshot">
+            <span>📸 บันทึก Snapshot (${currentQuarter}/${currentYear})</span>
+          </button>
+          <button class="btn btn-secondary" id="btn-reset-quarter-data" title="ล้างข้อมูลไตรมาสปีนี้แล้วบันทึกใหม่">
+            <span>🔄 เริ่มต้นบันทึกปีนี้ใหม่</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- SECTION HEADER WITH YEAR SELECTOR -->
+      <div class="section-header">
+        <div class="section-title">
+          <span>ตารางเปรียบเทียบผลงานรายไตรมาส (Quarterly Records)</span>
+        </div>
+        <div style="display: flex; align-items: center; gap: 8px;">
+          <span style="font-size: 13px; color: var(--text-secondary);">เลือกปี:</span>
+          <select id="select-quarter-year" class="form-select font-mono" style="width: auto; padding: 6px 12px; font-size: 13px;">
+            ${availableYears.map(y => `
+              <option value="${y}" ${y === this.selectedQuarterYear ? 'selected' : ''}>ปี ${y}</option>
+            `).join('')}
+          </select>
+        </div>
+      </div>
+
+      <div class="div-table-wrap">
+        <table class="custom-table font-mono">
+          <thead>
+            <tr>
+              <th style="font-family: var(--font-ui);">พอร์ตการลงทุน</th>
+              <th>Q1 (31 มี.ค.)</th>
+              <th>Q2 (30 มิ.ย.)</th>
+              <th>Q3 (30 ก.ย.)</th>
+              <th>Q4 (31 ธ.ค.)</th>
+              <th>ล่าสุด ($)</th>
+              <th>การเติบโต</th>
+            </tr>
+          </thead>
+          <tbody>
+    `;
+
+    let totalQ1 = 0, totalQ2 = 0, totalQ3 = 0, totalQ4 = 0, totalCurrent = 0;
+
+    this.portfolios.forEach(p => {
+      const s = this.calculatePortfolioStats(p);
+      const q1Val = q1Map[p.id] || 0;
+      const q2Val = q2Map[p.id] || 0;
+      const q3Val = q3Map[p.id] || 0;
+      const q4Val = q4Map[p.id] || 0;
+
+      totalQ1 += q1Val;
+      totalQ2 += q2Val;
+      totalQ3 += q3Val;
+      totalQ4 += q4Val;
+      totalCurrent += s.totalValueUSD;
+
+      // Base value: earliest non-zero recorded quarter or current
+      const baseVal = q1Val || q2Val || q3Val || q4Val || s.totalValueUSD;
+      const diff = s.totalValueUSD - baseVal;
+      const pct = baseVal > 0 ? (diff / baseVal) * 100 : 0;
+
+      html += `
+        <tr>
+          <td style="font-family: var(--font-ui); font-weight: 700;">${p.emoji || '📁'} ${p.name}</td>
+          <td>${q1Val > 0 ? this.formatUSD(q1Val) : `<span style="color:var(--text-muted);">-</span>`}</td>
+          <td>${q2Val > 0 ? this.formatUSD(q2Val) : `<span style="color:var(--text-muted);">-</span>`}</td>
+          <td>${q3Val > 0 ? this.formatUSD(q3Val) : `<span style="color:var(--text-muted);">-</span>`}</td>
+          <td>${q4Val > 0 ? this.formatUSD(q4Val) : `<span style="color:var(--text-muted);">-</span>`}</td>
+          <td class="font-bold text-white">${this.formatUSD(s.totalValueUSD)}</td>
+          <td class="${pct >= 0 ? 'text-emerald' : 'text-rose'} font-bold">
+            ${pct >= 0 ? '+' : ''}${this.formatUSD(diff)} (${this.formatPercent(pct)})
+          </td>
+        </tr>
+      `;
+    });
+
+    // Forex & Option Trading Accounts Row in Quarterly view
+    const { balances: tradingBalances } = this.getTradingLatestBalances();
+    if (Object.keys(this.tradingData || {}).length > 0) {
+      Object.keys(this.tradingData).forEach(accKey => {
+        const acc = this.tradingData[accKey];
+        const latestVal = tradingBalances[accKey] || 0;
+        const q1Val = q1Map[accKey] || 0;
+        const q2Val = q2Map[accKey] || 0;
+        const q3Val = q3Map[accKey] || 0;
+        const q4Val = q4Map[accKey] || 0;
+
+        totalQ1 += q1Val;
+        totalQ2 += q2Val;
+        totalQ3 += q3Val;
+        totalQ4 += q4Val;
+        totalCurrent += latestVal;
+
+        const baseVal = q1Val || q2Val || q3Val || q4Val || latestVal;
+        const diff = latestVal - baseVal;
+        const pct = baseVal > 0 ? (diff / baseVal) * 100 : 0;
+
+        html += `
+          <tr style="background: rgba(245, 158, 11, 0.02);">
+            <td style="font-family: var(--font-ui); font-weight: 700; color: var(--color-amber);">📈 ${acc.name}</td>
+            <td>${q1Val > 0 ? this.formatUSD(q1Val) : `<span style="color:var(--text-muted);">-</span>`}</td>
+            <td>${q2Val > 0 ? this.formatUSD(q2Val) : `<span style="color:var(--text-muted);">-</span>`}</td>
+            <td>${q3Val > 0 ? this.formatUSD(q3Val) : `<span style="color:var(--text-muted);">-</span>`}</td>
+            <td>${q4Val > 0 ? this.formatUSD(q4Val) : `<span style="color:var(--text-muted);">-</span>`}</td>
+            <td class="font-bold text-white">${this.formatUSD(latestVal)}</td>
+            <td class="${pct >= 0 ? 'text-emerald' : 'text-rose'} font-bold">
+              ${pct >= 0 ? '+' : ''}${this.formatUSD(diff)} (${this.formatPercent(pct)})
+            </td>
+          </tr>
+        `;
+      });
+    }
+
+    // Total Net Worth Summary Row
+    const grandBaseVal = totalQ1 || totalQ2 || totalQ3 || totalQ4 || totalCurrent;
+    const grandDiff = totalCurrent - grandBaseVal;
+    const grandPct = grandBaseVal > 0 ? (grandDiff / grandBaseVal) * 100 : 0;
+
+    html += `
+          </tbody>
+          <tfoot>
+            <tr style="background: rgba(255,255,255,0.06); font-weight: 800; border-top: 2px solid var(--border-active);">
+              <td style="font-family: var(--font-ui); color: #fff;">📊 รวมพอร์ตทั้งหมด (Grand Total)</td>
+              <td>${totalQ1 > 0 ? this.formatUSD(totalQ1) : `<span style="color:var(--text-muted);">-</span>`}</td>
+              <td>${totalQ2 > 0 ? this.formatUSD(totalQ2) : `<span style="color:var(--text-muted);">-</span>`}</td>
+              <td>${totalQ3 > 0 ? this.formatUSD(totalQ3) : `<span style="color:var(--text-muted);">-</span>`}</td>
+              <td>${totalQ4 > 0 ? this.formatUSD(totalQ4) : `<span style="color:var(--text-muted);">-</span>`}</td>
+              <td class="text-emerald" style="font-size: 15px;">${this.formatUSD(totalCurrent)}</td>
+              <td class="${grandPct >= 0 ? 'text-emerald' : 'text-rose'}" style="font-size: 15px;">
+                ${grandPct >= 0 ? '+' : ''}${this.formatUSD(grandDiff)} (${this.formatPercent(grandPct)})
+              </td>
+            </tr>
+          </tfoot>
+        </table>
+      </div>
+    `;
+
+    container.innerHTML = html;
+  }
+
+  takeQuarterlySnapshot() {
+    const currentYear = new Date().getFullYear();
+    const currentQuarter = 'Q' + Math.ceil((new Date().getMonth() + 1) / 3);
+    const dateStr = new Date().toISOString().split('T')[0];
+
+    const snapshot = this.createCurrentPortfolioSnapshot(currentYear, currentQuarter, dateStr, `Snapshot ${currentQuarter}/${currentYear}`);
+
+    const idx = this.quarterlySnapshots.findIndex(q => q.year === currentYear && q.quarter === currentQuarter);
     if (idx >= 0) {
-      this.quarterlySnapshots[idx] = newSnapshot;
+      this.quarterlySnapshots[idx] = snapshot;
     } else {
-      this.quarterlySnapshots.push(newSnapshot);
+      this.quarterlySnapshots.push(snapshot);
     }
 
     this.saveData();
+    this.renderActiveTab();
     alert(`📸 บันทึก Snapshot ไตรมาส ${currentQuarter}/${currentYear} เรียบร้อยแล้ว!`);
+  }
+
+  resetCurrentYearQuarterlySnapshots() {
+    const year = this.selectedQuarterYear || new Date().getFullYear();
+    if (confirm(`คุณต้องการล้างข้อมูล Snapshot ของปี ${year} แล้วเริ่มบันทึกใหม่ใช่หรือไม่?`)) {
+      this.quarterlySnapshots = this.quarterlySnapshots.filter(q => q.year !== year);
+      this.checkAndAutoRecordQuarterlySnapshots();
+      this.saveData();
+      this.renderActiveTab();
+      alert(`🔄 เริ่มต้นบันทึกข้อมูลไตรมาสปี ${year} ใหม่เรียบร้อยแล้ว!`);
+    }
   }
 
   // 5. FUTURE NET WORTH & COMPOUND INTEREST SIMULATOR VIEW
@@ -2964,6 +3075,12 @@ tags:
         return;
       }
 
+      // Reset Quarterly Snapshots for selected year
+      if (target.id === 'btn-reset-quarter-data') {
+        this.resetCurrentYearQuarterlySnapshots();
+        return;
+      }
+
       // Copy Obsidian Markdown
       if (target.id === 'btn-copy-obsidian-md') {
         const md = this.generateObsidianMarkdown();
@@ -3020,8 +3137,16 @@ tags:
       }
     });
 
-    // JSON Backup Import
+    // Change events inside view container
     container?.addEventListener('change', (e) => {
+      // Quarter Year Change
+      if (e.target.id === 'select-quarter-year') {
+        this.selectedQuarterYear = parseInt(e.target.value);
+        this.renderActiveTab();
+        return;
+      }
+
+      // JSON Backup Import
       if (e.target.id === 'input-import-json') {
         const file = e.target.files[0];
         if (file) {
