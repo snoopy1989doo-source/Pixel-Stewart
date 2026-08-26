@@ -269,6 +269,7 @@ class PixelStewardApp {
     this.selectedPortfolioId = 'zero1';
     this.selectedQuarterYear = new Date().getFullYear();
     this.isPrivacyMode = false;
+    this.isSidebarCollapsed = false;
     
     // Firebase & Sync State
     this.dbRef = null;
@@ -283,11 +284,38 @@ class PixelStewardApp {
     this.loadLocalData();
     this.checkAndAutoRecordQuarterlySnapshots();
     this.loadPrivacyPreference();
+    this.loadSidebarPreference();
     this.setupEventListeners();
     this.setupModals();
     this.renderActiveTab();
     this.fetchLiveExchangeRate();
     this.registerPWA();
+  }
+
+  // --- COLLAPSIBLE & SLIDE-OUT SIDEBAR ---
+  loadSidebarPreference() {
+    this.isSidebarCollapsed = localStorage.getItem('pixel_sidebar_collapsed') === '1';
+    this.applySidebarState();
+  }
+
+  toggleSidebar() {
+    this.isSidebarCollapsed = !this.isSidebarCollapsed;
+    localStorage.setItem('pixel_sidebar_collapsed', this.isSidebarCollapsed ? '1' : '0');
+    this.applySidebarState();
+  }
+
+  applySidebarState() {
+    const icon1 = document.getElementById('sidebar-toggle-icon');
+    const icon2 = document.getElementById('pin-sidebar-icon');
+    if (this.isSidebarCollapsed) {
+      document.body.classList.add('sidebar-collapsed');
+      if (icon1) icon1.textContent = '▶';
+      if (icon2) icon2.textContent = '▶';
+    } else {
+      document.body.classList.remove('sidebar-collapsed');
+      if (icon1) icon1.textContent = '◀';
+      if (icon2) icon2.textContent = '◀';
+    }
   }
 
   // --- PRIVACY MODE ---
@@ -2897,6 +2925,10 @@ tags:
       document.getElementById('cur-mode-usd').classList.remove('active');
       this.renderActiveTab();
     });
+
+    // Sidebar Toggle & Pin Buttons
+    document.getElementById('btn-toggle-sidebar')?.addEventListener('click', () => this.toggleSidebar());
+    document.getElementById('btn-pin-sidebar')?.addEventListener('click', () => this.toggleSidebar());
 
     // Privacy Mode Toggle Button
     document.getElementById('btn-toggle-privacy')?.addEventListener('click', () => this.togglePrivacyMode());

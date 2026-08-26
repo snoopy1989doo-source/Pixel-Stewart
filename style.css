@@ -104,14 +104,59 @@ body {
   height: 100vh;
   z-index: 40;
   flex-shrink: 0;
+  transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1), padding 0.3s ease, box-shadow 0.3s ease, background 0.3s ease;
 }
 
 .brand-container {
   display: flex;
   align-items: center;
+  justify-content: space-between;
   gap: 12px;
   padding: 4px 8px 20px 8px;
   border-bottom: 1px solid var(--border-subtle);
+}
+
+.btn-sidebar-pin {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--border-subtle);
+  color: var(--text-muted);
+  border-radius: var(--radius-sm);
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  flex-shrink: 0;
+}
+
+.btn-sidebar-pin:hover {
+  background: var(--bg-card-hover);
+  color: var(--text-primary);
+  border-color: var(--color-purple);
+}
+
+.btn-header-sidebar-toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  margin-right: 8px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.btn-header-sidebar-toggle:hover {
+  background: var(--bg-card-hover);
+  color: var(--text-primary);
+  border-color: var(--color-purple);
 }
 
 .brand-icon {
@@ -1776,4 +1821,143 @@ body.privacy-mode #privacy-icon {
 .reorder-item-actions {
   display: flex;
   gap: 6px;
+}
+
+/* ==========================================================================
+   7. COLLAPSIBLE & HOVER SLIDE-OUT SIDEBAR (SPACE SAVING)
+   ========================================================================== */
+
+@media (min-width: 1025px) {
+  /* Collapsed Slim Sidebar State */
+  body.sidebar-collapsed .sidebar {
+    width: 74px;
+    padding: 20px 8px;
+    overflow: hidden;
+  }
+
+  body.sidebar-collapsed .sidebar .brand-text,
+  body.sidebar-collapsed .sidebar .brand-subtitle,
+  body.sidebar-collapsed .sidebar .btn-sidebar-pin,
+  body.sidebar-collapsed .sidebar .fx-rate-pill .fx-header,
+  body.sidebar-collapsed .sidebar .fx-rate-pill .fx-body .fx-label,
+  body.sidebar-collapsed .sidebar .fx-rate-pill .fx-body .fx-unit,
+  body.sidebar-collapsed .sidebar .nav-label,
+  body.sidebar-collapsed .sidebar .cloud-status-text,
+  body.sidebar-collapsed .sidebar .btn-sync-market {
+    display: none !important;
+  }
+
+  body.sidebar-collapsed .sidebar .brand-container {
+    justify-content: center;
+    padding: 4px 0 16px 0;
+  }
+
+  body.sidebar-collapsed .sidebar .brand-left {
+    justify-content: center;
+    gap: 0;
+  }
+
+  body.sidebar-collapsed .sidebar .fx-rate-pill {
+    padding: 6px 2px;
+    margin: 10px 0;
+    text-align: center;
+    display: flex;
+    justify-content: center;
+  }
+
+  body.sidebar-collapsed .sidebar .fx-val {
+    font-size: 11px;
+  }
+
+  body.sidebar-collapsed .sidebar .nav-link {
+    justify-content: center;
+    padding: 12px 0;
+    border-left: none;
+    border-radius: var(--radius-md);
+  }
+
+  body.sidebar-collapsed .sidebar .nav-icon {
+    font-size: 20px;
+    margin: 0 auto;
+  }
+
+  body.sidebar-collapsed .sidebar .nav-link.active {
+    background: rgba(16, 185, 129, 0.2);
+    box-shadow: inset 0 0 10px rgba(16, 185, 129, 0.3);
+    border-left: none;
+  }
+
+  body.sidebar-collapsed .sidebar .cloud-status-card {
+    align-items: center;
+  }
+
+  /* HOVER SLIDE-OUT EXPANSION */
+  body.sidebar-collapsed .sidebar:hover {
+    width: 280px !important;
+    padding: 24px 16px !important;
+    position: fixed !important;
+    left: 0;
+    top: 0;
+    height: 100vh;
+    z-index: 9999;
+    background: rgba(15, 19, 26, 0.98) !important;
+    backdrop-filter: blur(24px) !important;
+    border-right: 1px solid rgba(168, 85, 247, 0.3) !important;
+    box-shadow: 16px 0 48px rgba(0, 0, 0, 0.85) !important;
+    overflow-y: auto;
+  }
+
+  body.sidebar-collapsed .sidebar:hover .brand-text,
+  body.sidebar-collapsed .sidebar:hover .brand-subtitle,
+  body.sidebar-collapsed .sidebar:hover .btn-sidebar-pin,
+  body.sidebar-collapsed .sidebar:hover .fx-rate-pill .fx-header,
+  body.sidebar-collapsed .sidebar:hover .fx-rate-pill .fx-body .fx-label,
+  body.sidebar-collapsed .sidebar:hover .fx-rate-pill .fx-body .fx-unit,
+  body.sidebar-collapsed .sidebar:hover .nav-label,
+  body.sidebar-collapsed .sidebar:hover .cloud-status-text,
+  body.sidebar-collapsed .sidebar:hover .btn-sync-market {
+    display: inline-block !important;
+    animation: fadeInSidebar 0.2s ease forwards;
+  }
+
+  body.sidebar-collapsed .sidebar:hover .brand-container {
+    justify-content: space-between !important;
+    padding: 4px 8px 20px 8px !important;
+  }
+
+  body.sidebar-collapsed .sidebar:hover .brand-left {
+    justify-content: flex-start !important;
+    gap: 12px !important;
+  }
+
+  body.sidebar-collapsed .sidebar:hover .fx-rate-pill {
+    padding: 12px 14px !important;
+    margin: 16px 0 !important;
+    text-align: left !important;
+    display: block !important;
+  }
+
+  body.sidebar-collapsed .sidebar:hover .fx-val {
+    font-size: 18px !important;
+  }
+
+  body.sidebar-collapsed .sidebar:hover .nav-link {
+    justify-content: flex-start !important;
+    padding: 12px 16px !important;
+    border-left: 3px solid transparent !important;
+  }
+
+  body.sidebar-collapsed .sidebar:hover .nav-icon {
+    margin: 0 !important;
+  }
+
+  body.sidebar-collapsed .sidebar:hover .nav-link.active {
+    border-left: 3px solid var(--color-emerald) !important;
+    background: linear-gradient(90deg, rgba(16, 185, 129, 0.15), rgba(16, 185, 129, 0.03)) !important;
+  }
+}
+
+@keyframes fadeInSidebar {
+  from { opacity: 0; transform: translateX(-6px); }
+  to { opacity: 1; transform: translateX(0); }
 }

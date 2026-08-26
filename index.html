@@ -30,18 +30,23 @@
   <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.2/dist/confetti.browser.min.js"></script>
   
   <!-- Main Stylesheet -->
-  <link rel="stylesheet" href="style.css?v=2.5.1">
+  <link rel="stylesheet" href="style.css?v=2.6.0">
 </head>
 <body>
   <div class="app-layout">
     <!-- DESKTOP SIDEBAR -->
     <aside class="sidebar" id="desktop-sidebar">
       <div class="brand-container">
-        <div class="brand-icon">💎</div>
-        <div class="brand-text">
-          <h1 class="brand-title">PIXEL STEWARD</h1>
-          <span class="brand-subtitle">PORTFOLIO & ASSET AI</span>
+        <div class="brand-left" style="display: flex; align-items: center; gap: 12px; overflow: hidden; flex: 1;">
+          <div class="brand-icon">💎</div>
+          <div class="brand-text">
+            <h1 class="brand-title">PIXEL STEWARD</h1>
+            <span class="brand-subtitle">PORTFOLIO & ASSET AI</span>
+          </div>
         </div>
+        <button type="button" id="btn-pin-sidebar" class="btn-sidebar-pin" title="ย่อ / ขยายแถบเมนูเพื่อประหยัดพื้นที่">
+          <span id="pin-sidebar-icon">◀</span>
+        </button>
       </div>
 
       <div class="fx-rate-pill" id="fx-rate-container" title="คลิกเพื่อแก้ไขค่าเงิน">
@@ -109,6 +114,11 @@
       <!-- TOP HEADER BAR -->
       <header class="app-header">
         <div class="header-left">
+          <!-- Sidebar Toggle Button (Desktop & Tablet) -->
+          <button type="button" id="btn-toggle-sidebar" class="btn-icon-action btn-header-sidebar-toggle" title="ย่อ / ขยายแถบเมนู (ประหยัดพื้นที่หน้าจอ)">
+            <span id="sidebar-toggle-icon">◀</span>
+          </button>
+
           <div class="mobile-brand">
             <span class="mobile-logo">💎</span>
             <span class="mobile-title">PIXEL STEWARD</span>
@@ -712,6 +722,6 @@
   </div>
 
   <!-- Core JavaScript Application -->
-  <script src="app.js?v=2.5.1"></script>
+  <script src="app.js?v=2.6.0"></script>
 </body>
 </html>
