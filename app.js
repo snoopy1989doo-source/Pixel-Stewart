@@ -1582,6 +1582,7 @@ class PixelStewardApp {
     const dualTotal = this.formatDual(stats.totalValueUSD);
     const dualGoal = this.formatDual(stats.goalUSD);
     const dualCash = this.formatDual(stats.cashBufferUSD);
+    const holdings = port.holdings || [];
 
     let html = `
       <!-- SUBPORTFOLIO HERO HEADER (DIME APP ACCURATE) -->
