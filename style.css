@@ -1723,3 +1723,57 @@ body.privacy-mode #privacy-icon {
   font-family: var(--font-mono);
   font-weight: 700;
 }
+
+/* 6. Reorder Portfolios List */
+.reorder-list-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 14px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  cursor: grab;
+  transition: all 0.2s ease;
+  user-select: none;
+}
+
+.reorder-list-item:hover {
+  background: var(--bg-card-hover);
+  border-color: var(--border-active);
+}
+
+.reorder-list-item.dragging {
+  opacity: 0.4;
+  border-color: var(--color-purple);
+}
+
+.reorder-item-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.reorder-drag-handle {
+  font-size: 18px;
+  color: var(--text-muted);
+  cursor: grab;
+  display: flex;
+  align-items: center;
+}
+
+.reorder-item-name {
+  font-weight: 700;
+  font-size: 14px;
+  color: #fff;
+}
+
+.reorder-item-sub {
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.reorder-item-actions {
+  display: flex;
+  gap: 6px;
+}

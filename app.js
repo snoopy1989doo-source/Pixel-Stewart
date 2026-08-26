@@ -1329,9 +1329,14 @@ class PixelStewardApp {
           <span>พอร์ตการลงทุนตามเป้าหมาย (Goal-Based IPS)</span>
           <span class="section-count-badge font-mono">${this.portfolios.length} พอร์ต</span>
         </div>
-        <button class="btn btn-sm btn-secondary" id="btn-add-portfolio-modal">
-          <span>➕ เพิ่มพอร์ตใหม่</span>
-        </button>
+        <div style="display: flex; gap: 8px;">
+          <button class="btn btn-sm btn-secondary" id="btn-open-reorder-modal">
+            <span>↕️ จัดเรียงลำดับ</span>
+          </button>
+          <button class="btn btn-sm btn-secondary" id="btn-add-portfolio-modal">
+            <span>➕ เพิ่มพอร์ตใหม่</span>
+          </button>
+        </div>
       </div>
 
       <div class="portfolios-grid">
@@ -2408,6 +2413,110 @@ class PixelStewardApp {
     });
   }
 
+  // --- SUB-PORTFOLIO REORDERING SYSTEM ---
+  openReorderPortfoliosModal() {
+    this.renderReorderPortfoliosList();
+    this.openModal('modal-reorder-portfolios');
+  }
+
+  renderReorderPortfoliosList() {
+    const listEl = document.getElementById('reorder-portfolios-list');
+    if (!listEl) return;
+
+    listEl.innerHTML = this.portfolios.map((p, idx) => `
+      <div class="reorder-list-item" draggable="true" data-index="${idx}" style="border-left: 4px solid ${p.color || '#10b981'};">
+        <div class="reorder-item-left">
+          <span class="reorder-drag-handle" title="ลากเพื่อสลับตำแหน่ง">⠿</span>
+          <div>
+            <div class="reorder-item-name">${p.emoji || '📁'} ${p.name}</div>
+            <div class="reorder-item-sub">${p.tier} • ${p.category} (${(p.holdings || []).length} สินทรัพย์)</div>
+          </div>
+        </div>
+        <div class="reorder-item-actions">
+          <button type="button" class="btn btn-icon-xs btn-secondary" data-move-up="${idx}" ${idx === 0 ? 'disabled style="opacity:0.3;cursor:not-allowed;"' : ''} title="เลื่อนขึ้น">⬆️</button>
+          <button type="button" class="btn btn-icon-xs btn-secondary" data-move-down="${idx}" ${idx === this.portfolios.length - 1 ? 'disabled style="opacity:0.3;cursor:not-allowed;"' : ''} title="เลื่อนลง">⬇️</button>
+        </div>
+      </div>
+    `).join('');
+
+    this.setupReorderDragAndDropEvents();
+  }
+
+  movePortfolioUp(index) {
+    if (index <= 0 || index >= this.portfolios.length) return;
+    const temp = this.portfolios[index];
+    this.portfolios[index] = this.portfolios[index - 1];
+    this.portfolios[index - 1] = temp;
+    this.renderReorderPortfoliosList();
+  }
+
+  movePortfolioDown(index) {
+    if (index < 0 || index >= this.portfolios.length - 1) return;
+    const temp = this.portfolios[index];
+    this.portfolios[index] = this.portfolios[index + 1];
+    this.portfolios[index + 1] = temp;
+    this.renderReorderPortfoliosList();
+  }
+
+  setupReorderDragAndDropEvents() {
+    const listEl = document.getElementById('reorder-portfolios-list');
+    if (!listEl) return;
+
+    listEl.onclick = (e) => {
+      const btnUp = e.target.closest('[data-move-up]');
+      if (btnUp && !btnUp.disabled) {
+        const idx = parseInt(btnUp.getAttribute('data-move-up'));
+        this.movePortfolioUp(idx);
+        return;
+      }
+
+      const btnDown = e.target.closest('[data-move-down]');
+      if (btnDown && !btnDown.disabled) {
+        const idx = parseInt(btnDown.getAttribute('data-move-down'));
+        this.movePortfolioDown(idx);
+        return;
+      }
+    };
+
+    let dragSrcIndex = null;
+    const items = listEl.querySelectorAll('.reorder-list-item');
+
+    items.forEach(item => {
+      item.addEventListener('dragstart', (e) => {
+        dragSrcIndex = parseInt(item.getAttribute('data-index'));
+        item.classList.add('dragging');
+        e.dataTransfer.effectAllowed = 'move';
+        e.dataTransfer.setData('text/plain', dragSrcIndex);
+      });
+
+      item.addEventListener('dragend', () => {
+        item.classList.remove('dragging');
+      });
+
+      item.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        e.dataTransfer.dropEffect = 'move';
+      });
+
+      item.addEventListener('drop', (e) => {
+        e.preventDefault();
+        const dropTargetIndex = parseInt(item.getAttribute('data-index'));
+        if (dragSrcIndex !== null && dragSrcIndex !== dropTargetIndex) {
+          const movedItem = this.portfolios.splice(dragSrcIndex, 1)[0];
+          this.portfolios.splice(dropTargetIndex, 0, movedItem);
+          this.renderReorderPortfoliosList();
+        }
+      });
+    });
+  }
+
+  saveReorderedPortfolios() {
+    this.saveData();
+    this.closeModal('modal-reorder-portfolios');
+    this.renderActiveTab();
+    alert('💾 บันทึกลำดับพอร์ตใหม่เรียบร้อยแล้ว!');
+  }
+
   // --- SMART REBALANCE & DCA CALCULATOR MODAL ---
   openRebalanceModal() {
     const select = document.getElementById('rebalance-port-select');
@@ -2681,6 +2790,10 @@ tags:
     // Privacy Mode Toggle Button
     document.getElementById('btn-toggle-privacy')?.addEventListener('click', () => this.togglePrivacyMode());
 
+    // Reorder Portfolios Modal & Save Button
+    document.getElementById('btn-open-reorder-modal')?.addEventListener('click', () => this.openReorderPortfoliosModal());
+    document.getElementById('btn-save-reorder-portfolios')?.addEventListener('click', () => this.saveReorderedPortfolios());
+
     // Smart Rebalance Modal & Calculator
     document.getElementById('btn-open-rebalance-modal')?.addEventListener('click', () => this.openRebalanceModal());
     document.getElementById('btn-calc-smart-dca')?.addEventListener('click', () => this.calculateAndRenderSmartDCA());
@@ -2708,6 +2821,12 @@ tags:
     container?.addEventListener('click', (e) => {
       const target = e.target.closest('button, [data-open-port]');
       if (!target) return;
+
+      // Open Reorder Modal
+      if (target.id === 'btn-open-reorder-modal') {
+        this.openReorderPortfoliosModal();
+        return;
+      }
 
       // Open Subportfolio from card
       if (target.hasAttribute('data-open-port')) {

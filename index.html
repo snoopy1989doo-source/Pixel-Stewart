@@ -30,7 +30,7 @@
   <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.2/dist/confetti.browser.min.js"></script>
   
   <!-- Main Stylesheet -->
-  <link rel="stylesheet" href="style.css?v=2.3.1">
+  <link rel="stylesheet" href="style.css?v=2.4.0">
 </head>
 <body>
   <div class="app-layout">
@@ -189,6 +189,29 @@
   <!-- ========================================== -->
   <!-- MODALS SECTION -->
   <!-- ========================================== -->
+
+  <!-- MODAL: REORDER SUB-PORTFOLIOS (จัดเรียงลำดับพอร์ตการลงทุน) -->
+  <div class="modal-backdrop" id="modal-reorder-portfolios">
+    <div class="modal-card" style="max-width: 520px;">
+      <div class="modal-header">
+        <h3>↕️ จัดเรียงลำดับพอร์ตการลงทุน</h3>
+        <button class="btn-close-modal" data-close="modal-reorder-portfolios">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div style="font-size: 13px; color: var(--text-secondary); margin-bottom: 16px;">
+          กดปุ่ม ⬆️ / ⬇️ หรือลากสลับตำแหน่งเพื่อปรับลำดับการแสดงผลของพอร์ตตามต้องการ
+        </div>
+
+        <div id="reorder-portfolios-list" style="display: flex; flex-direction: column; gap: 8px; max-height: 380px; overflow-y: auto; padding-right: 4px;">
+          <!-- Dynamically populated portfolio list items -->
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-close="modal-reorder-portfolios">ยกเลิก</button>
+        <button type="button" class="btn btn-primary" id="btn-save-reorder-portfolios">💾 บันทึกลำดับพอร์ต</button>
+      </div>
+    </div>
+  </div>
 
   <!-- MODAL: SMART REBALANCE & DCA CALCULATOR (คำนวณเติมเงินซื้อหุ้นตามเป้าหมาย IPS) -->
   <div class="modal-backdrop" id="modal-rebalance-calculator">
@@ -689,6 +712,6 @@
   </div>
 
   <!-- Core JavaScript Application -->
-  <script src="app.js?v=2.3.1"></script>
+  <script src="app.js?v=2.4.0"></script>
 </body>
 </html>
