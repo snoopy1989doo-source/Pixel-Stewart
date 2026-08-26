@@ -30,7 +30,7 @@
   <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.2/dist/confetti.browser.min.js"></script>
   
   <!-- Main Stylesheet -->
-  <link rel="stylesheet" href="style.css?v=2.5.0">
+  <link rel="stylesheet" href="style.css?v=2.5.1">
 </head>
 <body>
   <div class="app-layout">
@@ -439,12 +439,12 @@
 
         <div class="form-row">
           <div class="form-group flex-1">
-            <label>จำนวนเงิน ($ USD) <span class="req">*</span></label>
-            <input type="number" step="any" id="cash-amount-usd" class="form-input font-mono" placeholder="100.00" required>
+            <label>จำนวนเงิน ($ USD)</label>
+            <input type="number" step="any" id="cash-amount-usd" class="form-input font-mono" placeholder="100.00">
           </div>
           <div class="form-group flex-1">
-            <label>คำนวณเป็นบาท (THB)</label>
-            <input type="text" id="cash-amount-thb" class="form-input font-mono" readonly placeholder="฿3,259.00">
+            <label>จำนวนเงินบาท (฿ THB)</label>
+            <input type="number" step="any" id="cash-amount-thb" class="form-input font-mono" placeholder="3259.00">
           </div>
         </div>
 
@@ -712,6 +712,6 @@
   </div>
 
   <!-- Core JavaScript Application -->
-  <script src="app.js?v=2.5.0"></script>
+  <script src="app.js?v=2.5.1"></script>
 </body>
 </html>

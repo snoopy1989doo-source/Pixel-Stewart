@@ -3260,11 +3260,29 @@ tags:
       this.saveCashBufferForm();
     });
 
-    // Cash Buffer Live THB Calculator
+    // Cash Buffer Live Two-Way USD <-> THB Converter
     document.getElementById('cash-amount-usd')?.addEventListener('input', (e) => {
-      const val = parseFloat(e.target.value) || 0;
+      const usdVal = parseFloat(e.target.value);
       const thbEl = document.getElementById('cash-amount-thb');
-      if (thbEl) thbEl.value = this.formatTHB(this.usdToThb(val));
+      if (thbEl) {
+        if (!isNaN(usdVal) && usdVal > 0) {
+          thbEl.value = (usdVal * this.exchangeRate).toFixed(2);
+        } else if (e.target.value === '') {
+          thbEl.value = '';
+        }
+      }
+    });
+
+    document.getElementById('cash-amount-thb')?.addEventListener('input', (e) => {
+      const thbVal = parseFloat(e.target.value);
+      const usdEl = document.getElementById('cash-amount-usd');
+      if (usdEl) {
+        if (!isNaN(thbVal) && thbVal > 0) {
+          usdEl.value = (thbVal / this.exchangeRate).toFixed(2);
+        } else if (e.target.value === '') {
+          usdEl.value = '';
+        }
+      }
     });
 
     // Dividend Form Calculations & Submit
@@ -3662,7 +3680,17 @@ tags:
     if (!port) return;
 
     const action = document.querySelector('input[name="cash-action"]:checked').value;
-    const amount = parseFloat(document.getElementById('cash-amount-usd').value) || 0;
+    let amount = parseFloat(document.getElementById('cash-amount-usd').value);
+
+    // Fallback to calculate from THB if USD was blank
+    if (isNaN(amount) || amount <= 0) {
+      const thbVal = parseFloat(document.getElementById('cash-amount-thb').value);
+      if (!isNaN(thbVal) && thbVal > 0) {
+        amount = thbVal / this.exchangeRate;
+      } else {
+        amount = 0;
+      }
+    }
 
     if (amount <= 0 && action !== 'SET') {
       alert('กรุณาระบุจำนวนเงิน');
@@ -3679,7 +3707,8 @@ tags:
 
     this.saveData();
     this.closeModal('modal-cash-buffer');
-    alert(`💾 อัปเดตเงินไว้ช้อนของ ${port.name}: $${(port.cashBufferUSD || 0).toFixed(2)} สำเร็จ!`);
+    this.renderActiveTab();
+    alert(`💾 อัปเดตเงินไว้ช้อนของ ${port.name}: $${(port.cashBufferUSD || 0).toFixed(2)} (${this.formatTHB(this.usdToThb(port.cashBufferUSD || 0))}) สำเร็จ!`);
   }
 
   // --- DIVIDEND MODAL & LOGIC ---
