@@ -1311,6 +1311,16 @@ class PixelStewardApp {
           </div>
           <div class="chart-legend-list" id="legend-portfolio-weights"></div>
         </div>
+
+        <div class="chart-card">
+          <div class="chart-title">
+            <span>🍩 สัดส่วนสินทรัพย์ย่อยทั้งหมด (Holdings Allocation)</span>
+          </div>
+          <div class="chart-canvas-container">
+            <canvas id="chart-all-holdings"></canvas>
+          </div>
+          <div class="chart-legend-list" id="legend-all-holdings"></div>
+        </div>
       </div>
 
       <!-- SUB-PORTFOLIOS CARDS (DIME CARDS) -->
@@ -1490,6 +1500,77 @@ class PixelStewardApp {
         }).join('');
       }
     }
+
+    // 3. All Holdings Allocation Donut Chart (Dynamic Ticker Breakdown with Logos & %)
+    const ctxHoldings = document.getElementById('chart-all-holdings')?.getContext('2d');
+    if (ctxHoldings) {
+      const tickerMap = {};
+      let totalStockValue = 0;
+
+      this.portfolios.forEach(p => {
+        (p.holdings || []).forEach(h => {
+          const stats = this.calculateHoldingStats(h);
+          if (stats.marketValueUSD > 0) {
+            const sym = h.ticker.toUpperCase().trim();
+            if (!tickerMap[sym]) {
+              tickerMap[sym] = { ticker: sym, marketValueUSD: 0 };
+            }
+            tickerMap[sym].marketValueUSD += stats.marketValueUSD;
+            totalStockValue += stats.marketValueUSD;
+          }
+        });
+      });
+
+      const sortedHoldings = Object.values(tickerMap).sort((a, b) => b.marketValueUSD - a.marketValueUSD);
+
+      const holdingsLabels = sortedHoldings.map(item => item.ticker);
+      const holdingsValues = sortedHoldings.map(item => item.marketValueUSD);
+      const palette = ['#3b82f6', '#f97316', '#a855f7', '#10b981', '#ec4899', '#eab308', '#06b6d4', '#8b5cf6', '#f43f5e', '#6366f1', '#14b8a6', '#f59e0b'];
+      const holdingsColors = sortedHoldings.map((_, idx) => palette[idx % palette.length]);
+
+      this.charts.allHoldings = new Chart(ctxHoldings, {
+        type: 'doughnut',
+        data: {
+          labels: holdingsLabels,
+          datasets: [{
+            data: holdingsValues,
+            backgroundColor: holdingsColors,
+            borderWidth: 0,
+            hoverOffset: 6
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          cutout: '72%',
+          plugins: { legend: { display: false } }
+        }
+      });
+
+      const legendEl = document.getElementById('legend-all-holdings');
+      if (legendEl) {
+        if (sortedHoldings.length === 0) {
+          legendEl.innerHTML = `<div style="text-align: center; color: var(--text-muted); padding: 12px;">ไม่มีรายการหุ้นในขณะนี้</div>`;
+        } else {
+          legendEl.innerHTML = sortedHoldings.map((item, idx) => {
+            const pct = totalStockValue > 0 ? ((item.marketValueUSD / totalStockValue) * 100).toFixed(1) : '0.0';
+            return `
+              <div class="chart-legend-item" style="display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 6px 8px;">
+                <div style="display: flex; align-items: center; gap: 8px;">
+                  <span class="legend-color-dot" style="background: ${holdingsColors[idx]}; width: 10px; height: 10px; border-radius: 50%; display: inline-block;"></span>
+                  ${this.renderStockLogoHTML(item.ticker, holdingsColors[idx], 24)}
+                  <strong style="font-size: 13px; color: #fff;">${item.ticker}</strong>
+                </div>
+                <div style="text-align: right;" class="font-mono">
+                  <span style="color: var(--color-emerald); font-weight: 700; font-size: 13px;">${pct}%</span>
+                  <span style="font-size: 11px; color: var(--text-muted); margin-left: 4px;">(${this.formatUSD(item.marketValueUSD)})</span>
+                </div>
+              </div>
+            `;
+          }).join('');
+        }
+      }
+    }
   }
 
   // 2. SUB-PORTFOLIO & DIME HOLDINGS VIEW
@@ -1565,6 +1646,21 @@ class PixelStewardApp {
         </div>
       </div>
 
+      <!-- SUBPORTFOLIO HOLDINGS DONUT CHART -->
+      ${holdings.length > 0 ? `
+        <div class="chart-card" style="margin-bottom: 20px;">
+          <div class="chart-title">
+            <span>🍩 สัดส่วนสินทรัพย์ย่อยในพอร์ต ${port.name}</span>
+          </div>
+          <div style="display: grid; grid-template-columns: 220px 1fr; gap: 16px; align-items: center;">
+            <div class="chart-canvas-container" style="height: 180px; margin-bottom: 0;">
+              <canvas id="chart-subport-holdings"></canvas>
+            </div>
+            <div class="chart-legend-list" id="legend-subport-holdings" style="max-height: 180px; overflow-y: auto;"></div>
+          </div>
+        </div>
+      ` : ''}
+
       <!-- HOLDINGS LIST HEADER -->
       <div class="section-header">
         <div class="section-title">
@@ -1582,7 +1678,6 @@ class PixelStewardApp {
       <div class="holdings-container">
     `;
 
-    const holdings = port.holdings || [];
     if (holdings.length === 0) {
       html += `
         <div style="text-align: center; padding: 48px 20px; background: var(--bg-card); border-radius: var(--radius-lg); color: var(--text-muted);">
@@ -1669,6 +1764,72 @@ class PixelStewardApp {
 
     html += `</div>`;
     container.innerHTML = html;
+
+    setTimeout(() => {
+      this.initSubportCharts(port);
+    }, 50);
+  }
+
+  initSubportCharts(port) {
+    const ctxSub = document.getElementById('chart-subport-holdings')?.getContext('2d');
+    if (!ctxSub || !port || !port.holdings || port.holdings.length === 0) return;
+
+    const holdingsStats = port.holdings.map(h => {
+      const stats = this.calculateHoldingStats(h);
+      return {
+        ticker: h.ticker,
+        marketValueUSD: stats.marketValueUSD
+      };
+    }).filter(h => h.marketValueUSD > 0).sort((a, b) => b.marketValueUSD - a.marketValueUSD);
+
+    const totalUSD = holdingsStats.reduce((sum, h) => sum + h.marketValueUSD, 0);
+    const labels = holdingsStats.map(h => h.ticker);
+    const dataValues = holdingsStats.map(h => h.marketValueUSD);
+    const palette = ['#10b981', '#38bdf8', '#a855f7', '#f59e0b', '#ec4899', '#3b82f6', '#f97316', '#06b6d4'];
+    const colors = holdingsStats.map((_, idx) => palette[idx % palette.length]);
+
+    if (this.charts.subport) {
+      this.charts.subport.destroy();
+    }
+
+    this.charts.subport = new Chart(ctxSub, {
+      type: 'doughnut',
+      data: {
+        labels,
+        datasets: [{
+          data: dataValues,
+          backgroundColor: colors,
+          borderWidth: 0,
+          hoverOffset: 6
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        cutout: '70%',
+        plugins: { legend: { display: false } }
+      }
+    });
+
+    const legendEl = document.getElementById('legend-subport-holdings');
+    if (legendEl) {
+      legendEl.innerHTML = holdingsStats.map((item, idx) => {
+        const pct = totalUSD > 0 ? ((item.marketValueUSD / totalUSD) * 100).toFixed(1) : '0.0';
+        return `
+          <div class="chart-legend-item" style="display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 4px 6px;">
+            <div style="display: flex; align-items: center; gap: 8px;">
+              <span class="legend-color-dot" style="background: ${colors[idx]}; width: 8px; height: 8px; border-radius: 50%;"></span>
+              ${this.renderStockLogoHTML(item.ticker, colors[idx], 22)}
+              <strong style="font-size: 12px; color: #fff;">${item.ticker}</strong>
+            </div>
+            <div style="text-align: right;" class="font-mono">
+              <span style="color: var(--color-emerald); font-weight: 700; font-size: 12px;">${pct}%</span>
+              <span style="font-size: 10px; color: var(--text-muted); margin-left: 4px;">(${this.formatUSD(item.marketValueUSD)})</span>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
   }
 
   // 3. FOREX & OPTION MONTHLY CAPITAL JOURNAL VIEW
