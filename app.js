@@ -1297,6 +1297,10 @@ class PixelStewardApp {
     const itemsHTML = stockList.map(buildItemHTML).join('');
     track.innerHTML = itemsHTML + itemsHTML + itemsHTML;
 
+    // Smooth elegant pacing for ticker marquee (approx 3.5-4s per item, min 65s)
+    const animDuration = Math.max(65, stockList.length * 4.5);
+    track.style.animationDuration = `${animDuration}s`;
+
     // Click to navigate to portfolio
     track.querySelectorAll('.ticker-tape-item').forEach(el => {
       el.addEventListener('click', () => {
@@ -1755,7 +1759,7 @@ class PixelStewardApp {
             <div style="font-size: 14px; color: var(--text-secondary);" class="font-mono">${dualTotal.sub}</div>
             <div class="font-mono" style="margin-top: 4px; font-size: 13px;">
               1D: <span class="${stats.avg1dChangePct >= 0 ? 'text-emerald' : 'text-rose'} font-bold">${this.formatPercent(stats.avg1dChangePct)}</span> | 
-              P/L: <span class="${stats.totalPLPct >= 0 ? 'text-emerald' : 'text-rose'} font-bold">${this.formatPercent(stats.totalPLPct)}</span>
+              P/L: <span class="${stats.totalPLPct >= 0 ? 'text-emerald' : 'text-rose'} font-bold">${stats.totalPLPct >= 0 ? '+' : ''}${this.formatPercent(stats.totalPLPct)} (${this.formatUSD(stats.totalPLUSD)} / ${this.formatTHB(this.usdToThb(stats.totalPLUSD))})</span>
             </div>
           </div>
         </div>
@@ -1851,7 +1855,7 @@ class PixelStewardApp {
                 <div class="holding-market-val-usd font-mono">${dualMarket.sub}</div>
                 <div class="holding-weight-tag font-mono">สัดส่วน: ${weightPct}%</div>
                 <div class="holding-pl-badge font-mono ${s.unrealizedPLUSD >= 0 ? 'text-emerald' : 'text-rose'}">
-                  ${s.unrealizedPLUSD >= 0 ? '↗' : '↘'} ${this.formatPercent(s.unrealizedPLPct)} (${this.formatUSD(s.unrealizedPLUSD)})
+                  ${s.unrealizedPLUSD >= 0 ? '↗ +' : '↘ '}${this.formatPercent(s.unrealizedPLPct)} (${this.formatUSD(s.unrealizedPLUSD)} / ${this.formatTHB(this.usdToThb(s.unrealizedPLUSD))})
                 </div>
               </div>
             </div>
