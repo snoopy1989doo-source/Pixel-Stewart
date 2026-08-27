@@ -30,7 +30,7 @@
   <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.2/dist/confetti.browser.min.js"></script>
   
   <!-- Main Stylesheet -->
-  <link rel="stylesheet" href="style.css?v=2.6.0">
+  <link rel="stylesheet" href="style.css?v=2.7.0">
 </head>
 <body>
   <div class="app-layout">
@@ -130,6 +130,13 @@
         </div>
 
         <div class="header-right">
+          <!-- Spotlight Search / Command Palette Button -->
+          <button type="button" id="btn-open-command-palette" class="btn-icon-action btn-header-search" title="ค้นหาด่วน (Ctrl + K)">
+            <span class="search-icon">🔍</span>
+            <span class="btn-text-desktop">ค้นหา...</span>
+            <kbd class="kbd-shortcut font-mono">Ctrl K</kbd>
+          </button>
+
           <!-- Privacy Mode Toggle Button (Eye Icon) -->
           <button id="btn-toggle-privacy" class="btn-icon-action" title="เปิด/ปิดซ่อนตัวเลขในที่สาธารณะ (Privacy Mode)">
             <span id="privacy-icon">👁️</span>
@@ -199,6 +206,28 @@
   <!-- ========================================== -->
   <!-- MODALS SECTION -->
   <!-- ========================================== -->
+
+  <!-- MODAL: COMMAND PALETTE & SPOTLIGHT QUICK SEARCH (Ctrl + K) -->
+  <div class="modal-backdrop command-palette-backdrop" id="modal-command-palette">
+    <div class="command-palette-card">
+      <div class="command-search-header">
+        <span class="command-search-icon">🔍</span>
+        <input type="text" id="command-search-input" class="command-search-input" placeholder="ค้นหาหุ้น, พอร์ต, หรือคำสั่ง (เช่น NVDA, Next Gen, DCA, Simulator)..." autocomplete="off">
+        <kbd class="command-esc-badge" data-close="modal-command-palette">ESC</kbd>
+      </div>
+      <div class="command-results-list" id="command-results-list">
+        <!-- Dynamically rendered search items -->
+      </div>
+      <div class="command-footer">
+        <div class="command-footer-hints">
+          <span><kbd class="font-mono">↑</kbd> <kbd class="font-mono">↓</kbd> นำทาง</span>
+          <span><kbd class="font-mono">↵</kbd> เลือก</span>
+          <span><kbd class="font-mono">ESC</kbd> ปิด</span>
+        </div>
+        <div class="command-footer-brand font-mono">Pixel Steward Spotlight</div>
+      </div>
+    </div>
+  </div>
 
   <!-- MODAL: REORDER SUB-PORTFOLIOS (จัดเรียงลำดับพอร์ตการลงทุน) -->
   <div class="modal-backdrop" id="modal-reorder-portfolios">
@@ -722,6 +751,6 @@
   </div>
 
   <!-- Core JavaScript Application -->
-  <script src="app.js?v=2.6.0"></script>
+  <script src="app.js?v=2.7.0"></script>
 </body>
 </html>

@@ -2552,6 +2552,288 @@ class PixelStewardApp {
     });
   }
 
+  // --- COMMAND PALETTE & SPOTLIGHT SEARCH (CTRL + K) ---
+  openCommandPalette() {
+    this.openModal('modal-command-palette');
+    const input = document.getElementById('command-search-input');
+    if (input) {
+      input.value = '';
+      setTimeout(() => input.focus(), 80);
+    }
+    this.renderCommandResults('');
+  }
+
+  renderCommandResults(query = '') {
+    const listEl = document.getElementById('command-results-list');
+    if (!listEl) return;
+
+    const q = query.trim().toLowerCase();
+    
+    // 1. Stocks & Crypto Holdings
+    const stockResults = [];
+    this.portfolios.forEach(p => {
+      (p.holdings || []).forEach(h => {
+        const sym = h.ticker.toUpperCase();
+        const name = (h.name || '').toLowerCase();
+        const portName = (p.name || '').toLowerCase();
+        if (!q || sym.toLowerCase().includes(q) || name.includes(q) || portName.includes(q)) {
+          const stats = this.calculateHoldingStats(h);
+          stockResults.push({
+            type: 'stock',
+            ticker: sym,
+            name: h.name || h.ticker,
+            portId: p.id,
+            portName: p.name,
+            portEmoji: p.emoji || '📁',
+            marketValueUSD: stats.marketValueUSD,
+            unrealizedPLPct: stats.unrealizedPLPct,
+            currentPrice: stats.currentPrice,
+            shares: stats.shares,
+            color: p.color || '#10b981'
+          });
+        }
+      });
+    });
+
+    // 2. Sub-Portfolios
+    const portResults = [];
+    this.portfolios.forEach(p => {
+      const name = (p.name || '').toLowerCase();
+      const cat = (p.category || '').toLowerCase();
+      const tier = (p.tier || '').toLowerCase();
+      if (!q || name.includes(q) || cat.includes(q) || tier.includes(q)) {
+        const stats = this.calculatePortfolioStats(p);
+        portResults.push({
+          type: 'portfolio',
+          id: p.id,
+          name: p.name,
+          emoji: p.emoji || '📁',
+          tier: p.tier,
+          category: p.category,
+          totalValueUSD: stats.totalValueUSD,
+          holdingsCount: (p.holdings || []).length,
+          color: p.color || '#10b981'
+        });
+      }
+    });
+
+    // 3. Navigation Views
+    const navItems = [
+      { id: 'dashboard', icon: '📊', title: 'แดชบอร์ดภาพรวม', sub: 'สรุปพอร์ตและเป้าหมายตาม IPS' },
+      { id: 'portfolios', icon: '📁', title: 'แยกพอร์ต (Dime Holdings)', sub: 'จัดการสินทรัพย์หุ้นและเงินไว้ช้อน' },
+      { id: 'trading', icon: '💱', title: 'Forex & Option Trading', sub: 'บันทึกยอดเงินพอร์ตเทรดกระแสเงินสด' },
+      { id: 'dividends', icon: '💰', title: 'บันทึกเงินปันผล', sub: 'ประวัติรับปันผลและ Passive Income' },
+      { id: 'simulator', icon: '🔮', title: 'จำลองเงินล้าน (Simulator)', sub: 'พลังดอกเบี้ยทบต้นและเป้าหมายสู่อิสรภาพ' },
+      { id: 'quarterly', icon: '📈', title: 'เปรียบเทียบผลงานรายไตรมาส', sub: 'Snapshot Q1/Q2/Q3/Q4 และการเติบโต' },
+      { id: 'obsidian', icon: '🤖', title: 'Obsidian & AI Second Brain', sub: 'ส่งออกรายงาน Markdown สำหรับ AI' },
+      { id: 'settings', icon: '⚙️', title: 'ตั้งค่า & ฐานข้อมูล', sub: 'จัดการ Firebase และอัตราแลกเปลี่ยน' }
+    ].filter(item => !q || item.title.toLowerCase().includes(q) || item.sub.toLowerCase().includes(q));
+
+    // 4. Quick Actions
+    const actionItems = [
+      { action: 'trade', icon: '➕', title: 'ซื้อ / ขายสินทรัพย์ (Quick Trade)', sub: 'บันทึกซื้อ-ขายหุ้นหรือตัดเงินไว้ช้อน' },
+      { action: 'dca', icon: '⚖️', title: 'Smart DCA & Rebalance Calculator', sub: 'คำนวณแบ่งเงินซื้อหุ้นตามเป้าหมาย IPS' },
+      { action: 'cash_buffer', icon: '💧', title: 'ฝาก / ถอนเงินไว้ช้อน (Cash Buffer)', sub: 'จัดการเงินสดสำรองรอช้อนซื้อ' },
+      { action: 'reorder', icon: '↕️', title: 'จัดเรียงลำดับพอร์ต', sub: 'ปรับสลับลำดับการแสดงผลของพอร์ต' },
+      { action: 'sync', icon: '🔄', title: 'อัปเดตราคาตลาดสด (Sync Market)', sub: 'ดึงราคาหุ้นและคริปโตล่าสุด' },
+      { action: 'privacy', icon: '👁️', title: 'เปิด / ปิด Privacy Mode', sub: 'ซ่อน/แสดงตัวเลขทางการเงิน' }
+    ].filter(item => !q || item.title.toLowerCase().includes(q) || item.sub.toLowerCase().includes(q));
+
+    let html = '';
+
+    // Render Stocks Group
+    if (stockResults.length > 0) {
+      html += `<div class="command-group-title">📈 หุ้นและสินทรัพย์ (${stockResults.length})</div>`;
+      html += stockResults.slice(0, 6).map(s => `
+        <div class="command-item" data-cmd-type="stock" data-cmd-port="${s.portId}" data-cmd-ticker="${s.ticker}">
+          <div class="command-item-left">
+            ${this.renderStockLogoHTML(s.ticker, s.color, 32)}
+            <div>
+              <div class="command-item-title">${s.ticker} <span style="font-size:12px; font-weight:400; color:var(--text-secondary);">- ${s.name}</span></div>
+              <div class="command-item-sub">${s.portEmoji} ${s.portName} • ${s.shares.toFixed(4)} หุ้น @ $${s.currentPrice.toFixed(2)}</div>
+            </div>
+          </div>
+          <div class="command-item-right font-mono">
+            <div style="text-align: right;">
+              <strong style="color:#fff; font-size:13px;">${this.formatUSD(s.marketValueUSD)}</strong>
+              <div style="font-size:11px;" class="${s.unrealizedPLPct >= 0 ? 'text-emerald' : 'text-rose'}">
+                ${s.unrealizedPLPct >= 0 ? '+' : ''}${s.unrealizedPLPct.toFixed(2)}%
+              </div>
+            </div>
+            <span class="command-item-tag">ดูพอร์ต ↵</span>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    // Render Portfolios Group
+    if (portResults.length > 0) {
+      html += `<div class="command-group-title">📁 พอร์ตการลงทุน (${portResults.length})</div>`;
+      html += portResults.map(p => `
+        <div class="command-item" data-cmd-type="portfolio" data-cmd-port="${p.id}">
+          <div class="command-item-left">
+            <div class="command-item-icon" style="font-size:24px;">${p.emoji}</div>
+            <div>
+              <div class="command-item-title">${p.name}</div>
+              <div class="command-item-sub">${p.tier} • ${p.category} (${p.holdingsCount} สินทรัพย์)</div>
+            </div>
+          </div>
+          <div class="command-item-right font-mono">
+            <strong style="color:#fff; font-size:13px;">${this.formatUSD(p.totalValueUSD)}</strong>
+            <span class="command-item-tag">เปิดพอร์ต ↵</span>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    // Render Actions Group
+    if (actionItems.length > 0) {
+      html += `<div class="command-group-title">⚡ การทำงานด่วน (Quick Actions)</div>`;
+      html += actionItems.map(a => `
+        <div class="command-item" data-cmd-type="action" data-cmd-action="${a.action}">
+          <div class="command-item-left">
+            <div class="command-item-icon" style="background:rgba(255,255,255,0.06); width:32px; height:32px; border-radius:var(--radius-sm);">${a.icon}</div>
+            <div>
+              <div class="command-item-title">${a.title}</div>
+              <div class="command-item-sub">${a.sub}</div>
+            </div>
+          </div>
+          <div class="command-item-right">
+            <span class="command-item-tag">เรียกใช้ ↵</span>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    // Render Navigation Views Group
+    if (navItems.length > 0) {
+      html += `<div class="command-group-title">🧭 หน้าและเครื่องมือ</div>`;
+      html += navItems.map(n => `
+        <div class="command-item" data-cmd-type="nav" data-cmd-tab="${n.id}">
+          <div class="command-item-left">
+            <div class="command-item-icon" style="font-size:22px;">${n.icon}</div>
+            <div>
+              <div class="command-item-title">${n.title}</div>
+              <div class="command-item-sub">${n.sub}</div>
+            </div>
+          </div>
+          <div class="command-item-right">
+            <span class="command-item-tag">สลับหน้า ↵</span>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    if (!html) {
+      html = `<div style="text-align:center; padding:36px 16px; color:var(--text-muted);">
+        <div style="font-size:32px; margin-bottom:8px;">🔍</div>
+        <div>ไม่พบผลลัพธ์สำหรับ "<strong>${query}</strong>"</div>
+        <div style="font-size:12px; margin-top:4px;">ลองค้นหาด้วยชื่อย่อหุ้น เช่น NVDA, หรือชื่อพอร์ต เช่น Next Gen</div>
+      </div>`;
+    }
+
+    listEl.innerHTML = html;
+
+    // Highlight first item
+    const firstItem = listEl.querySelector('.command-item');
+    if (firstItem) firstItem.classList.add('active');
+  }
+
+  executeCommandItem(itemEl) {
+    if (!itemEl) return;
+    const type = itemEl.getAttribute('data-cmd-type');
+
+    if (type === 'stock') {
+      const portId = itemEl.getAttribute('data-cmd-port');
+      this.selectedPortfolioId = portId;
+      this.switchTab('portfolios');
+      this.closeModal('modal-command-palette');
+    } else if (type === 'portfolio') {
+      const portId = itemEl.getAttribute('data-cmd-port');
+      this.selectedPortfolioId = portId;
+      this.switchTab('portfolios');
+      this.closeModal('modal-command-palette');
+    } else if (type === 'nav') {
+      const tab = itemEl.getAttribute('data-cmd-tab');
+      this.switchTab(tab);
+      this.closeModal('modal-command-palette');
+    } else if (type === 'action') {
+      const action = itemEl.getAttribute('data-cmd-action');
+      this.closeModal('modal-command-palette');
+      if (action === 'trade') {
+        this.populateTradeStockSelect();
+        this.openModal('modal-trade');
+      } else if (action === 'dca') {
+        this.openRebalanceModal();
+      } else if (action === 'cash_buffer') {
+        this.openCashBufferModal(this.selectedPortfolioId);
+      } else if (action === 'reorder') {
+        this.openReorderPortfoliosModal();
+      } else if (action === 'sync') {
+        this.syncLiveMarketPrices();
+      } else if (action === 'privacy') {
+        this.togglePrivacyMode();
+      }
+    }
+  }
+
+  setupCommandPaletteKeyboard() {
+    // Global shortcut Ctrl+K / Cmd+K
+    window.addEventListener('keydown', (e) => {
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') {
+        e.preventDefault();
+        const modal = document.getElementById('modal-command-palette');
+        if (modal && modal.classList.contains('open')) {
+          this.closeModal('modal-command-palette');
+        } else {
+          this.openCommandPalette();
+        }
+      }
+    });
+
+    const searchInput = document.getElementById('command-search-input');
+    const resultsList = document.getElementById('command-results-list');
+
+    searchInput?.addEventListener('input', (e) => {
+      this.renderCommandResults(e.target.value);
+    });
+
+    searchInput?.addEventListener('keydown', (e) => {
+      const items = Array.from(resultsList.querySelectorAll('.command-item'));
+      if (items.length === 0) return;
+
+      const activeIdx = items.findIndex(item => item.classList.contains('active'));
+
+      if (e.key === 'ArrowDown') {
+        e.preventDefault();
+        const nextIdx = (activeIdx + 1) % items.length;
+        items.forEach(i => i.classList.remove('active'));
+        items[nextIdx].classList.add('active');
+        items[nextIdx].scrollIntoView({ block: 'nearest' });
+      } else if (e.key === 'ArrowUp') {
+        e.preventDefault();
+        const prevIdx = (activeIdx - 1 + items.length) % items.length;
+        items.forEach(i => i.classList.remove('active'));
+        items[prevIdx].classList.add('active');
+        items[prevIdx].scrollIntoView({ block: 'nearest' });
+      } else if (e.key === 'Enter') {
+        e.preventDefault();
+        const currentActive = items[activeIdx >= 0 ? activeIdx : 0];
+        if (currentActive) {
+          this.executeCommandItem(currentActive);
+        }
+      }
+    });
+
+    // Delegate click on command items
+    resultsList?.addEventListener('click', (e) => {
+      const item = e.target.closest('.command-item');
+      if (item) {
+        this.executeCommandItem(item);
+      }
+    });
+  }
+
   // --- SUB-PORTFOLIO REORDERING SYSTEM ---
   openReorderPortfoliosModal() {
     this.renderReorderPortfoliosList();
@@ -2925,6 +3207,10 @@ tags:
       document.getElementById('cur-mode-usd').classList.remove('active');
       this.renderActiveTab();
     });
+
+    // Command Palette & Spotlight Search Trigger
+    document.getElementById('btn-open-command-palette')?.addEventListener('click', () => this.openCommandPalette());
+    this.setupCommandPaletteKeyboard();
 
     // Sidebar Toggle & Pin Buttons
     document.getElementById('btn-toggle-sidebar')?.addEventListener('click', () => this.toggleSidebar());
