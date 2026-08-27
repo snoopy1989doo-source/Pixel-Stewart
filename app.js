@@ -457,7 +457,9 @@ class PixelStewardApp {
 
   renderStockLogoHTML(ticker, borderColor = '#10b981', size = 42) {
     if (!ticker) return '';
-    const clean = ticker.replace('.BK', '').toUpperCase().trim();
+    const raw = ticker.toUpperCase().trim();
+    const isThai = raw.endsWith('.BK') || ['ADVANC', 'SCB', 'PTT', 'DIF', 'WHART', 'CPALL', 'KBANK', 'BBL', 'KTB', 'BDMS', 'AOT', 'DELTA', 'GULF', 'TISCO', 'CPN', 'MINT', 'SCC', 'TRUE', 'OR', 'CRC', 'BEM', 'BTS', 'LH', 'AP', 'SIRI', 'MEGA', 'EA', 'HMPRO', 'WHA', 'OSP', 'IVL', 'TOP', 'GPSC', 'BGRIM', 'EGCO', 'RATCH', 'STA', 'STGT', 'TU', 'CBG', 'SAWAD', 'MTC', 'TIDLOR', 'JMT', 'CHG', 'BCH', 'VGI', 'MAJOR'].includes(raw.replace('.BK', ''));
+    const clean = raw.replace('.BK', '');
 
     if (clean === 'BTC') {
       return `<div class="ticker-icon-circle" style="width:${size}px; height:${size}px; border-color:${borderColor}; background:#151a24; overflow:hidden;"><img src="https://assets.coingecko.com/coins/images/1/small/bitcoin.png" alt="BTC" style="width:100%; height:100%; object-fit:contain; padding:4px;" referrerpolicy="no-referrer"></div>`;
@@ -470,7 +472,91 @@ class PixelStewardApp {
     }
 
     if (['SSO', 'กอช.', 'KEPT', 'CASH', 'THB', 'USD'].includes(clean)) {
-      return `<div class="ticker-icon-circle" style="width:${size}px; height:${size}px; border-color:${borderColor}; background:#151a24; display:flex; align-items:center; justify-content:center; font-weight:800; font-size:${size > 36 ? 11 : 9}px; color:#fff;">${clean.slice(0, 4)}</div>`;
+      return `<div class="ticker-icon-circle" style="width:${size}px; height:${size}px; border-color:${borderColor}; background:linear-gradient(135deg, #1e293b, #0f172a); display:flex; align-items:center; justify-content:center; font-weight:800; font-size:${size > 36 ? 11 : 9}px; color:#fff; font-family:var(--font-mono);">${clean.slice(0, 4)}</div>`;
+    }
+
+    // Thai Stock Brand Color Map
+    const thaiColors = {
+      'ADVANC': '#72bf44',
+      'SCB': '#4e2a84',
+      'PTT': '#0072ce',
+      'DIF': '#00a2e8',
+      'WHART': '#ea580c',
+      'CPALL': '#008037',
+      'KBANK': '#138f2d',
+      'BBL': '#1e3a8a',
+      'KTB': '#00a3e0',
+      'BDMS': '#004b87',
+      'AOT': '#0066b2',
+      'DELTA': '#0088cc',
+      'GULF': '#002f6c',
+      'TISCO': '#0055a5',
+      'CPN': '#c9920e',
+      'MINT': '#00508a',
+      'SCC': '#d32f2f',
+      'TRUE': '#ed1c24',
+      'OR': '#0072ce',
+      'CRC': '#e60000',
+      'BEM': '#003399',
+      'BTS': '#006633',
+      'LH': '#800020',
+      'SIRI': '#d97706',
+      'HMPRO': '#005ba8',
+      'CBG': '#008542',
+      'EA': '#16a34a',
+      'OSP': '#d97706',
+      'MEGA': '#0284c7',
+      'TU': '#0284c7',
+      'IVL': '#1e40af',
+      'TOP': '#0369a1',
+      'GPSC': '#15803d',
+      'BGRIM': '#0369a1',
+      'EGCO': '#0284c7',
+      'RATCH': '#0369a1',
+      'STA': '#15803d',
+      'STGT': '#0284c7',
+      'SAWAD': '#d97706',
+      'MTC': '#00508a',
+      'TIDLOR': '#0284c7',
+      'JMT': '#00508a',
+      'CHG': '#008037',
+      'BCH': '#004b87',
+      'VGI': '#006633',
+      'MAJOR': '#d32f2f'
+    };
+
+    const brandBg = thaiColors[clean] || '#334155';
+
+    if (isThai) {
+      const primaryThaiUrl = `https://assets.parqet.com/logos/symbol/${clean}.BK?format=png`;
+      const fallbackThaiUrl = `https://financialmodelingprep.com/image-stock/${clean}.BK.png`;
+      const fallbackUSUrl = `https://assets.parqet.com/logos/symbol/${clean}?format=png`;
+
+      return `
+        <div class="ticker-icon-circle" style="width:${size}px; height:${size}px; border-color:${borderColor}; background:#151a24; position:relative; overflow:hidden; display:flex; align-items:center; justify-content:center;">
+          <img src="${primaryThaiUrl}" 
+               alt="${clean}" 
+               loading="lazy" 
+               referrerpolicy="no-referrer"
+               onerror="
+                 if (!this.dataset.step) {
+                   this.dataset.step = '1';
+                   this.src = '${fallbackThaiUrl}';
+                 } else if (this.dataset.step === '1') {
+                   this.dataset.step = '2';
+                   this.src = '${fallbackUSUrl}';
+                 } else {
+                   this.style.display = 'none';
+                   if (this.nextElementSibling) this.nextElementSibling.style.display = 'flex';
+                 }
+               " 
+               style="width:100%; height:100%; object-fit:contain; padding:4px; border-radius:50%;">
+          <div style="display:none; width:100%; height:100%; background:linear-gradient(135deg, ${brandBg}, #0f172a); flex-direction:column; align-items:center; justify-content:center; border-radius:50%; box-shadow:inset 0 0 6px rgba(0,0,0,0.6);">
+            <span style="font-size:${size > 36 ? '11px' : '9px'}; font-weight:800; color:#fff; font-family:var(--font-mono); line-height:1;">${clean.slice(0, 4)}</span>
+            <span style="font-size:${size > 36 ? '8px' : '6.5px'}; color:rgba(255,255,255,0.85); font-weight:700; margin-top:1px;">SET 🇹🇭</span>
+          </div>
+        </div>
+      `;
     }
 
     const primaryUrl = `https://assets.parqet.com/logos/symbol/${clean}?format=png`;
@@ -496,7 +582,7 @@ class PixelStewardApp {
                }
              " 
              style="width:100%; height:100%; object-fit:contain; padding:4px; border-radius:50%;">
-        <span style="display:none; width:100%; height:100%; align-items:center; justify-content:center; font-weight:800; font-size:${size > 36 ? 11 : 9}px; color:#fff;">${clean.slice(0, 4)}</span>
+        <div style="display:none; width:100%; height:100%; background:linear-gradient(135deg, #1e293b, #0f172a); align-items:center; justify-content:center; font-weight:800; font-size:${size > 36 ? 11 : 9}px; color:#fff; font-family:var(--font-mono);">${clean.slice(0, 4)}</div>
       </div>
     `;
   }
@@ -557,7 +643,48 @@ class PixelStewardApp {
       'PTT': 'PTT Public Company',
       'DIF': 'Digital Telecom Infra Fund',
       'WHART': 'WHA Premium Growth Freehold',
+      'CPALL': 'CP ALL Public Company',
+      'KBANK': 'Kasikornbank Public Company',
+      'BBL': 'Bangkok Bank Public Company',
+      'KTB': 'Krungthai Bank Public Company',
+      'BDMS': 'Bangkok Dusit Medical Services',
+      'AOT': 'Airports of Thailand Public Company',
+      'DELTA': 'Delta Electronics (Thailand)',
+      'GULF': 'Gulf Energy Development',
       'TISCO': 'TISCO Financial Group',
+      'CPN': 'Central Pattana Public Company',
+      'MINT': 'Minor International Public Company',
+      'SCC': 'Siam Cement Public Company (SCG)',
+      'TRUE': 'True Corporation Public Company',
+      'OR': 'PTT Oil and Retail Business',
+      'CRC': 'Central Retail Corporation',
+      'BEM': 'Bangkok Expressway and Metro',
+      'BTS': 'BTS Group Holdings',
+      'LH': 'Land and Houses Public Company',
+      'AP': 'AP (Thailand) Public Company',
+      'SIRI': 'Sansiri Public Company',
+      'HMPRO': 'Home Product Center',
+      'CBG': 'Carabao Group Public Company',
+      'EA': 'Energy Absolute Public Company',
+      'OSP': 'Osotspa Public Company',
+      'MEGA': 'Mega Lifesciences Public Company',
+      'TU': 'Thai Union Group Public Company',
+      'IVL': 'Indorama Ventures Public Company',
+      'TOP': 'Thai Oil Public Company',
+      'GPSC': 'Global Power Synergy',
+      'BGRIM': 'B.Grimm Power Public Company',
+      'EGCO': 'Electricity Generating Public Company',
+      'RATCH': 'RATCH Group Public Company',
+      'STA': 'Sri Trang Agro-Industry',
+      'STGT': 'Sri Trang Gloves (Thailand)',
+      'SAWAD': 'Srisawad Corporation',
+      'MTC': 'Muangthai Capital Public Company',
+      'TIDLOR': 'Ngern Tid Lor Public Company',
+      'JMT': 'JMT Network Services',
+      'CHG': 'Chularat Hospital Public Company',
+      'BCH': 'Bangkok Chain Hospital',
+      'VGI': 'VGI Public Company',
+      'MAJOR': 'Major Cineplex Group',
       'KEPT': 'Kept by Krungsri (Cash)',
       'SSO': 'ประกันสังคม',
       'กอช.': 'กองทุนการออมแห่งชาติ'
