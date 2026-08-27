@@ -1178,10 +1178,71 @@ class PixelStewardApp {
     this.saveData();
 
     alert(`⚡ อัปเดตราคาตลาดสำเร็จ!\n• ปรับปรุง ${updatedCount} สินทรัพย์\n• ความเร็ว: ${elapsedSec} วินาที\n• อัตราแลกเปลี่ยน: ฿${this.exchangeRate.toFixed(2)} / USD`);
+    this.renderTickerTape();
+  }
+
+  // --- REAL-TIME MARKET TICKER TAPE (MARQUEE) ---
+  renderTickerTape() {
+    const track = document.getElementById('ticker-tape-track');
+    if (!track) return;
+
+    // Collect unique stocks from portfolios
+    const uniqueStocks = new Map();
+    this.portfolios.forEach(p => {
+      (p.holdings || []).forEach(h => {
+        const sym = h.ticker.toUpperCase();
+        if (!uniqueStocks.has(sym)) {
+          const stats = this.calculateHoldingStats(h);
+          uniqueStocks.set(sym, {
+            sym,
+            portId: p.id,
+            price: stats.currentPrice,
+            change1d: stats.change1d,
+            color: p.color || '#10b981'
+          });
+        }
+      });
+    });
+
+    const stockList = Array.from(uniqueStocks.values());
+    if (stockList.length === 0) {
+      track.innerHTML = `<span style="font-size:12px; color:var(--text-muted); padding:0 20px;">⚡ Pixel Steward Live Market Tape • บันทึกสินทรัพย์ในพอร์ตเพื่อเริ่มแสดงราคา Real-time</span>`;
+      return;
+    }
+
+    const buildItemHTML = (s) => {
+      const isUp = s.change1d >= 0;
+      return `
+        <div class="ticker-tape-item" data-tape-port="${s.portId}" data-tape-sym="${s.sym}" title="${s.sym} - คลิกเพื่อดูพอร์ต">
+          ${this.renderStockLogoHTML(s.sym, s.color, 18)}
+          <span class="tape-sym font-mono">${s.sym}</span>
+          <span class="tape-price font-mono">$${s.price.toFixed(2)}</span>
+          <span class="tape-change font-mono ${isUp ? 'text-emerald' : 'text-rose'}">
+            ${isUp ? '▲ +' : '▼ '}${s.change1d.toFixed(2)}%
+          </span>
+        </div>
+      `;
+    };
+
+    // Duplicate list to ensure seamless infinite loop
+    const itemsHTML = stockList.map(buildItemHTML).join('');
+    track.innerHTML = itemsHTML + itemsHTML + itemsHTML;
+
+    // Click to navigate to portfolio
+    track.querySelectorAll('.ticker-tape-item').forEach(el => {
+      el.addEventListener('click', () => {
+        const portId = el.getAttribute('data-tape-port');
+        if (portId) {
+          this.selectedPortfolioId = portId;
+          this.switchTab('portfolios');
+        }
+      });
+    });
   }
 
   // --- VIEW RENDERING ENGINE ---
   renderActiveTab() {
+    this.renderTickerTape();
     const container = document.getElementById('app-view-container');
     if (!container) return;
 
@@ -1272,36 +1333,44 @@ class PixelStewardApp {
         `).join('')}
       </div>
 
-      <!-- ANALYTICS DONUT CHARTS (DIME ANALYTICS STYLE) -->
-      <div class="analytics-charts-grid">
-        <div class="chart-card">
-          <div class="chart-title">
-            <span>🍩 สัดส่วนตามประเภทสินทรัพย์ (Asset Allocation)</span>
-          </div>
-          <div class="chart-canvas-container">
-            <canvas id="chart-asset-classes"></canvas>
-          </div>
-          <div class="chart-legend-list" id="legend-asset-classes"></div>
+      <!-- ANALYTICS DONUT CHARTS (DIME ANALYTICS STYLE WITH MOBILE TABS) -->
+      <div class="analytics-charts-wrapper">
+        <div class="donut-tabs-header">
+          <button type="button" class="donut-tab-btn active" data-donut-target="asset">💼 สัดส่วนประเภทสินทรัพย์</button>
+          <button type="button" class="donut-tab-btn" data-donut-target="port">📁 สัดส่วนตามพอร์ตเป้าหมาย</button>
+          <button type="button" class="donut-tab-btn" data-donut-target="holding">📈 สัดส่วนหุ้นย่อยทั้งหมด</button>
         </div>
 
-        <div class="chart-card">
-          <div class="chart-title">
-            <span>🎯 สัดส่วนตามพอร์ตเป้าหมาย (Sub-Portfolios)</span>
+        <div class="analytics-charts-grid">
+          <div class="chart-card donut-chart-slide active" id="donut-slide-asset">
+            <div class="chart-title">
+              <span>🍩 สัดส่วนตามประเภทสินทรัพย์ (Asset Allocation)</span>
+            </div>
+            <div class="chart-canvas-container">
+              <canvas id="chart-asset-classes"></canvas>
+            </div>
+            <div class="chart-legend-list" id="legend-asset-classes"></div>
           </div>
-          <div class="chart-canvas-container">
-            <canvas id="chart-portfolio-weights"></canvas>
-          </div>
-          <div class="chart-legend-list" id="legend-portfolio-weights"></div>
-        </div>
 
-        <div class="chart-card">
-          <div class="chart-title">
-            <span>🍩 สัดส่วนสินทรัพย์ย่อยทั้งหมด (Holdings Allocation)</span>
+          <div class="chart-card donut-chart-slide" id="donut-slide-port">
+            <div class="chart-title">
+              <span>🎯 สัดส่วนตามพอร์ตเป้าหมาย (Sub-Portfolios)</span>
+            </div>
+            <div class="chart-canvas-container">
+              <canvas id="chart-portfolio-weights"></canvas>
+            </div>
+            <div class="chart-legend-list" id="legend-portfolio-weights"></div>
           </div>
-          <div class="chart-canvas-container">
-            <canvas id="chart-all-holdings"></canvas>
+
+          <div class="chart-card donut-chart-slide" id="donut-slide-holding">
+            <div class="chart-title">
+              <span>🍩 สัดส่วนสินทรัพย์ย่อยทั้งหมด (Holdings Allocation)</span>
+            </div>
+            <div class="chart-canvas-container">
+              <canvas id="chart-all-holdings"></canvas>
+            </div>
+            <div class="chart-legend-list" id="legend-all-holdings"></div>
           </div>
-          <div class="chart-legend-list" id="legend-all-holdings"></div>
         </div>
       </div>
 
@@ -1330,12 +1399,15 @@ class PixelStewardApp {
       const dualCash = this.formatDual(stats.cashBufferUSD);
 
       html += `
-        <div class="port-card" data-open-port="${p.id}" style="border-left: 4px solid ${p.color || '#10b981'};">
+        <div class="port-card port-card-compact" data-open-port="${p.id}" style="border-left: 4px solid ${p.color || '#10b981'};">
           <div class="port-card-top">
             ${p.logo ? `<img src="${p.logo}" class="port-logo-img" alt="${p.name}" onerror="this.style.display='none'">` : ''}
             <div class="port-info-col">
-              <div class="port-card-name">${p.emoji || '📁'} ${p.name}</div>
-              <div class="port-card-tag">${p.tier} • ${p.category} (${stats.assetCount} สินทรัพย์)</div>
+              <div class="port-card-name-row">
+                <span class="port-card-name">${p.emoji || '📁'} ${p.name}</span>
+                <span class="port-card-compact-badge font-mono">${p.tier}</span>
+                <span class="port-cash-buffer-pill font-mono">💧 ${dualCash.main}</span>
+              </div>
             </div>
             <div class="port-card-value-box">
               <div class="port-card-val-primary font-mono">${dualVal.main}</div>
@@ -1343,34 +1415,24 @@ class PixelStewardApp {
             </div>
           </div>
 
-          <div class="port-cash-buffer-tag">
-            <span>💧 เงินไว้ช้อน (Cash Buffer):</span>
-            <strong class="font-mono">${dualCash.main}</strong>
-          </div>
-
-          <div class="port-card-stats font-mono">
-            <div>
-              <div class="port-stat-label">1D Change</div>
-              <div class="port-stat-val ${stats.avg1dChangePct >= 0 ? 'text-emerald' : 'text-rose'}">
-                ${stats.avg1dChangePct >= 0 ? '↗' : '↘'} ${this.formatPercent(stats.avg1dChangePct)}
-              </div>
+          <div class="port-card-compact-meta font-mono">
+            <div class="port-meta-left">
+              <span class="${stats.avg1dChangePct >= 0 ? 'text-emerald' : 'text-rose'}">
+                ${stats.avg1dChangePct >= 0 ? '▲ +' : '▼ '}${stats.avg1dChangePct.toFixed(2)}% (1D)
+              </span>
+              <span class="text-muted">•</span>
+              <span class="${stats.totalPLPct >= 0 ? 'text-emerald' : 'text-rose'}">
+                P/L ${stats.totalPLPct >= 0 ? '+' : ''}${stats.totalPLPct.toFixed(2)}% (${this.formatUSD(stats.totalPLUSD)})
+              </span>
             </div>
-            <div style="text-align: right;">
-              <div class="port-stat-label">P/L หุ้นที่ถือ</div>
-              <div class="port-stat-val ${stats.totalPLPct >= 0 ? 'text-emerald' : 'text-rose'}">
-                ${stats.totalPLPct >= 0 ? '↗' : '↘'} ${this.formatPercent(stats.totalPLPct)} (${this.formatUSD(stats.totalPLUSD)})
-              </div>
+            <div class="port-meta-right">
+              <span class="text-muted">เป้า: ${this.formatUSD(stats.goalUSD)}</span>
+              <strong style="color:#fff;">${stats.goalProgressPct.toFixed(1)}%</strong>
             </div>
           </div>
 
-          <div class="port-goal-progress-wrap">
-            <div class="goal-label-row font-mono">
-              <span>เป้าหมาย: ${this.formatUSD(stats.goalUSD)} (${this.formatTHB(this.usdToThb(stats.goalUSD))})</span>
-              <strong>${stats.goalProgressPct.toFixed(1)}%</strong>
-            </div>
-            <div class="progress-bar-bg">
-              <div class="progress-bar-fill" style="width: ${stats.goalProgressPct}%; background: ${p.color || '#10b981'};"></div>
-            </div>
+          <div class="progress-bar-bg compact">
+            <div class="progress-bar-fill" style="width: ${stats.goalProgressPct}%; background: ${p.color || '#10b981'};"></div>
           </div>
         </div>
       `;
@@ -1379,7 +1441,8 @@ class PixelStewardApp {
     html += `</div>`;
     container.innerHTML = html;
 
-    // Render Chart.js Donut Charts
+    // Setup Donut Carousel Tabs & Charts
+    this.setupDonutTabs();
     setTimeout(() => {
       this.initDashboardCharts();
     }, 50);
@@ -1558,6 +1621,23 @@ class PixelStewardApp {
         }
       }
     }
+  }
+
+  setupDonutTabs() {
+    const tabBtns = document.querySelectorAll('.donut-tab-btn');
+    tabBtns.forEach(btn => {
+      btn.addEventListener('click', () => {
+        const target = btn.getAttribute('data-donut-target');
+        tabBtns.forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+
+        document.querySelectorAll('.donut-chart-slide').forEach(slide => {
+          slide.classList.remove('active');
+        });
+        const activeSlide = document.getElementById(`donut-slide-${target}`);
+        if (activeSlide) activeSlide.classList.add('active');
+      });
+    });
   }
 
   // 2. SUB-PORTFOLIO & DIME HOLDINGS VIEW
@@ -2359,33 +2439,49 @@ class PixelStewardApp {
           <div class="sim-slider-group">
             <div class="sim-slider-header">
               <span class="sim-slider-label">เงินลงทุนเริ่มต้น (Initial Capital)</span>
-              <span class="sim-slider-val" id="sim-val-init">$${initCapital.toLocaleString()}</span>
+              <div class="sim-input-row">
+                <span class="sim-cur-symbol">$</span>
+                <input type="number" id="sim-input-init" class="sim-number-input font-mono" min="0" max="500000" step="50" value="${initCapital}">
+              </div>
             </div>
-            <input type="range" min="0" max="50000" step="100" value="${initCapital}" class="sim-range-input" id="sim-slider-init">
+            <input type="range" min="0" max="50000" step="50" value="${initCapital}" class="sim-range-input" id="sim-slider-init">
+            <div class="sim-sub-hint font-mono" id="sim-val-init">≈ ฿0</div>
           </div>
 
           <div class="sim-slider-group">
             <div class="sim-slider-header">
               <span class="sim-slider-label">เงินออมเติมพอร์ตต่อเดือน (Monthly DCA)</span>
-              <span class="sim-slider-val" id="sim-val-monthly">$100 / เดือน</span>
+              <div class="sim-input-row">
+                <span class="sim-cur-symbol">$</span>
+                <input type="number" id="sim-input-monthly" class="sim-number-input font-mono" min="0" max="10000" step="10" value="100">
+              </div>
             </div>
             <input type="range" min="0" max="2000" step="10" value="100" class="sim-range-input" id="sim-slider-monthly">
+            <div class="sim-sub-hint font-mono" id="sim-val-monthly">≈ ฿3,259 / เดือน</div>
           </div>
 
           <div class="sim-slider-group">
             <div class="sim-slider-header">
               <span class="sim-slider-label">ผลตอบแทนคาดหวังเฉลี่ยต่อปี (CAGR %)</span>
-              <span class="sim-slider-val" id="sim-val-cagr">10.0% / ปี</span>
+              <div class="sim-input-row">
+                <input type="number" id="sim-input-cagr" class="sim-number-input font-mono" min="1" max="40" step="0.5" value="10">
+                <span class="sim-cur-symbol">%</span>
+              </div>
             </div>
-            <input type="range" min="4" max="25" step="0.5" value="10" class="sim-range-input" id="sim-slider-cagr">
+            <input type="range" min="1" max="30" step="0.5" value="10" class="sim-range-input" id="sim-slider-cagr">
+            <div class="sim-sub-hint font-mono" id="sim-val-cagr">10.0% / ปี</div>
           </div>
 
           <div class="sim-slider-group">
             <div class="sim-slider-header">
               <span class="sim-slider-label">ระยะเวลาลงทุน (Investment Horizon)</span>
-              <span class="sim-slider-val" id="sim-val-years">10 ปี</span>
+              <div class="sim-input-row">
+                <input type="number" id="sim-input-years" class="sim-number-input font-mono" min="1" max="50" step="1" value="10">
+                <span class="sim-cur-symbol">ปี</span>
+              </div>
             </div>
-            <input type="range" min="1" max="30" step="1" value="10" class="sim-range-input" id="sim-slider-years">
+            <input type="range" min="1" max="40" step="1" value="10" class="sim-range-input" id="sim-slider-years">
+            <div class="sim-sub-hint font-mono" id="sim-val-years">10 ปี</div>
           </div>
 
           <button id="btn-trigger-celebrate-sim" class="btn btn-sm btn-secondary" style="width: 100%; margin-top: 10px;">
@@ -2432,7 +2528,17 @@ class PixelStewardApp {
   initSimulatorEvents() {
     ['init', 'monthly', 'cagr', 'years'].forEach(key => {
       const slider = document.getElementById(`sim-slider-${key}`);
-      slider?.addEventListener('input', () => this.updateSimulatorChart());
+      const input = document.getElementById(`sim-input-${key}`);
+
+      slider?.addEventListener('input', (e) => {
+        if (input) input.value = e.target.value;
+        this.updateSimulatorChart();
+      });
+
+      input?.addEventListener('input', (e) => {
+        if (slider) slider.value = e.target.value;
+        this.updateSimulatorChart();
+      });
     });
 
     document.getElementById('btn-trigger-celebrate-sim')?.addEventListener('click', () => {
@@ -2441,16 +2547,16 @@ class PixelStewardApp {
   }
 
   updateSimulatorChart() {
-    const initCap = parseFloat(document.getElementById('sim-slider-init')?.value) || 0;
-    const monthly = parseFloat(document.getElementById('sim-slider-monthly')?.value) || 0;
-    const cagr = parseFloat(document.getElementById('sim-slider-cagr')?.value) || 10;
-    const years = parseInt(document.getElementById('sim-slider-years')?.value) || 10;
+    const initCap = parseFloat(document.getElementById('sim-input-init')?.value) || parseFloat(document.getElementById('sim-slider-init')?.value) || 0;
+    const monthly = parseFloat(document.getElementById('sim-input-monthly')?.value) || parseFloat(document.getElementById('sim-slider-monthly')?.value) || 0;
+    const cagr = parseFloat(document.getElementById('sim-input-cagr')?.value) || parseFloat(document.getElementById('sim-slider-cagr')?.value) || 10;
+    const years = parseInt(document.getElementById('sim-input-years')?.value) || parseInt(document.getElementById('sim-slider-years')?.value) || 10;
 
     // Update label text
     const initEl = document.getElementById('sim-val-init');
-    if (initEl) initEl.textContent = `$${initCap.toLocaleString()} (≈ ฿${Math.round(this.usdToThb(initCap)).toLocaleString()})`;
+    if (initEl) initEl.textContent = `≈ ฿${Math.round(this.usdToThb(initCap)).toLocaleString()}`;
     const monthlyEl = document.getElementById('sim-val-monthly');
-    if (monthlyEl) monthlyEl.textContent = `$${monthly.toLocaleString()} / เดือน (≈ ฿${Math.round(this.usdToThb(monthly)).toLocaleString()})`;
+    if (monthlyEl) monthlyEl.textContent = `≈ ฿${Math.round(this.usdToThb(monthly)).toLocaleString()} / เดือน`;
     const cagrEl = document.getElementById('sim-val-cagr');
     if (cagrEl) cagrEl.textContent = `${cagr.toFixed(1)}% / ปี`;
     const yearsEl = document.getElementById('sim-val-years');

@@ -2167,3 +2167,262 @@ body.privacy-mode #privacy-icon {
   color: var(--color-purple);
   font-weight: 600;
 }
+
+/* ==========================================================================
+   9. REAL-TIME MARKET TICKER TAPE (MARQUEE)
+   ========================================================================== */
+
+.market-ticker-tape {
+  width: 100%;
+  height: 38px;
+  background: rgba(15, 23, 42, 0.85);
+  border-bottom: 1px solid var(--border-subtle);
+  overflow: hidden;
+  position: relative;
+  display: flex;
+  align-items: center;
+  user-select: none;
+  z-index: 10;
+  backdrop-filter: blur(8px);
+}
+
+.market-ticker-tape::before,
+.market-ticker-tape::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 40px;
+  z-index: 2;
+  pointer-events: none;
+}
+
+.market-ticker-tape::before {
+  left: 0;
+  background: linear-gradient(90deg, #0a0e17 0%, rgba(10, 14, 23, 0) 100%);
+}
+
+.market-ticker-tape::after {
+  right: 0;
+  background: linear-gradient(270deg, #0a0e17 0%, rgba(10, 14, 23, 0) 100%);
+}
+
+.ticker-tape-track {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  white-space: nowrap;
+  will-change: transform;
+  animation: tickerMarquee 45s linear infinite;
+}
+
+.market-ticker-tape:hover .ticker-tape-track {
+  animation-play-state: paused;
+}
+
+@keyframes tickerMarquee {
+  0% { transform: translate3d(0, 0, 0); }
+  100% { transform: translate3d(-50%, 0, 0); }
+}
+
+.ticker-tape-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 12px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: var(--radius-full);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.ticker-tape-item:hover {
+  background: rgba(168, 85, 247, 0.15);
+  border-color: rgba(168, 85, 247, 0.4);
+  transform: translateY(-1px);
+}
+
+.tape-sym {
+  font-weight: 800;
+  font-size: 12px;
+  color: #fff;
+}
+
+.tape-price {
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+.tape-change {
+  font-size: 11px;
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+}
+
+/* ==========================================================================
+   10. DONUT CHARTS HORIZONTAL CAROUSEL (MOBILE SPACE SAVER)
+   ========================================================================== */
+
+.analytics-charts-wrapper {
+  margin-bottom: 24px;
+}
+
+.donut-tabs-header {
+  display: none;
+  gap: 8px;
+  margin-bottom: 12px;
+  overflow-x: auto;
+  padding-bottom: 4px;
+  scrollbar-width: none;
+}
+
+.donut-tabs-header::-webkit-scrollbar {
+  display: none;
+}
+
+.donut-tab-btn {
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-full);
+  padding: 6px 14px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  white-space: nowrap;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.donut-tab-btn.active {
+  background: linear-gradient(135deg, rgba(168, 85, 247, 0.25) 0%, rgba(16, 185, 129, 0.25) 100%);
+  border-color: var(--color-purple);
+  color: #fff;
+  box-shadow: 0 0 12px rgba(168, 85, 247, 0.2);
+}
+
+@media (max-width: 1024px) {
+  .donut-tabs-header {
+    display: flex;
+  }
+
+  .analytics-charts-grid {
+    display: block;
+  }
+
+  .donut-chart-slide {
+    display: none;
+  }
+
+  .donut-chart-slide.active {
+    display: flex;
+    animation: fadeInFast 0.25s ease;
+  }
+}
+
+/* ==========================================================================
+   11. COMPACT SUB-PORTFOLIO CARDS (DASHBOARD SLIM DESIGN)
+   ========================================================================== */
+
+.port-card.port-card-compact {
+  padding: 14px 16px;
+  gap: 8px;
+}
+
+.port-card-name-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.port-card-compact-badge {
+  font-size: 10px;
+  padding: 2px 6px;
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--text-muted);
+}
+
+.port-cash-buffer-pill {
+  font-size: 11px;
+  padding: 2px 8px;
+  border-radius: var(--radius-full);
+  background: rgba(56, 189, 248, 0.12);
+  border: 1px solid rgba(56, 189, 248, 0.3);
+  color: #38bdf8;
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.port-card-compact-meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 12px;
+  margin-top: 4px;
+}
+
+.port-meta-left,
+.port-meta-right {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.progress-bar-bg.compact {
+  height: 6px;
+  margin-top: 6px;
+}
+
+/* ==========================================================================
+   12. SIMULATOR NUMBER INPUTS & REFINED CONTROLS
+   ========================================================================== */
+
+.sim-input-row {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  padding: 2px 8px;
+  transition: all 0.2s ease;
+}
+
+.sim-input-row:focus-within {
+  border-color: var(--color-purple);
+  background: rgba(168, 85, 247, 0.08);
+}
+
+.sim-cur-symbol {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--color-purple);
+}
+
+.sim-number-input {
+  width: 90px;
+  background: transparent;
+  border: none;
+  color: #fff;
+  font-size: 14px;
+  font-weight: 700;
+  text-align: right;
+  outline: none;
+}
+
+.sim-number-input::-webkit-inner-spin-button,
+.sim-number-input::-webkit-outer-spin-button {
+  opacity: 0.5;
+}
+
+.sim-sub-hint {
+  font-size: 11px;
+  color: var(--text-muted);
+  margin-top: 4px;
+  text-align: right;
+}

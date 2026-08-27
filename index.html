@@ -30,7 +30,7 @@
   <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.2/dist/confetti.browser.min.js"></script>
   
   <!-- Main Stylesheet -->
-  <link rel="stylesheet" href="style.css?v=2.7.0">
+  <link rel="stylesheet" href="style.css?v=2.8.0">
 </head>
 <body>
   <div class="app-layout">
@@ -167,6 +167,13 @@
           </button>
         </div>
       </header>
+
+      <!-- MARKET TICKER TAPE BAR (MARQUEE) -->
+      <div class="market-ticker-tape" id="market-ticker-tape">
+        <div class="ticker-tape-track" id="ticker-tape-track">
+          <!-- Populated dynamically with stocks in portfolios -->
+        </div>
+      </div>
 
       <!-- DYNAMIC CONTENT VIEW -->
       <div id="app-view-container" class="content-scrollable">
@@ -751,6 +758,6 @@
   </div>
 
   <!-- Core JavaScript Application -->
-  <script src="app.js?v=2.7.0"></script>
+  <script src="app.js?v=2.8.0"></script>
 </body>
 </html>
