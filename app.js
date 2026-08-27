@@ -3604,23 +3604,20 @@ tags:
       }
     });
 
-    // Update Header titles
+    // Update Header title
     const titleMap = {
-      dashboard: { title: 'แดชบอร์ดภาพรวม', sub: 'สรุปสินทรัพย์และผลการเติบโตตามเป้าหมาย (IPS)' },
-      portfolios: { title: 'แยกพอร์ต (Dime Holdings)', sub: 'รายละเอียดหุ้น, ทศนิยม, ต้นทุนเฉลี่ย, และเงินไว้ช้อน' },
-      trading: { title: 'Forex & Option Trading', sub: 'บันทึกยอดเงินทุนรายเดือนและกราฟการเติบโต' },
-      dividends: { title: 'บันทึกเงินปันผลรับ (Dividend Log)', sub: 'กระแสเงินสดปันผลสะสมและคำนวณหักภาษี 15%' },
-      simulator: { title: 'จำลองเงินล้าน & ดอกเบี้ยทบต้น', sub: 'คำนวณและคาดการณ์มูลค่าพอร์ตในอนาคต (The Power of Compounding)' },
-      quarterly: { title: 'เปรียบเทียบผลงานรายไตรมาส', sub: 'ระบบบันทึก Snapshot และเปรียบเทียบการเติบโต Q-on-Q' },
-      obsidian: { title: 'Obsidian & AI Second Brain', sub: 'ส่งออกรายงานการเงินเข้า Luna Vault อัตโนมัติ' },
-      settings: { title: 'ตั้งค่าระบบ & ฐานข้อมูล', sub: 'จัดการ Firebase Realtime Sync และสำรองข้อมูล' }
+      dashboard: 'แดชบอร์ดภาพรวม',
+      portfolios: 'แยกพอร์ต (Dime Holdings)',
+      trading: 'Forex & Option Trading',
+      dividends: 'บันทึกเงินปันผลรับ (Dividend Log)',
+      simulator: 'จำลองเงินล้าน & ดอกเบี้ยทบต้น',
+      quarterly: 'เปรียบเทียบผลงานรายไตรมาส',
+      obsidian: 'Obsidian & AI Second Brain',
+      settings: 'ตั้งค่าระบบ & ฐานข้อมูล'
     };
 
-    const info = titleMap[tabName] || titleMap.dashboard;
     const titleEl = document.getElementById('current-page-title');
-    const subEl = document.getElementById('current-page-subtitle');
-    if (titleEl) titleEl.textContent = info.title;
-    if (subEl) subEl.textContent = info.sub;
+    if (titleEl) titleEl.textContent = titleMap[tabName] || titleMap.dashboard;
 
     this.renderActiveTab();
   }
