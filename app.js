@@ -1177,8 +1177,77 @@ class PixelStewardApp {
 
     this.saveData();
 
-    alert(`⚡ อัปเดตราคาตลาดสำเร็จ!\n• ปรับปรุง ${updatedCount} สินทรัพย์\n• ความเร็ว: ${elapsedSec} วินาที\n• อัตราแลกเปลี่ยน: ฿${this.exchangeRate.toFixed(2)} / USD`);
+    this.showToast({
+      icon: '⚡',
+      title: 'อัปเดตราคาตลาดสำเร็จ!',
+      message: 'ปรับปรุงราคาหุ้นและคริปโตล่าสุดเรียบร้อยแล้ว',
+      badges: [
+        `📊 ${updatedCount} สินทรัพย์`,
+        `⏱️ ${elapsedSec}s`,
+        `🇺🇸 1 USD = ฿${this.exchangeRate.toFixed(2)}`
+      ],
+      type: 'success',
+      duration: 4000
+    });
     this.renderTickerTape();
+  }
+
+  // --- MODERN CYBERPUNK TOAST NOTIFICATION SYSTEM ---
+  showToast({ icon = '⚡', title = '', message = '', badges = [], type = 'success', duration = 3800 }) {
+    let container = document.getElementById('toast-container');
+    if (!container) {
+      container = document.createElement('div');
+      container.id = 'toast-container';
+      container.className = 'toast-container';
+      document.body.appendChild(container);
+    }
+
+    const toast = document.createElement('div');
+    toast.className = `toast-card ${type}`;
+
+    let badgesHTML = '';
+    if (badges && badges.length > 0) {
+      badgesHTML = `
+        <div class="toast-meta-badges font-mono">
+          ${badges.map(b => `<span class="toast-meta-badge">${b}</span>`).join('')}
+        </div>
+      `;
+    }
+
+    toast.innerHTML = `
+      <div class="toast-icon-wrap">${icon}</div>
+      <div class="toast-content">
+        <div class="toast-title">${title}</div>
+        ${message ? `<div class="toast-message">${message}</div>` : ''}
+        ${badgesHTML}
+      </div>
+      <button type="button" class="toast-close-btn" aria-label="Close">&times;</button>
+      <div class="toast-progress"></div>
+    `;
+
+    container.appendChild(toast);
+
+    // Animate progress bar
+    const progressBar = toast.querySelector('.toast-progress');
+    if (progressBar) {
+      progressBar.style.transition = `width ${duration}ms linear`;
+      setTimeout(() => { progressBar.style.width = '0%'; }, 20);
+    }
+
+    const removeToast = () => {
+      if (toast.classList.contains('closing')) return;
+      toast.classList.add('closing');
+      setTimeout(() => {
+        if (toast.parentElement) toast.remove();
+      }, 250);
+    };
+
+    const timer = setTimeout(removeToast, duration);
+
+    toast.addEventListener('click', () => {
+      clearTimeout(timer);
+      removeToast();
+    });
   }
 
   // --- REAL-TIME MARKET TICKER TAPE (MARQUEE) ---
@@ -3041,7 +3110,12 @@ class PixelStewardApp {
     this.saveData();
     this.closeModal('modal-reorder-portfolios');
     this.renderActiveTab();
-    alert('💾 บันทึกลำดับพอร์ตใหม่เรียบร้อยแล้ว!');
+    this.showToast({
+      icon: '💾',
+      title: 'บันทึกลำดับพอร์ตสำเร็จ!',
+      message: 'ปรับลำดับการแสดงผลของพอร์ตเรียบร้อยแล้ว',
+      type: 'success'
+    });
   }
 
   // --- SMART REBALANCE & DCA CALCULATOR MODAL ---
@@ -3472,7 +3546,12 @@ tags:
           }
           this.saveData();
           this.renderActiveTab();
-          alert(`💾 บันทึกยอดเงิน ${this.tradingData[key].name}: $${val.toFixed(2)} สำเร็จ!`);
+          this.showToast({
+            icon: '💾',
+            title: 'บันทึกยอดเงินสำเร็จ!',
+            message: `${this.tradingData[key].name}: $${val.toFixed(2)} (${this.formatTHB(this.usdToThb(val))})`,
+            type: 'success'
+          });
         }
         return;
       }
@@ -3489,6 +3568,11 @@ tags:
         if (confirm('ต้องการลบรายการปันผลนี้ใช่หรือไม่?')) {
           this.dividends = this.dividends.filter(d => d.id !== id);
           this.saveData();
+          this.showToast({
+            icon: '🗑️',
+            title: 'ลบรายการปันผลแล้ว',
+            type: 'info'
+          });
         }
         return;
       }
@@ -3509,7 +3593,12 @@ tags:
       if (target.id === 'btn-copy-obsidian-md') {
         const md = this.generateObsidianMarkdown();
         navigator.clipboard.writeText(md).then(() => {
-          alert('📋 คัดลอก Markdown สำหรับ AI และ Obsidian สำเร็จแล้ว!');
+          this.showToast({
+            icon: '📋',
+            title: 'คัดลอก Markdown สำเร็จ!',
+            message: 'นำไปวางใน Obsidian หรือ AI Prompt ได้ทันที',
+            type: 'info'
+          });
         });
         return;
       }
@@ -4059,11 +4148,21 @@ tags:
       h.avgCostUSD = newAvgCost;
       h.currentPriceUSD = tradePrice; // update latest price
 
-      alert(`🟢 ซื้อ ${h.ticker} จำนวน ${tradeShares} หุ้น สำเร็จ! (ต้นทุนเฉลี่ยใหม่: $${newAvgCost.toFixed(4)})`);
+      this.showToast({
+        icon: '🟢',
+        title: 'ซื้อหุ้นสำเร็จ!',
+        message: `ซื้อ ${h.ticker} จำนวน ${tradeShares} หุ้น (ต้นทุนเฉลี่ยใหม่: $${newAvgCost.toFixed(4)})`,
+        type: 'success'
+      });
     } else {
       // SELL
       if ((h.shares || 0) < tradeShares) {
-        alert(`มีหุ้นไม่พอขาย! (มี ${h.shares} หุ้น แต่ต้องการขาย ${tradeShares} หุ้น)`);
+        this.showToast({
+          icon: '⚠️',
+          title: 'มีหุ้นไม่พอขาย!',
+          message: `มี ${h.shares} หุ้น แต่ต้องการขาย ${tradeShares} หุ้น`,
+          type: 'error'
+        });
         return;
       }
 
@@ -4072,7 +4171,12 @@ tags:
         port.cashBufferUSD = (port.cashBufferUSD || 0) + tradeTotalUSD;
       }
 
-      alert(`🔴 ขาย ${h.ticker} จำนวน ${tradeShares} หุ้น สำเร็จ! ได้เงิน $${tradeTotalUSD.toFixed(2)}`);
+      this.showToast({
+        icon: '🔴',
+        title: 'ขายหุ้นสำเร็จ!',
+        message: `ขาย ${h.ticker} จำนวน ${tradeShares} หุ้น ได้เงิน $${tradeTotalUSD.toFixed(2)}`,
+        type: 'success'
+      });
     }
 
     this.saveData();
@@ -4114,7 +4218,11 @@ tags:
     }
 
     if (amount <= 0 && action !== 'SET') {
-      alert('กรุณาระบุจำนวนเงิน');
+      this.showToast({
+        icon: '⚠️',
+        title: 'กรุณาระบุจำนวนเงิน',
+        type: 'error'
+      });
       return;
     }
 
@@ -4129,7 +4237,12 @@ tags:
     this.saveData();
     this.closeModal('modal-cash-buffer');
     this.renderActiveTab();
-    alert(`💾 อัปเดตเงินไว้ช้อนของ ${port.name}: $${(port.cashBufferUSD || 0).toFixed(2)} (${this.formatTHB(this.usdToThb(port.cashBufferUSD || 0))}) สำเร็จ!`);
+    this.showToast({
+      icon: '💧',
+      title: 'อัปเดตเงินไว้ช้อนสำเร็จ!',
+      message: `พอร์ต ${port.name}: $${(port.cashBufferUSD || 0).toFixed(2)} (${this.formatTHB(this.usdToThb(port.cashBufferUSD || 0))})`,
+      type: 'success'
+    });
   }
 
   // --- DIVIDEND MODAL & LOGIC ---
@@ -4181,7 +4294,12 @@ tags:
 
     this.saveData();
     this.closeModal('modal-dividend');
-    alert(`💰 บันทึกเงินปันผล ${ticker}: Net $${netUSD.toFixed(2)} เรียบร้อยแล้ว!`);
+    this.showToast({
+      icon: '💰',
+      title: 'บันทึกเงินปันผลสำเร็จ!',
+      message: `${ticker}: Net $${netUSD.toFixed(2)} (${this.formatTHB(this.usdToThb(netUSD))})`,
+      type: 'success'
+    });
   }
 
   // --- SUBPORTFOLIO EDIT / CREATE MODAL ---
@@ -4214,7 +4332,12 @@ tags:
             this.saveData();
             this.closeModal('modal-portfolio-edit');
             this.renderActiveTab();
-            alert(`🗑️ ลบพอร์ต ${port.name} เรียบร้อยแล้ว`);
+            this.showToast({
+              icon: '🗑️',
+              title: 'ลบพอร์ตแล้ว',
+              message: `ลบพอร์ต ${port.name} เรียบร้อย`,
+              type: 'info'
+            });
           }
         };
       }
@@ -4268,7 +4391,12 @@ tags:
 
     this.saveData();
     this.closeModal('modal-portfolio-edit');
-    alert(`💾 บันทึกข้อมูลพอร์ต ${name} เรียบร้อย!`);
+    this.showToast({
+      icon: '💾',
+      title: 'บันทึกพอร์ตสำเร็จ!',
+      message: `ข้อมูลพอร์ต ${name} ได้รับการอัปเดตแล้ว`,
+      type: 'success'
+    });
   }
 
   // --- TRADING PORTFOLIO CRUD & HISTORY METHODS ---
