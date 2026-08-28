@@ -1332,6 +1332,7 @@ class PixelStewardApp {
     if (btnSide) btnSide.classList.remove('spinning');
 
     this.saveData();
+    this.checkAllDipPriceAlerts();
 
     this.showToast({
       icon: '⚡',
@@ -1346,6 +1347,7 @@ class PixelStewardApp {
       duration: 4000
     });
     this.renderTickerTape();
+    this.renderActiveTab();
   }
 
   // --- MODERN CYBERPUNK TOAST NOTIFICATION SYSTEM ---
@@ -2373,7 +2375,21 @@ class PixelStewardApp {
         const weightPct = stats.totalValueUSD > 0 ? ((s.marketValueUSD / stats.totalValueUSD) * 100).toFixed(2) : '0.00';
         const targetProgressPct = h.targetTHB > 0 ? Math.min(100, Math.max(0, (s.marketValueTHB / h.targetTHB) * 100)) : null;
 
-        const isDipActive = h.dipTargetUSD > 0 && s.currentPrice > 0 && s.currentPrice <= h.dipTargetUSD;
+        const dip1 = h.dipTarget1 || h.dipTargetUSD || 0;
+        const dip2 = h.dipTarget2 || 0;
+        const dip3 = h.dipTarget3 || 0;
+
+        const isDip3 = dip3 > 0 && s.currentPrice > 0 && s.currentPrice <= dip3;
+        const isDip2 = !isDip3 && dip2 > 0 && s.currentPrice > 0 && s.currentPrice <= dip2;
+        const isDip1 = !isDip3 && !isDip2 && dip1 > 0 && s.currentPrice > 0 && s.currentPrice <= dip1;
+        const isDipActive = isDip1 || isDip2 || isDip3;
+
+        let dipBadgeText = '';
+        if (isDip3) dipBadgeText = `🔥 ถึงจุดช้อนไม้ 3 ($${s.currentPrice.toFixed(2)} ≤ $${dip3.toFixed(2)})`;
+        else if (isDip2) dipBadgeText = `🔥 ถึงจุดช้อนไม้ 2 ($${s.currentPrice.toFixed(2)} ≤ $${dip2.toFixed(2)})`;
+        else if (isDip1) dipBadgeText = `🎯 ถึงจุดช้อนไม้ 1 ($${s.currentPrice.toFixed(2)} ≤ $${dip1.toFixed(2)})`;
+
+        const hasAnyDip = (dip1 > 0 || dip2 > 0 || dip3 > 0);
 
         html += `
           <div class="holding-card ${isDipActive ? 'dip-active' : ''}">
@@ -2383,9 +2399,16 @@ class PixelStewardApp {
                 <div class="ticker-name-box">
                   <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
                     <h4 style="margin: 0;">${h.ticker}</h4>
-                    ${isDipActive ? `<span class="dip-alert-badge">🔥 ถึงจุดช้อน ($${s.currentPrice.toFixed(2)} ≤ $${h.dipTargetUSD.toFixed(2)})</span>` : (h.dipTargetUSD ? `<span style="font-size: 11px; color: var(--text-muted); font-family: var(--font-mono);">🎯 เล็งช้อน: $${h.dipTargetUSD.toFixed(2)}</span>` : '')}
+                    ${isDipActive ? `<span class="dip-alert-badge">${dipBadgeText}</span>` : ''}
                   </div>
                   <div class="ticker-subname">${h.name || h.ticker}</div>
+                  ${hasAnyDip ? `
+                    <div class="dip-targets-pill-row font-mono">
+                      ${dip1 > 0 ? `<span class="dip-tier-pill ${s.currentPrice <= dip1 && s.currentPrice > 0 ? 'hit' : ''}">🎯 ไม้ 1: $${dip1.toFixed(2)}</span>` : ''}
+                      ${dip2 > 0 ? `<span class="dip-tier-pill ${s.currentPrice <= dip2 && s.currentPrice > 0 ? 'hit' : ''}">🎯 ไม้ 2: $${dip2.toFixed(2)}</span>` : ''}
+                      ${dip3 > 0 ? `<span class="dip-tier-pill ${s.currentPrice <= dip3 && s.currentPrice > 0 ? 'hit' : ''}">🎯 ไม้ 3: $${dip3.toFixed(2)}</span>` : ''}
+                    </div>
+                  ` : ''}
                 </div>
               </div>
 
@@ -4752,7 +4775,18 @@ tags:
         document.getElementById('holding-avg-cost').value = h.avgCostUSD;
         document.getElementById('holding-current-price').value = h.currentPriceUSD || '';
         document.getElementById('holding-1d-change').value = h.change1dPct || '';
-        document.getElementById('holding-dip-target').value = h.dipTargetUSD || '';
+        
+        // Populate 3-Tier Dip Targets
+        const target1 = h.dipTarget1 !== undefined && h.dipTarget1 !== null ? h.dipTarget1 : (h.dipTargetUSD || '');
+        const target2 = h.dipTarget2 !== undefined && h.dipTarget2 !== null ? h.dipTarget2 : '';
+        const target3 = h.dipTarget3 !== undefined && h.dipTarget3 !== null ? h.dipTarget3 : '';
+
+        const dt1 = document.getElementById('holding-dip-target-1');
+        const dt2 = document.getElementById('holding-dip-target-2');
+        const dt3 = document.getElementById('holding-dip-target-3');
+        if (dt1) dt1.value = target1;
+        if (dt2) dt2.value = target2;
+        if (dt3) dt3.value = target3;
         
         this.updateHoldingTickerPreview(h.ticker);
 
@@ -4776,7 +4810,12 @@ tags:
       document.getElementById('modal-holding-title').textContent = '➕ เพิ่มสินทรัพย์หุ้นใหม่';
       document.getElementById('form-holding').reset();
       document.getElementById('holding-id').value = '';
-      document.getElementById('holding-dip-target').value = '';
+      const dt1 = document.getElementById('holding-dip-target-1');
+      const dt2 = document.getElementById('holding-dip-target-2');
+      const dt3 = document.getElementById('holding-dip-target-3');
+      if (dt1) dt1.value = '';
+      if (dt2) dt2.value = '';
+      if (dt3) dt3.value = '';
       document.getElementById('holding-name').removeAttribute('data-autofilled');
       if (portSelect) portSelect.value = portfolioId || this.selectedPortfolioId;
       this.updateHoldingTickerPreview('');
@@ -4787,42 +4826,129 @@ tags:
   }
 
   saveHoldingForm() {
-    const portId = document.getElementById('holding-portfolio-id').value;
-    const holdingId = document.getElementById('holding-id').value;
-    const ticker = document.getElementById('holding-ticker').value.trim().toUpperCase();
-    const name = document.getElementById('holding-name').value.trim();
-    const shares = parseFloat(document.getElementById('holding-shares').value) || 0;
-    const avgCostUSD = parseFloat(document.getElementById('holding-avg-cost').value) || 0;
-    const currentPriceUSD = parseFloat(document.getElementById('holding-current-price').value) || avgCostUSD;
-    const change1dPct = parseFloat(document.getElementById('holding-1d-change').value) || 0;
-    const dipTargetUSD = parseFloat(document.getElementById('holding-dip-target').value) || null;
+    const portId = document.getElementById('holding-portfolio-id')?.value;
+    const holdingId = document.getElementById('holding-id')?.value;
+    const ticker = (document.getElementById('holding-ticker')?.value || '').trim().toUpperCase();
+    const name = (document.getElementById('holding-name')?.value || ticker).trim();
+    const shares = parseFloat(document.getElementById('holding-shares')?.value) || 0;
+    const avgCostUSD = parseFloat(document.getElementById('holding-avg-cost')?.value) || 0;
+    const currentPriceUSD = parseFloat(document.getElementById('holding-current-price')?.value) || avgCostUSD;
+    const change1dPct = parseFloat(document.getElementById('holding-1d-change')?.value) || 0;
 
-    const port = this.portfolios.find(p => p.id === portId);
-    if (!port) return;
+    const dip1Val = parseFloat(document.getElementById('holding-dip-target-1')?.value);
+    const dip2Val = parseFloat(document.getElementById('holding-dip-target-2')?.value);
+    const dip3Val = parseFloat(document.getElementById('holding-dip-target-3')?.value);
 
-    if (!port.holdings) port.holdings = [];
+    const dipTarget1 = !isNaN(dip1Val) && dip1Val > 0 ? dip1Val : null;
+    const dipTarget2 = !isNaN(dip2Val) && dip2Val > 0 ? dip2Val : null;
+    const dipTarget3 = !isNaN(dip3Val) && dip3Val > 0 ? dip3Val : null;
+    const dipTargetUSD = dipTarget1; // For backward compatibility
 
-    if (holdingId) {
-      const idx = port.holdings.findIndex(h => h.id === holdingId);
-      if (idx >= 0) {
-        port.holdings[idx] = { ...port.holdings[idx], ticker, name, shares, avgCostUSD, currentPriceUSD, change1dPct, dipTargetUSD };
-      }
-    } else {
-      const newHolding = {
-        id: 'h-' + Date.now(),
-        ticker,
-        name: name || ticker,
-        shares,
-        avgCostUSD,
-        currentPriceUSD,
-        change1dPct,
-        dipTargetUSD
-      };
-      port.holdings.push(newHolding);
+    if (!ticker) {
+      alert('กรุณาระบุสัญลักษณ์หุ้น (Ticker)');
+      return;
     }
+
+    const targetPort = this.portfolios.find(p => p.id === portId);
+    if (!targetPort) {
+      alert('ไม่พบพอร์ตการลงทุนที่เลือก');
+      return;
+    }
+
+    if (!targetPort.holdings) targetPort.holdings = [];
+
+    // Safely remove existing holding across all portfolios (to support moving across portfolios)
+    if (holdingId) {
+      this.portfolios.forEach(p => {
+        if (p.holdings) {
+          p.holdings = p.holdings.filter(h => h.id !== holdingId);
+        }
+      });
+    }
+
+    const finalHolding = {
+      id: holdingId || ('h-' + Date.now()),
+      ticker,
+      name,
+      shares,
+      avgCostUSD,
+      currentPriceUSD,
+      change1dPct,
+      dipTargetUSD,
+      dipTarget1,
+      dipTarget2,
+      dipTarget3
+    };
+
+    targetPort.holdings.push(finalHolding);
 
     this.saveData();
     this.closeModal('modal-holding');
+    this.renderActiveTab();
+    
+    // Check if price reached dip targets immediately
+    this.checkSingleHoldingDipAlert(finalHolding);
+
+    this.showToast({
+      icon: '💾',
+      title: 'บันทึกสินทรัพย์สำเร็จ!',
+      message: `${ticker} (${name}) • บันทึกเป้าหมายช้อนเรียบร้อย`,
+      type: 'success'
+    });
+  }
+
+  checkSingleHoldingDipAlert(h) {
+    const price = h.currentPriceUSD || 0;
+    if (price <= 0) return;
+
+    const hits = [];
+    if (h.dipTarget3 && price <= h.dipTarget3) {
+      hits.push(`ไม้ 3 ($${h.dipTarget3})`);
+    } else if (h.dipTarget2 && price <= h.dipTarget2) {
+      hits.push(`ไม้ 2 ($${h.dipTarget2})`);
+    } else if (h.dipTarget1 && price <= h.dipTarget1) {
+      hits.push(`ไม้ 1 ($${h.dipTarget1})`);
+    } else if (h.dipTargetUSD && price <= h.dipTargetUSD) {
+      hits.push(`$${h.dipTargetUSD}`);
+    }
+
+    if (hits.length > 0) {
+      this.showToast({
+        icon: '🎯',
+        title: `🔥 [${h.ticker}] ราคาถึงจุดช้อนแล้ว!`,
+        message: `ราคาตลาดปัจจุบัน $${price.toFixed(2)} ถึงแนวรับ ${hits.join(', ')}`,
+        type: 'warning',
+        duration: 6000
+      });
+    }
+  }
+
+  checkAllDipPriceAlerts() {
+    let triggeredCount = 0;
+    this.portfolios.forEach(p => {
+      (p.holdings || []).forEach(h => {
+        const price = h.currentPriceUSD || 0;
+        if (price <= 0) return;
+
+        const dip1 = h.dipTarget1 || h.dipTargetUSD || 0;
+        const dip2 = h.dipTarget2 || 0;
+        const dip3 = h.dipTarget3 || 0;
+
+        if ((dip1 > 0 && price <= dip1) || (dip2 > 0 && price <= dip2) || (dip3 > 0 && price <= dip3)) {
+          triggeredCount++;
+        }
+      });
+    });
+
+    if (triggeredCount > 0) {
+      this.showToast({
+        icon: '🎯',
+        title: `🔥 พบ ${triggeredCount} สินทรัพย์ถึงจุดเล็งช้อน!`,
+        message: 'ราคาตลาดลงมาแตะแนวรับที่คุณตั้งไว้ เปิดดูได้ในแท็บแยกพอร์ต',
+        type: 'warning',
+        duration: 6000
+      });
+    }
   }
 
   // --- TRADE MODAL & DCA ENGINE ---
