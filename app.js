@@ -256,6 +256,16 @@ const INITIAL_DIVIDENDS = [
   { id: 'div-1', date: '2026-08-18', ticker: 'PG', portfolioId: 'us_dividend', grossUSD: 0.02, taxUSD: 0.00, netUSD: 0.02, notes: 'ปันผล PG' }
 ];
 
+// Default Achievements & Financial Goals
+const DEFAULT_ACHIEVEMENTS = [
+  { id: 'ach_1', emoji: '🛡️', name: 'Emergency Shield', desc: 'มีเงินสำรองฉุกเฉิน (Zero 1) ครบ 100%', completed: false, createdAt: '2026-08-01' },
+  { id: 'ach_2', emoji: '💧', name: 'Cash Buffer Master', desc: 'มีเงินสดไว้ช้อนรวมกันมากกว่า $50', completed: false, createdAt: '2026-08-01' },
+  { id: 'ach_3', emoji: '💰', name: 'Dividend Pioneer', desc: 'ได้รับเงินปันผลสะสมเข้าพอร์ตแล้ว', completed: true, createdAt: '2026-08-01' },
+  { id: 'ach_4', emoji: '📈', name: 'Cashflow Disciplined', desc: 'บันทึกยอดเงินเทรด Forex/Option ครบถ้วน', completed: false, createdAt: '2026-08-01' },
+  { id: 'ach_5', emoji: '🌐', name: 'World Class Diversified', desc: 'มีสินทรัพย์ในพอร์ตมากกว่า 5 รายการ', completed: true, createdAt: '2026-08-01' },
+  { id: 'ach_6', emoji: '👑', name: 'Freedom Seeker', desc: 'มูลค่าสินทรัพย์รวมแตะระดับ $1,000', completed: false, createdAt: '2026-08-01' }
+];
+
 // --- 3. MAIN APPLICATION CLASS ---
 class PixelStewardApp {
   constructor() {
@@ -263,6 +273,8 @@ class PixelStewardApp {
     this.tradingData = {};
     this.quarterlySnapshots = [];
     this.dividends = [];
+    this.achievements = [];
+    this.achievementFilter = 'in_progress'; // 'in_progress', 'completed', 'all'
     this.exchangeRate = 32.59;
     this.displayCurrency = 'USD'; // 'USD' or 'THB'
     this.currentTab = 'dashboard';
@@ -270,6 +282,7 @@ class PixelStewardApp {
     this.selectedQuarterYear = new Date().getFullYear();
     this.isPrivacyMode = false;
     this.isSidebarCollapsed = false;
+    this.allocationViewMode = 'donut'; // 'donut' or 'treemap'
     
     // Firebase & Sync State
     this.dbRef = null;
@@ -805,12 +818,14 @@ class PixelStewardApp {
         this.tradingData = parsed.tradingData || INITIAL_TRADING_DATA;
         this.quarterlySnapshots = parsed.quarterlySnapshots || INITIAL_QUARTERLY_DATA;
         this.dividends = parsed.dividends || INITIAL_DIVIDENDS;
+        this.achievements = (parsed.achievements && Array.isArray(parsed.achievements)) ? parsed.achievements : JSON.parse(JSON.stringify(DEFAULT_ACHIEVEMENTS));
         this.exchangeRate = parsed.exchangeRate || 32.59;
       } else {
         this.portfolios = JSON.parse(JSON.stringify(INITIAL_PORTFOLIOS));
         this.tradingData = JSON.parse(JSON.stringify(INITIAL_TRADING_DATA));
         this.quarterlySnapshots = JSON.parse(JSON.stringify(INITIAL_QUARTERLY_DATA));
         this.dividends = JSON.parse(JSON.stringify(INITIAL_DIVIDENDS));
+        this.achievements = JSON.parse(JSON.stringify(DEFAULT_ACHIEVEMENTS));
       }
     } catch (e) {
       console.warn('Failed to load localStorage:', e);
@@ -818,6 +833,7 @@ class PixelStewardApp {
       this.tradingData = JSON.parse(JSON.stringify(INITIAL_TRADING_DATA));
       this.quarterlySnapshots = JSON.parse(JSON.stringify(INITIAL_QUARTERLY_DATA));
       this.dividends = JSON.parse(JSON.stringify(INITIAL_DIVIDENDS));
+      this.achievements = JSON.parse(JSON.stringify(DEFAULT_ACHIEVEMENTS));
     }
 
     this.portfolios = this.portfolios.filter(p => p.id !== 'redwing' && !p.name.includes('RedWing'));
@@ -842,6 +858,7 @@ class PixelStewardApp {
       tradingData: this.tradingData,
       quarterlySnapshots: this.quarterlySnapshots,
       dividends: this.dividends,
+      achievements: this.achievements,
       exchangeRate: this.exchangeRate,
       lastUpdated: new Date().toISOString()
     };
@@ -870,6 +887,9 @@ class PixelStewardApp {
     if (cloudData.tradingData) this.tradingData = cloudData.tradingData;
     if (cloudData.quarterlySnapshots) this.quarterlySnapshots = cloudData.quarterlySnapshots;
     if (cloudData.dividends) this.dividends = cloudData.dividends;
+    if (cloudData.achievements && Array.isArray(cloudData.achievements)) {
+      this.achievements = cloudData.achievements;
+    }
     if (cloudData.exchangeRate) this.exchangeRate = cloudData.exchangeRate;
 
     localStorage.setItem('pixel_steward_data_v2', JSON.stringify(cloudData));
@@ -1545,23 +1565,37 @@ class PixelStewardApp {
         </div>
       </div>
 
-      <!-- GAMIFICATION: MILESTONE ACHIEVEMENTS (COMPACT) -->
-      <div class="section-header milestones-collapsible-header">
-        <div class="section-title">
-          <span>🏆 เหรียญความสำเร็จทางการเงิน (Achievements)</span>
-          <span class="section-count-badge font-mono">${unlockedCount}/${milestones.length} ปลดล็อก</span>
-        </div>
-      </div>
-      <div class="milestones-grid">
-        ${milestones.map(b => `
-          <div class="milestone-badge-card ${b.unlocked ? 'unlocked' : 'locked'}" title="${b.desc}">
-            <div class="milestone-badge-icon">${b.icon}</div>
-            <div class="milestone-badge-info">
-              <h5>${b.name} ${b.unlocked ? '✅' : '🔒'}</h5>
-              <p>${b.desc}</p>
-            </div>
+      <!-- CUSTOM FINANCIAL ACHIEVEMENTS & GOALS SECTION -->
+      <div class="achievements-section-wrapper">
+        <div class="achievements-header">
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <span style="font-size: 15px; font-weight: 800; color: #fff;">🏆 เป้าหมาย & เหรียญความสำเร็จ (Goals & Achievements)</span>
+            <span class="badge font-mono" style="background: rgba(16, 185, 129, 0.15); color: var(--color-emerald); font-size: 11px; padding: 2px 8px; border-radius: var(--radius-full);">
+              ${this.achievements.filter(a => a.completed).length}/${this.achievements.length} สำเร็จแล้ว
+            </span>
           </div>
-        `).join('')}
+
+          <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+            <div class="achievement-filter-tabs">
+              <button type="button" class="ach-tab-btn ${this.achievementFilter === 'in_progress' ? 'active' : ''}" data-ach-filter="in_progress">
+                ⏳ กำลังพิชิต (${this.achievements.filter(a => !a.completed).length})
+              </button>
+              <button type="button" class="ach-tab-btn ${this.achievementFilter === 'completed' ? 'active' : ''}" data-ach-filter="completed">
+                ✅ สำเร็จแล้ว (${this.achievements.filter(a => a.completed).length})
+              </button>
+              <button type="button" class="ach-tab-btn ${this.achievementFilter === 'all' ? 'active' : ''}" data-ach-filter="all">
+                🌟 ทั้งหมด (${this.achievements.length})
+              </button>
+            </div>
+            <button type="button" class="btn btn-sm btn-secondary" id="btn-add-achievement-modal" title="สร้างเป้าหมายทางการเงินใหม่">
+              <span>➕ เพิ่มเป้าหมาย</span>
+            </button>
+          </div>
+        </div>
+
+        <div class="achievements-list-grid" id="achievements-list-container">
+          ${this.renderAchievementsListHTML()}
+        </div>
       </div>
 
       <!-- VIEW MODE SWITCHER: DONUT VS TREEMAP -->
@@ -1731,11 +1765,237 @@ class PixelStewardApp {
       });
     });
 
+    // Setup Achievements Mini-Tabs & Click Events
+    this.setupAchievementsEvents(container);
+
     // Setup Donut Carousel Tabs & Charts
     this.setupDonutTabs();
     setTimeout(() => {
       this.initDashboardCharts();
     }, 50);
+  }
+
+  setupAchievementsEvents(container) {
+    // Mini-Tab Filter Click
+    container.querySelectorAll('[data-ach-filter]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const filter = btn.getAttribute('data-ach-filter');
+        this.achievementFilter = filter;
+        container.querySelectorAll('[data-ach-filter]').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        const listEl = document.getElementById('achievements-list-container');
+        if (listEl) {
+          listEl.innerHTML = this.renderAchievementsListHTML();
+          this.rebindAchievementItemEvents(container);
+        }
+      });
+    });
+
+    // Add Achievement Modal Button
+    document.getElementById('btn-add-achievement-modal')?.addEventListener('click', () => {
+      this.openAchievementModal(null);
+    });
+
+    this.rebindAchievementItemEvents(container);
+  }
+
+  rebindAchievementItemEvents(container) {
+    // Toggle Completion (Check button)
+    container.querySelectorAll('[data-ach-toggle]').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const id = btn.getAttribute('data-ach-toggle');
+        this.toggleAchievementCompleted(id);
+      });
+    });
+
+    // Edit Achievement Button
+    container.querySelectorAll('[data-ach-edit]').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const id = btn.getAttribute('data-ach-edit');
+        this.openAchievementModal(id);
+      });
+    });
+  }
+
+  renderAchievementsListHTML() {
+    let list = this.achievements || [];
+    if (this.achievementFilter === 'in_progress') {
+      list = list.filter(a => !a.completed);
+    } else if (this.achievementFilter === 'completed') {
+      list = list.filter(a => a.completed);
+    }
+
+    if (list.length === 0) {
+      const msg = this.achievementFilter === 'completed' 
+        ? 'ยังไม่มีเป้าหมายที่สำเร็จ มาเริ่มพิชิตเป้าหมายกันเถอะ!' 
+        : (this.achievementFilter === 'in_progress' ? '🎉 ยินดีด้วย! คุณพิชิตเป้าหมายทั้งหมดเรียบร้อยแล้ว' : 'ยังไม่มีเป้าหมายที่บันทึกไว้');
+      return `<div style="text-align: center; padding: 20px; color: var(--text-muted); grid-column: 1/-1; font-size: 13px;">${msg}</div>`;
+    }
+
+    return list.map(a => `
+      <div class="achievement-card-compact ${a.completed ? 'unlocked' : 'locked'}" data-ach-id="${a.id}">
+        <div class="ach-card-left">
+          <span class="ach-icon">${a.emoji || '🎯'}</span>
+          <div class="ach-meta">
+            <div class="ach-title">
+              <span>${this.escapeHtml(a.name)}</span>
+              ${a.completed ? '<span style="color:var(--color-emerald); font-size:11px;">✅</span>' : '<span style="color:var(--text-muted); font-size:11px;">⏳</span>'}
+            </div>
+            <div class="ach-desc" title="${this.escapeHtml(a.desc || '')}">${this.escapeHtml(a.desc || 'เป้าหมายทางการเงิน')}</div>
+          </div>
+        </div>
+        <div class="ach-actions">
+          <button type="button" class="ach-check-btn ${a.completed ? 'completed' : ''}" data-ach-toggle="${a.id}" title="${a.completed ? 'คลิกเพื่อเปลี่ยนเป็นกำลังทำ' : 'คลิกเมื่อทำสำเร็จแล้ว 🎉'}">
+            ${a.completed ? '✓' : '○'}
+          </button>
+          <button type="button" class="ach-edit-btn" data-ach-edit="${a.id}" title="แก้ไขเป้าหมาย">✏️</button>
+        </div>
+      </div>
+    `).join('');
+  }
+
+  openAchievementModal(achId = null) {
+    const titleEl = document.getElementById('modal-achievement-title');
+    const idInput = document.getElementById('achievement-id');
+    const emojiInput = document.getElementById('achievement-emoji');
+    const nameInput = document.getElementById('achievement-name');
+    const descInput = document.getElementById('achievement-desc');
+    const completedInput = document.getElementById('achievement-completed');
+    const btnDelete = document.getElementById('btn-delete-achievement');
+
+    if (achId) {
+      const ach = (this.achievements || []).find(a => a.id === achId);
+      if (!ach) return;
+      if (titleEl) titleEl.textContent = '✏️ แก้ไขเป้าหมายความสำเร็จ';
+      if (idInput) idInput.value = ach.id;
+      if (emojiInput) emojiInput.value = ach.emoji || '🎯';
+      if (nameInput) nameInput.value = ach.name || '';
+      if (descInput) descInput.value = ach.desc || '';
+      if (completedInput) completedInput.checked = !!ach.completed;
+      btnDelete?.classList.remove('hidden');
+    } else {
+      if (titleEl) titleEl.textContent = '➕ สร้างเป้าหมายความสำเร็จใหม่';
+      if (idInput) idInput.value = '';
+      if (emojiInput) emojiInput.value = '🎯';
+      if (nameInput) nameInput.value = '';
+      if (descInput) descInput.value = '';
+      if (completedInput) completedInput.checked = false;
+      btnDelete?.classList.add('hidden');
+    }
+
+    this.setupAchievementEmojiPicker();
+    this.openModal('modal-achievement');
+  }
+
+  setupAchievementEmojiPicker() {
+    const container = document.getElementById('achievement-emoji-picker');
+    const emojiInput = document.getElementById('achievement-emoji');
+    if (!container || !emojiInput) return;
+
+    container.querySelectorAll('.emoji-pick-btn').forEach(btn => {
+      btn.onclick = () => {
+        const em = btn.getAttribute('data-emoji');
+        if (em) {
+          emojiInput.value = em;
+          container.querySelectorAll('.emoji-pick-btn').forEach(b => b.classList.remove('active'));
+          btn.classList.add('active');
+        }
+      };
+    });
+  }
+
+  saveAchievementFromForm(e) {
+    if (e) e.preventDefault();
+    const id = document.getElementById('achievement-id')?.value;
+    const emoji = (document.getElementById('achievement-emoji')?.value || '🎯').trim();
+    const name = (document.getElementById('achievement-name')?.value || '').trim();
+    const desc = (document.getElementById('achievement-desc')?.value || '').trim();
+    const completed = !!document.getElementById('achievement-completed')?.checked;
+
+    if (!name) {
+      alert('กรุณากรอกชื่อเป้าหมายความสำเร็จ');
+      return;
+    }
+
+    if (id) {
+      // Edit existing
+      const idx = this.achievements.findIndex(a => a.id === id);
+      if (idx >= 0) {
+        const wasCompleted = this.achievements[idx].completed;
+        this.achievements[idx] = {
+          ...this.achievements[idx],
+          emoji,
+          name,
+          desc,
+          completed
+        };
+        if (!wasCompleted && completed) {
+          this.triggerCelebration();
+        }
+      }
+    } else {
+      // Create new
+      const newAch = {
+        id: 'ach_' + Date.now(),
+        emoji,
+        name,
+        desc,
+        completed,
+        createdAt: new Date().toISOString().split('T')[0]
+      };
+      this.achievements.push(newAch);
+      if (completed) {
+        this.triggerCelebration();
+      }
+    }
+
+    this.saveData();
+    this.closeModal('modal-achievement');
+    this.showToast({
+      icon: emoji,
+      title: 'บันทึกเป้าหมายสำเร็จ!',
+      message: name,
+      type: 'success'
+    });
+  }
+
+  deleteAchievement(achId) {
+    if (!achId) return;
+    if (confirm('คุณต้องการลบเป้าหมายนี้ใช่หรือไม่?')) {
+      this.achievements = this.achievements.filter(a => a.id !== achId);
+      this.saveData();
+      this.closeModal('modal-achievement');
+      this.showToast({
+        icon: '🗑️',
+        title: 'ลบเป้าหมายแล้ว',
+        type: 'info'
+      });
+    }
+  }
+
+  toggleAchievementCompleted(achId) {
+    const ach = (this.achievements || []).find(a => a.id === achId);
+    if (!ach) return;
+    ach.completed = !ach.completed;
+    if (ach.completed) {
+      this.triggerCelebration();
+      this.showToast({
+        icon: ach.emoji || '🎉',
+        title: '🏆 ปลดล็อกเป้าหมายสำเร็จ!',
+        message: ach.name,
+        type: 'success'
+      });
+    } else {
+      this.showToast({
+        icon: '⏳',
+        title: 'เปลี่ยนสถานะเป็นกำลังพิชิต',
+        message: ach.name,
+        type: 'info'
+      });
+    }
+    this.saveData();
   }
 
   renderTreemapTilesHTML() {
@@ -4435,6 +4695,17 @@ tags:
     document.getElementById('form-add-trading-month')?.addEventListener('submit', (e) => {
       e.preventDefault();
       this.saveTradingMonthForm();
+    });
+
+    // Custom Financial Achievement Form Submit & Delete
+    document.getElementById('form-achievement')?.addEventListener('submit', (e) => {
+      this.saveAchievementFromForm(e);
+    });
+
+    document.getElementById('btn-delete-achievement')?.addEventListener('click', (e) => {
+      e.preventDefault();
+      const id = document.getElementById('achievement-id')?.value;
+      this.deleteAchievement(id);
     });
   }
 
