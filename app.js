@@ -1079,47 +1079,37 @@ class PixelStewardApp {
   async fetchViaFastProxies(targetUrl) {
     const fetchers = [
       async (u) => {
-        const res = await this.fetchWithTimeout(`https://api.allorigins.win/raw?url=${encodeURIComponent(u)}`, 4500);
+        // Direct fetch (sub-100ms in Android APK / WebView / Electron)
+        const res = await this.fetchWithTimeout(u, 2500);
         if (res.ok) return await res.json();
-        return null;
+        throw new Error('Direct failed');
       },
       async (u) => {
-        const res = await this.fetchWithTimeout(`https://api.allorigins.win/get?url=${encodeURIComponent(u)}`, 4500);
+        const res = await this.fetchWithTimeout(`https://api.allorigins.win/raw?url=${encodeURIComponent(u)}`, 3000);
+        if (res.ok) return await res.json();
+        throw new Error('Allorigins raw failed');
+      },
+      async (u) => {
+        const res = await this.fetchWithTimeout(`https://api.allorigins.win/get?url=${encodeURIComponent(u)}`, 3000);
         if (res.ok) {
           const d = await res.json();
-          if (d && d.contents) {
-            return JSON.parse(d.contents);
-          }
+          if (d && d.contents) return JSON.parse(d.contents);
         }
-        return null;
+        throw new Error('Allorigins get failed');
       },
       async (u) => {
-        const res = await this.fetchWithTimeout(`https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(u)}`, 4500);
+        const res = await this.fetchWithTimeout(`https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(u)}`, 3000);
         if (res.ok) return await res.json();
-        return null;
-      },
-      async (u) => {
-        const res = await this.fetchWithTimeout(`https://corsproxy.io/?url=${encodeURIComponent(u)}`, 4500);
-        if (res.ok) return await res.json();
-        return null;
-      },
-      async (u) => {
-        // Direct attempt (works in Electron / Cordova / Capacitor / WebView where CORS is disabled)
-        const res = await this.fetchWithTimeout(u, 4500);
-        if (res.ok) return await res.json();
-        return null;
+        throw new Error('Codetabs failed');
       }
     ];
 
-    for (const fetchFn of fetchers) {
-      try {
-        const data = await fetchFn(targetUrl);
-        if (data) return data;
-      } catch (e) {
-        // Continue to next provider
-      }
+    try {
+      // Race all proxy providers concurrently - the fastest responsive proxy wins immediately!
+      return await Promise.any(fetchers.map(fn => fn(targetUrl)));
+    } catch (e) {
+      return null;
     }
-    return null;
   }
 
   async fetchLiveExchangeRate() {
@@ -1217,30 +1207,33 @@ class PixelStewardApp {
   async fetchBatchStockPrices(tickers, priceUpdates) {
     if (!tickers || tickers.length === 0) return;
 
-    // Fast Single-Batch Request for all US stocks via Yahoo Finance Quote API
+    // 1. Try single batch quote first
     const symbolsStr = tickers.join(',');
     const quoteUrl = `https://query1.finance.yahoo.com/v7/finance/quote?symbols=${encodeURIComponent(symbolsStr)}`;
     
-    const data = await this.fetchViaFastProxies(quoteUrl);
-    const results = data?.quoteResponse?.result;
-    
-    if (Array.isArray(results) && results.length > 0) {
-      results.forEach(q => {
-        const sym = q.symbol?.toUpperCase();
-        const price = q.regularMarketPrice || q.postMarketPrice || q.preMarketPrice;
-        const changePct = q.regularMarketChangePercent ?? 0;
-        if (sym && price > 0) {
-          priceUpdates[sym] = { priceUSD: price, change1dPct: changePct };
-        }
-      });
-    }
+    try {
+      const data = await this.fetchViaFastProxies(quoteUrl);
+      const results = data?.quoteResponse?.result;
+      
+      if (Array.isArray(results) && results.length > 0) {
+        results.forEach(q => {
+          const sym = q.symbol?.toUpperCase();
+          const price = q.regularMarketPrice || q.postMarketPrice || q.preMarketPrice;
+          const changePct = q.regularMarketChangePercent ?? 0;
+          if (sym && price > 0) {
+            priceUpdates[sym] = { priceUSD: price, change1dPct: changePct };
+          }
+        });
+      }
+    } catch (e) {}
 
-    // Check if any ticker was missed, and query individual chart in parallel
+    // 2. Guaranteed concurrent chart fallback for all remaining tickers
     const missingTickers = tickers.filter(t => !priceUpdates[t]);
     if (missingTickers.length > 0) {
-      const fallbackPromises = missingTickers.map(async (sym) => {
+      const fallbackPromises = missingTickers.map(async (sym, idx) => {
         try {
-          const chartUrl = `https://query1.finance.yahoo.com/v8/finance/chart/${sym}?interval=1d&range=2d`;
+          if (idx > 0) await new Promise(r => setTimeout(r, idx * 60));
+          const chartUrl = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(sym)}?interval=1d&range=2d`;
           const chartData = await this.fetchViaFastProxies(chartUrl);
           const meta = chartData?.chart?.result?.[0]?.meta;
           if (meta && meta.regularMarketPrice) {
@@ -1260,23 +1253,23 @@ class PixelStewardApp {
   async fetchThaiStockPrices(thaiTickers, priceUpdates) {
     if (!thaiTickers || thaiTickers.length === 0) return;
 
-    const symbolsStr = thaiTickers.join(',');
-    const quoteUrl = `https://query1.finance.yahoo.com/v7/finance/quote?symbols=${encodeURIComponent(symbolsStr)}`;
-    
-    const data = await this.fetchViaFastProxies(quoteUrl);
-    const results = data?.quoteResponse?.result;
-
-    if (Array.isArray(results)) {
-      results.forEach(q => {
-        const sym = q.symbol?.toUpperCase();
-        const priceTHB = q.regularMarketPrice;
-        const changePct = q.regularMarketChangePercent ?? 0;
-        if (sym && priceTHB > 0) {
-          const priceUSD = priceTHB / (this.exchangeRate || 32.59);
+    const rate = this.exchangeRate || 32.59;
+    const chartPromises = thaiTickers.map(async (sym, idx) => {
+      try {
+        if (idx > 0) await new Promise(r => setTimeout(r, idx * 60));
+        const chartUrl = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(sym)}?interval=1d&range=2d`;
+        const chartData = await this.fetchViaFastProxies(chartUrl);
+        const meta = chartData?.chart?.result?.[0]?.meta;
+        if (meta && meta.regularMarketPrice) {
+          const priceTHB = meta.regularMarketPrice;
+          const prev = meta.previousClose || meta.chartPreviousClose || priceTHB;
+          const changePct = prev > 0 ? ((priceTHB - prev) / prev) * 100 : 0;
+          const priceUSD = priceTHB / rate;
           priceUpdates[sym] = { priceUSD, change1dPct: changePct };
         }
-      });
-    }
+      } catch (e) {}
+    });
+    await Promise.allSettled(chartPromises);
   }
 
   async syncLiveMarketPrices() {
