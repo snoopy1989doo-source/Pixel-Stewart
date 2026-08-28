@@ -33,7 +33,7 @@ jobs:
 
       - name: Install Dependencies
         run: |
-          npm install @capacitor/core@latest @capacitor/cli@latest @capacitor/android@latest
+          npm install @capacitor/core@^6.0.0 @capacitor/cli@^6.0.0 @capacitor/android@^6.0.0 --save
 
       - name: Setup Capacitor Configuration
         run: |
@@ -41,15 +41,7 @@ jobs:
           {
             "appId": "com.snoopy.pixelsteward",
             "appName": "Pixel Steward",
-            "webDir": "www",
-            "bundledWebRuntime": false,
-            "android": {
-              "allowMixedContent": true
-            },
-            "server": {
-              "androidScheme": "https",
-              "cleartext": true
-            }
+            "webDir": "www"
           }
           EOF
 
