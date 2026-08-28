@@ -4651,53 +4651,10 @@ tags:
       document.getElementById('dividend-net-thb').textContent = this.formatTHB(this.usdToThb(net));
     });
 
-    // Holding Form Submit & Live Ticker Lookup
+    // Live Ticker Preview Lookup
     document.getElementById('holding-ticker')?.addEventListener('input', (e) => {
       const sym = e.target.value.trim().toUpperCase();
       this.updateHoldingTickerPreview(sym);
-    });
-
-    document.getElementById('form-holding')?.addEventListener('submit', (e) => {
-      e.preventDefault();
-      this.saveHoldingForm();
-    });
-
-    // Trade Form Submit
-    document.getElementById('form-trade')?.addEventListener('submit', (e) => {
-      e.preventDefault();
-      this.executeTrade();
-    });
-
-    // Cash Buffer Form Submit
-    document.getElementById('form-cash-buffer')?.addEventListener('submit', (e) => {
-      e.preventDefault();
-      this.saveCashBufferForm();
-    });
-
-    // Cash Buffer Live THB Calculator
-    document.getElementById('cash-amount-usd')?.addEventListener('input', (e) => {
-      const val = parseFloat(e.target.value) || 0;
-      const thbEl = document.getElementById('cash-amount-thb');
-      if (thbEl) thbEl.value = this.formatTHB(this.usdToThb(val));
-    });
-
-    // Dividend Form Calculations & Submit
-    document.getElementById('dividend-gross-usd')?.addEventListener('input', (e) => {
-      const gross = parseFloat(e.target.value) || 0;
-      const tax = gross * 0.15;
-      const net = gross - tax;
-      const taxInput = document.getElementById('dividend-tax-usd');
-      if (taxInput) taxInput.value = tax.toFixed(2);
-      document.getElementById('dividend-net-usd').textContent = this.formatUSD(net);
-      document.getElementById('dividend-net-thb').textContent = this.formatTHB(this.usdToThb(net));
-    });
-
-    document.getElementById('dividend-tax-usd')?.addEventListener('input', () => {
-      const gross = parseFloat(document.getElementById('dividend-gross-usd').value) || 0;
-      const tax = parseFloat(document.getElementById('dividend-tax-usd').value) || 0;
-      const net = gross - tax;
-      document.getElementById('dividend-net-usd').textContent = this.formatUSD(net);
-      document.getElementById('dividend-net-thb').textContent = this.formatTHB(this.usdToThb(net));
     });
 
     document.getElementById('form-dividend')?.addEventListener('submit', (e) => {
