@@ -55,6 +55,8 @@ jobs:
 
       - name: Set Android App Launcher Icons & Permissions
         run: |
+          # Remove adaptive XML folder to prevent AAPT2 resource collision
+          rm -rf android/app/src/main/res/mipmap-anydpi-v26 || true
           for dir in android/app/src/main/res/mipmap-*; do
             if [ -d "$dir" ]; then
               cp www/assets/app-logo.png "$dir/ic_launcher.png" || true
@@ -74,7 +76,7 @@ jobs:
       - name: Build APK with Gradle
         run: |
           cd android
-          ./gradlew assembleDebug --no-daemon
+          ./gradlew assembleDebug --stacktrace --no-daemon
 
       - name: Prepare APK Output
         run: |
