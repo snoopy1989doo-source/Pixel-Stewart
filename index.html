@@ -30,7 +30,7 @@
   <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.2/dist/confetti.browser.min.js"></script>
   
   <!-- Main Stylesheet -->
-  <link rel="stylesheet" href="style.css?v=2.8.4">
+  <link rel="stylesheet" href="style.css?v=2.8.5">
 </head>
 <body>
   <div class="app-layout">
@@ -180,7 +180,7 @@
       </div>
     </main>
 
-    <!-- MOBILE BOTTOM NAVIGATION -->
+    <!-- MOBILE BOTTOM NAVIGATION (ALL 8 TABS) -->
     <nav class="mobile-nav" id="mobile-bottom-nav">
       <button class="mobile-nav-item active" data-tab="dashboard">
         <span class="mob-icon">📊</span>
@@ -200,11 +200,19 @@
       </button>
       <button class="mobile-nav-item" data-tab="simulator">
         <span class="mob-icon">🔮</span>
-        <span class="mob-label">จำลองพอร์ต</span>
+        <span class="mob-label">จำลอง</span>
+      </button>
+      <button class="mobile-nav-item" data-tab="quarterly">
+        <span class="mob-icon">📈</span>
+        <span class="mob-label">ไตรมาส</span>
       </button>
       <button class="mobile-nav-item" data-tab="obsidian">
         <span class="mob-icon">🤖</span>
-        <span class="mob-label">Obsidian AI</span>
+        <span class="mob-label">AI Vault</span>
+      </button>
+      <button class="mobile-nav-item" data-tab="settings">
+        <span class="mob-icon">⚙️</span>
+        <span class="mob-label">ตั้งค่า</span>
       </button>
     </nav>
   </div>
@@ -760,6 +768,6 @@
   <div id="toast-container" class="toast-container"></div>
 
   <!-- Core JavaScript Application -->
-  <script src="app.js?v=2.8.4"></script>
+  <script src="app.js?v=2.8.5"></script>
 </body>
 </html>
