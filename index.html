@@ -31,7 +31,7 @@
   <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.2/dist/confetti.browser.min.js"></script>
   
   <!-- Main Stylesheet -->
-  <link rel="stylesheet" href="style.css?v=2.9.5">
+  <link rel="stylesheet" href="style.css?v=2.9.6">
 </head>
 <body>
   <div class="app-layout">
@@ -361,7 +361,7 @@
           </div>
           <div class="form-group flex-1">
             <label>% เปลี่ยนแปลง 1 วัน (1D %)</label>
-            <input type="number" step="0.01" id="holding-1d-change" class="form-input font-mono" placeholder="-0.98">
+            <input type="number" step="any" id="holding-1d-change" class="form-input font-mono" placeholder="-0.98">
           </div>
         </div>
 
@@ -678,7 +678,7 @@
       <form id="form-fx-settings" class="modal-body">
         <div class="form-group">
           <label>อัตราแลกเปลี่ยน 1 USD เท่ากับกี่บาท (THB) <span class="req">*</span></label>
-          <input type="number" step="0.01" id="input-fx-rate" class="form-input font-mono text-large" value="32.59" required>
+          <input type="number" step="any" id="input-fx-rate" class="form-input font-mono text-large" value="32.59" required>
           <small class="form-hint">ระบบจะนำค่านี้ไปแปลงมูลค่าพอร์ต, ราคาหุ้น, และเงินสดทั้งหมด</small>
         </div>
 
@@ -867,6 +867,6 @@
   <div id="toast-container" class="toast-container"></div>
 
   <!-- Core JavaScript Application -->
-  <script src="app.js?v=2.9.5"></script>
+  <script src="app.js?v=2.9.6"></script>
 </body>
 </html>

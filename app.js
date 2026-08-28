@@ -1077,22 +1077,46 @@ class PixelStewardApp {
   }
 
   async fetchViaFastProxies(targetUrl) {
-    const proxies = [
-      (u) => `https://corsproxy.io/?url=${encodeURIComponent(u)}`,
-      (u) => `https://api.allorigins.win/raw?url=${encodeURIComponent(u)}`,
-      (u) => `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(u)}`
+    const fetchers = [
+      async (u) => {
+        const res = await this.fetchWithTimeout(`https://api.allorigins.win/raw?url=${encodeURIComponent(u)}`, 4500);
+        if (res.ok) return await res.json();
+        return null;
+      },
+      async (u) => {
+        const res = await this.fetchWithTimeout(`https://api.allorigins.win/get?url=${encodeURIComponent(u)}`, 4500);
+        if (res.ok) {
+          const d = await res.json();
+          if (d && d.contents) {
+            return JSON.parse(d.contents);
+          }
+        }
+        return null;
+      },
+      async (u) => {
+        const res = await this.fetchWithTimeout(`https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(u)}`, 4500);
+        if (res.ok) return await res.json();
+        return null;
+      },
+      async (u) => {
+        const res = await this.fetchWithTimeout(`https://corsproxy.io/?url=${encodeURIComponent(u)}`, 4500);
+        if (res.ok) return await res.json();
+        return null;
+      },
+      async (u) => {
+        // Direct attempt (works in Electron / Cordova / Capacitor / WebView where CORS is disabled)
+        const res = await this.fetchWithTimeout(u, 4500);
+        if (res.ok) return await res.json();
+        return null;
+      }
     ];
 
-    for (const proxyFn of proxies) {
+    for (const fetchFn of fetchers) {
       try {
-        const proxyUrl = proxyFn(targetUrl);
-        const res = await this.fetchWithTimeout(proxyUrl, 4000);
-        if (res.ok) {
-          const data = await res.json();
-          if (data) return data;
-        }
+        const data = await fetchFn(targetUrl);
+        if (data) return data;
       } catch (e) {
-        // Fallback to next proxy
+        // Continue to next provider
       }
     }
     return null;
@@ -4772,9 +4796,8 @@ tags:
         document.getElementById('holding-name').value = h.name || '';
         document.getElementById('holding-name').removeAttribute('data-autofilled');
         document.getElementById('holding-shares').value = h.shares;
-        document.getElementById('holding-avg-cost').value = h.avgCostUSD;
-        document.getElementById('holding-current-price').value = h.currentPriceUSD || '';
-        document.getElementById('holding-1d-change').value = h.change1dPct || '';
+        document.getElementById('holding-current-price').value = (h.currentPriceUSD !== undefined && h.currentPriceUSD !== null && h.currentPriceUSD > 0) ? Number(parseFloat(h.currentPriceUSD).toFixed(3)) : (h.avgCostUSD || '');
+        document.getElementById('holding-1d-change').value = (h.change1dPct !== undefined && h.change1dPct !== null) ? Number(parseFloat(h.change1dPct).toFixed(2)) : '';
         
         // Populate 3-Tier Dip Targets
         const target1 = h.dipTarget1 !== undefined && h.dipTarget1 !== null ? h.dipTarget1 : (h.dipTargetUSD || '');
