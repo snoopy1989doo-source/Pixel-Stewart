@@ -12,7 +12,8 @@
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="PixelSteward">
-  <link rel="apple-touch-icon" href="assets/foliologo/zero3.png">
+  <link rel="icon" type="image/png" href="assets/app-logo.png">
+  <link rel="apple-touch-icon" href="assets/app-logo.png">
   
   <!-- Google Fonts: Kanit (Clean Thai typography), Inter (UI), JetBrains Mono (Financial numbers) -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -30,7 +31,7 @@
   <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.2/dist/confetti.browser.min.js"></script>
   
   <!-- Main Stylesheet -->
-  <link rel="stylesheet" href="style.css?v=2.9.3">
+  <link rel="stylesheet" href="style.css?v=2.9.4">
 </head>
 <body>
   <div class="app-layout">
@@ -38,7 +39,7 @@
     <aside class="sidebar" id="desktop-sidebar">
       <div class="brand-container">
         <div class="brand-left" style="display: flex; align-items: center; gap: 12px; overflow: hidden; flex: 1;">
-          <div class="brand-icon">💎</div>
+          <div class="brand-icon"><img src="assets/app-logo.png" alt="Pixel Steward Logo" style="width: 38px; height: 38px; border-radius: 10px; object-fit: cover; box-shadow: 0 2px 10px rgba(0,0,0,0.4);"></div>
           <div class="brand-text">
             <h1 class="brand-title">PIXEL STEWARD</h1>
             <span class="brand-subtitle">PORTFOLIO & ASSET AI</span>
@@ -120,7 +121,7 @@
           </button>
 
           <div class="mobile-brand">
-            <span class="mobile-logo">💎</span>
+            <img src="assets/app-logo.png" alt="Pixel Steward Logo" class="mobile-logo" style="width: 30px; height: 30px; border-radius: 8px; object-fit: cover;">
             <span class="mobile-title">PIXEL STEWARD</span>
           </div>
           <div class="page-title-group">
@@ -847,6 +848,6 @@
   <div id="toast-container" class="toast-container"></div>
 
   <!-- Core JavaScript Application -->
-  <script src="app.js?v=2.9.3"></script>
+  <script src="app.js?v=2.9.4"></script>
 </body>
 </html>

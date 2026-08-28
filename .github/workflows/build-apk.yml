@@ -1,4 +1,4 @@
-﻿name: Build Android APK
+name: Build Android APK
 
 on:
   push:
@@ -54,6 +54,16 @@ jobs:
       - name: Sync Web Assets to Android
         run: |
           npx cap copy android
+
+      - name: Set Android App Launcher Icons
+        run: |
+          for dir in android/app/src/main/res/mipmap-*; do
+            if [ -d "$dir" ]; then
+              cp assets/app-logo.png "$dir/ic_launcher.png" || true
+              cp assets/app-logo.png "$dir/ic_launcher_round.png" || true
+              cp assets/app-logo.png "$dir/ic_launcher_foreground.png" || true
+            fi
+          done
 
       - name: Configure Android Permissions
         run: |
