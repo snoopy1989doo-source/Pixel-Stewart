@@ -373,16 +373,15 @@ body {
 .app-header {
   height: 72px;
   padding: 0 32px;
-  background: rgba(15, 19, 26, 0.98);
-  border-bottom: 1px solid var(--border-subtle);
+  background: #0f131a;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
   display: flex;
   align-items: center;
   justify-content: space-between;
   position: sticky;
   top: 0;
   z-index: 1000;
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.5);
 }
 
 .mobile-brand {
@@ -2937,6 +2936,8 @@ body.privacy-mode #privacy-icon {
   align-items: center;
   cursor: pointer;
   user-select: none;
+}
+
 /* 7. CUSTOM FINANCIAL ACHIEVEMENTS & GOALS MANAGER */
 .achievements-section-wrapper {
   background: var(--bg-card);
