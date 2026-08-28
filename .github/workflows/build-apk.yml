@@ -25,17 +25,23 @@ jobs:
         with:
           node-version: '20'
 
-      - name: Install Capacitor Tools
+      - name: Prepare Web Distribution (www)
+        run: |
+          mkdir -p www
+          cp index.html style.css app.js manifest.json sw.js www/
+          cp -r assets www/
+
+      - name: Install Dependencies
         run: |
           npm install @capacitor/core@latest @capacitor/cli@latest @capacitor/android@latest
 
-      - name: Initialize Capacitor Configuration
+      - name: Setup Capacitor Configuration
         run: |
           cat << 'EOF' > capacitor.config.json
           {
             "appId": "com.snoopy.pixelsteward",
             "appName": "Pixel Steward",
-            "webDir": ".",
+            "webDir": "www",
             "bundledWebRuntime": false,
             "android": {
               "allowMixedContent": true
@@ -51,22 +57,20 @@ jobs:
         run: |
           npx cap add android
 
-      - name: Sync Web Assets to Android
+      - name: Sync Web Assets
         run: |
-          npx cap copy android
+          npx cap sync android
 
-      - name: Set Android App Launcher Icons
+      - name: Set Android App Launcher Icons & Permissions
         run: |
           for dir in android/app/src/main/res/mipmap-*; do
             if [ -d "$dir" ]; then
-              cp assets/app-logo.png "$dir/ic_launcher.png" || true
-              cp assets/app-logo.png "$dir/ic_launcher_round.png" || true
-              cp assets/app-logo.png "$dir/ic_launcher_foreground.png" || true
+              cp www/assets/app-logo.png "$dir/ic_launcher.png" || true
+              cp www/assets/app-logo.png "$dir/ic_launcher_round.png" || true
+              cp www/assets/app-logo.png "$dir/ic_launcher_foreground.png" || true
             fi
           done
-
-      - name: Configure Android Permissions
-        run: |
+          
           MANIFEST="android/app/src/main/AndroidManifest.xml"
           if ! grep -q "android.permission.INTERNET" "$MANIFEST"; then
             sed -i '/<manifest/a \    <uses-permission android:name="android.permission.INTERNET" />\n    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />' "$MANIFEST"
@@ -85,9 +89,10 @@ jobs:
           mkdir -p release-output
           cp android/app/build/outputs/apk/debug/app-debug.apk release-output/PixelSteward.apk
 
-      - name: Upload APK as Artifact
+      - name: Upload APK as Downloadable Artifact
         uses: actions/upload-artifact@v4
         with:
           name: PixelSteward-Android-APK
           path: release-output/PixelSteward.apk
           retention-days: 30
+
