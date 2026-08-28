@@ -1,10 +1,10 @@
 // Service Worker for Pixel Steward PWA (Network-First Strategy)
-const CACHE_NAME = 'pixel-steward-v2.9.6';
+const CACHE_NAME = 'pixel-steward-v2.9.7';
 const ASSETS_TO_CACHE = [
   './',
   './index.html',
-  './style.css?v=2.9.6',
-  './app.js?v=2.9.6',
+  './style.css?v=2.9.7',
+  './app.js?v=2.9.7',
   './manifest.json',
   './assets/app-logo.png',
   './assets/icon-192.png',

@@ -4795,7 +4795,8 @@ tags:
         document.getElementById('holding-ticker').value = h.ticker;
         document.getElementById('holding-name').value = h.name || '';
         document.getElementById('holding-name').removeAttribute('data-autofilled');
-        document.getElementById('holding-shares').value = h.shares;
+        document.getElementById('holding-shares').value = h.shares !== undefined && h.shares !== null ? h.shares : '';
+        document.getElementById('holding-avg-cost').value = h.avgCostUSD !== undefined && h.avgCostUSD !== null ? h.avgCostUSD : '';
         document.getElementById('holding-current-price').value = (h.currentPriceUSD !== undefined && h.currentPriceUSD !== null && h.currentPriceUSD > 0) ? Number(parseFloat(h.currentPriceUSD).toFixed(3)) : (h.avgCostUSD || '');
         document.getElementById('holding-1d-change').value = (h.change1dPct !== undefined && h.change1dPct !== null) ? Number(parseFloat(h.change1dPct).toFixed(2)) : '';
         
@@ -4833,6 +4834,10 @@ tags:
       document.getElementById('modal-holding-title').textContent = '➕ เพิ่มสินทรัพย์หุ้นใหม่';
       document.getElementById('form-holding').reset();
       document.getElementById('holding-id').value = '';
+      document.getElementById('holding-shares').value = '';
+      document.getElementById('holding-avg-cost').value = '';
+      document.getElementById('holding-current-price').value = '';
+      document.getElementById('holding-1d-change').value = '';
       const dt1 = document.getElementById('holding-dip-target-1');
       const dt2 = document.getElementById('holding-dip-target-2');
       const dt3 = document.getElementById('holding-dip-target-3');
@@ -4853,10 +4858,24 @@ tags:
     const holdingId = document.getElementById('holding-id')?.value;
     const ticker = (document.getElementById('holding-ticker')?.value || '').trim().toUpperCase();
     const name = (document.getElementById('holding-name')?.value || ticker).trim();
-    const shares = parseFloat(document.getElementById('holding-shares')?.value) || 0;
-    const avgCostUSD = parseFloat(document.getElementById('holding-avg-cost')?.value) || 0;
-    const currentPriceUSD = parseFloat(document.getElementById('holding-current-price')?.value) || avgCostUSD;
-    const change1dPct = parseFloat(document.getElementById('holding-1d-change')?.value) || 0;
+
+    let originalHolding = null;
+    if (holdingId) {
+      this.portfolios.forEach(p => {
+        const found = p.holdings?.find(h => h.id === holdingId);
+        if (found) originalHolding = found;
+      });
+    }
+
+    const rawShares = parseFloat(document.getElementById('holding-shares')?.value);
+    const rawAvgCost = parseFloat(document.getElementById('holding-avg-cost')?.value);
+    const rawCurrentPrice = parseFloat(document.getElementById('holding-current-price')?.value);
+    const raw1dChange = parseFloat(document.getElementById('holding-1d-change')?.value);
+
+    const shares = !isNaN(rawShares) && rawShares >= 0 ? rawShares : (originalHolding?.shares || 0);
+    const avgCostUSD = !isNaN(rawAvgCost) && rawAvgCost > 0 ? rawAvgCost : (originalHolding?.avgCostUSD || 0);
+    const currentPriceUSD = !isNaN(rawCurrentPrice) && rawCurrentPrice > 0 ? rawCurrentPrice : (originalHolding?.currentPriceUSD || avgCostUSD);
+    const change1dPct = !isNaN(raw1dChange) ? raw1dChange : (originalHolding?.change1dPct || 0);
 
     const dip1Val = parseFloat(document.getElementById('holding-dip-target-1')?.value);
     const dip2Val = parseFloat(document.getElementById('holding-dip-target-2')?.value);
