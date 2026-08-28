@@ -1809,12 +1809,21 @@ class PixelStewardApp {
       });
     });
 
-    // Edit Achievement Button
+    // Edit Achievement on Edit Button Click
     container.querySelectorAll('[data-ach-edit]').forEach(btn => {
       btn.addEventListener('click', (e) => {
         e.stopPropagation();
         const id = btn.getAttribute('data-ach-edit');
         this.openAchievementModal(id);
+      });
+    });
+
+    // Edit Achievement on Card Click
+    container.querySelectorAll('.achievement-card-compact').forEach(card => {
+      card.addEventListener('click', (e) => {
+        if (e.target.closest('[data-ach-toggle]')) return;
+        const id = card.getAttribute('data-ach-id');
+        if (id) this.openAchievementModal(id);
       });
     });
   }
