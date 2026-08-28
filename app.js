@@ -3381,6 +3381,11 @@ quarter: [[${currentQuarter}_${currentYear}]]
 year: ${currentYear}
 export_date: ${isoDate}
 exchange_rate_thb_usd: ${this.exchangeRate.toFixed(2)}
+total_net_worth_usd: ${grand.grandTotalUSD.toFixed(2)}
+total_net_worth_thb: ${grand.grandTotalTHB.toFixed(2)}
+total_stocks_usd: ${grand.totalStocksUSD.toFixed(2)}
+total_cash_buffer_usd: ${grand.totalCashBufferUSD.toFixed(2)}
+total_trading_usd: ${grand.totalTradingUSD.toFixed(2)}
 tags:
   - #Agent_Access
   - #Financial_Report
@@ -3389,41 +3394,55 @@ tags:
   - #Data_Vault
 ---
 
-# 📊 [[${currentQuarter}_${currentYear}]] Financial Quarter Review
+# 📊 [[${currentQuarter}_${currentYear}]] Financial Review & AI Portfolio Analysis
 
-**Metadata Information**
+**Financial Metadata & Macro Parameters**
 * **Exported At:** ${isoDate}
-* **Exchange Rate Reference:** ${this.exchangeRate.toFixed(2)} THB/USD
-* **Total Net Worth (USD):** ${this.formatUSD(grand.grandTotalUSD)} (≈ ${this.formatTHB(grand.grandTotalTHB)})
+* **Exchange Rate (THB/USD):** ฿${this.exchangeRate.toFixed(2)} / USD
+* **Total Net Worth:** **${this.formatUSD(grand.grandTotalUSD)}** (≈ **${this.formatTHB(grand.grandTotalTHB)}**)
+  * 📈 **Stock Holdings:** ${this.formatUSD(grand.totalStocksUSD)} (${((grand.totalStocksUSD / (grand.grandTotalUSD || 1)) * 100).toFixed(1)}%)
+  * 💧 **Cash Buffer (เงินไว้ช้อน):** ${this.formatUSD(grand.totalCashBufferUSD)} (${((grand.totalCashBufferUSD / (grand.grandTotalUSD || 1)) * 100).toFixed(1)}%)
+  * 💱 **Trading Capital:** ${this.formatUSD(grand.totalTradingUSD)} (${((grand.totalTradingUSD / (grand.grandTotalUSD || 1)) * 100).toFixed(1)}%)
+* **Unrealized Stock P/L:** ${grand.totalPLUSD >= 0 ? '+' : ''}${this.formatUSD(grand.totalPLUSD)} (${grand.totalPLPct >= 0 ? '+' : ''}${grand.totalPLPct.toFixed(2)}%)
+* **Average 1D Change:** ${grand.avg1dChangePct >= 0 ? '+' : ''}${grand.avg1dChangePct.toFixed(2)}%
 
 ---
 
-## 💼 1. Portfolio Summary (สรุปสถานะพอร์ตการลงทุน)
+## 💼 1. Goal-Based Portfolios Summary (เป้าหมายตาม IPS)
 
-| ID | Portfolio Name | Tier / Category | Goal (USD) | Current Value (USD) | Cash Buffer (USD) | Notes / Strategy | Assets Held (Value USD) |
-| :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
+| # | Portfolio Name | Tier / Category | Target Goal (USD) | Target Goal (THB) | Current Value (USD) | Progress (%) | Cash Buffer (USD) | Strategy Notes |
+| :-: | :--- | :--- | :-: | :-: | :-: | :-: | :-: | :--- |
 `;
 
     this.portfolios.forEach((p, idx) => {
       const s = this.calculatePortfolioStats(p);
-      const holdingsList = (p.holdings || [])
-        .filter(h => (parseFloat(h.shares) || 0) > 0)
-        .map(h => {
-          const stats = this.calculateHoldingStats(h);
-          return `[[Asset_${h.ticker}]]: $${stats.marketValueUSD.toFixed(2)}`;
-        }).join('<br>') || 'None';
-
-      md += `| ${idx + 1} | **[[${p.name}]]** | #${p.tier.replace(' ', '_')} #${p.category.replace(' ', '_')} | ${this.formatUSD(s.goalUSD)} | ${this.formatUSD(s.totalValueUSD)} | ${this.formatUSD(s.cashBufferUSD)} | ${p.notes || '-'} | ${holdingsList} |\n`;
+      md += `| ${idx + 1} | **[[${p.name}]]** | #${p.tier.replace(/\s+/g, '_')} #${p.category.replace(/\s+/g, '_')} | ${this.formatUSD(s.goalUSD)} | ${this.formatTHB(p.goalTHB || this.usdToThb(s.goalUSD))} | ${this.formatUSD(s.totalValueUSD)} | **${s.goalProgressPct.toFixed(1)}%** | ${this.formatUSD(s.cashBufferUSD)} | ${p.notes || '-'} |\n`;
     });
 
     // Trading rows
     for (const [key, item] of Object.entries(this.tradingData || {})) {
       const list = item.monthlyBalances || [];
       const latest = list.length > 0 ? list[list.length - 1].balanceUSD : 0;
-      md += `| Trading | **[[${item.name}]]** | #Trading #Forex | - | ${this.formatUSD(latest)} | - | อัปเดตรายเดือน | [[Cash]]: ${this.formatUSD(latest)} |\n`;
+      md += `| 💱 | **[[${item.name}]]** | #Trading #Forex_Option | - | - | ${this.formatUSD(latest)} | 100% | - | อัปเดตรายเดือน |\n`;
     }
 
-    md += `\n---\n\n## 📈 2. Quarterly Records (บันทึกผลงานเปรียบเทียบไตรมาสปี ${currentYear})\n\n`;
+    md += `\n---\n\n## 📈 2. Detailed Stock & Asset Holdings (รายการสินทรัพย์ทั้งหมด)\n\n`;
+    md += `| Ticker | Company Name | Portfolio | Shares | Avg Cost ($) | Price ($) | Market Val ($) | Market Val (฿) | Unrealized P/L ($) | P/L (%) | Port Weight (%) | Dip Target ($) |\n`;
+    md += `| :--- | :--- | :--- | :-: | :-: | :-: | :-: | :-: | :-: | :-: | :-: | :-: |\n`;
+
+    this.portfolios.forEach(p => {
+      const pStats = this.calculatePortfolioStats(p);
+      (p.holdings || []).forEach(h => {
+        const s = this.calculateHoldingStats(h);
+        if (s.shares > 0 || (p.holdings || []).length <= 6) {
+          const weight = pStats.totalValueUSD > 0 ? ((s.marketValueUSD / pStats.totalValueUSD) * 100).toFixed(1) : '0.0';
+          const plSign = s.unrealizedPLUSD >= 0 ? '+' : '';
+          md += `| **[[${h.ticker}]]** | ${h.name || h.ticker} | ${p.name} | ${s.shares.toFixed(6)} | $${s.avgCost.toFixed(2)} | $${s.currentPrice.toFixed(2)} | ${this.formatUSD(s.marketValueUSD)} | ${this.formatTHB(s.marketValueTHB)} | ${plSign}${this.formatUSD(s.unrealizedPLUSD)} | ${plSign}${s.unrealizedPLPct.toFixed(2)}% | ${weight}% | ${h.dipTargetUSD ? '$' + h.dipTargetUSD.toFixed(2) : '-'} |\n`;
+        }
+      });
+    });
+
+    md += `\n---\n\n## 📊 3. Quarterly Snapshots (ประวัติผลงานรายไตรมาสปี ${currentYear})\n\n`;
     md += `| Portfolio | Q1 Value ($) | Q2 Value ($) | Q3 Value ($) | Q4 Value ($) | Current ($) |\n| :--- | :--- | :--- | :--- | :--- | :--- |\n`;
 
     const q1Map = this.quarterlySnapshots.find(q => q.quarter === 'Q1')?.portValuesUSD || {};
@@ -3436,14 +3455,30 @@ tags:
       md += `| **[[${p.name}]]** | ${q1Map[p.id] ? this.formatUSD(q1Map[p.id]) : '-'} | ${q2Map[p.id] ? this.formatUSD(q2Map[p.id]) : '-'} | ${q3Map[p.id] ? this.formatUSD(q3Map[p.id]) : '-'} | ${q4Map[p.id] ? this.formatUSD(q4Map[p.id]) : '-'} | ${this.formatUSD(s.totalValueUSD)} |\n`;
     });
 
-    md += `\n---\n\n## 📅 3. Monthly Trading Records (บันทึกประวัติการเทรด)\n\n`;
-    md += `| Period | Product / Strategy | Balance (USD) | Remarks |\n| :--- | :--- | :--- | :--- |\n`;
+    md += `\n---\n\n## 📅 4. Monthly Trading Performance Records\n\n`;
+    md += `| Period | Account / Strategy | Balance (USD) | Balance (THB) | Note |\n| :--- | :--- | :--- | :--- | :--- |\n`;
 
     for (const [key, item] of Object.entries(this.tradingData || {})) {
       (item.monthlyBalances || []).forEach(m => {
-        md += `| **[[${m.year}-${String(m.month).padStart(2, '0')}]]** | [[${item.name}]] | ${this.formatUSD(m.balanceUSD)} | ${m.note || '-'} |\n`;
+        md += `| **[[${m.year}-${String(m.month).padStart(2, '0')}]]** | [[${item.name}]] | ${this.formatUSD(m.balanceUSD)} | ${this.formatTHB(this.usdToThb(m.balanceUSD))} | ${m.note || '-'} |\n`;
       });
     }
+
+    if (this.dividends && this.dividends.length > 0) {
+      md += `\n---\n\n## 💰 5. Dividend Cash Flow History (ประวัติเงินปันผล)\n\n`;
+      md += `| Date | Ticker | Portfolio | Gross ($) | Tax 15% ($) | Net ($) | Net (฿) | Notes |\n| :--- | :--- | :--- | :-: | :-: | :-: | :-: | :--- |\n`;
+      this.dividends.forEach(d => {
+        const p = this.portfolios.find(x => x.id === d.portfolioId);
+        md += `| ${d.date} | **[[${d.ticker}]]** | ${p ? p.name : '-'} | ${this.formatUSD(d.grossUSD)} | ${this.formatUSD(d.taxUSD)} | **${this.formatUSD(d.netUSD)}** | ${this.formatTHB(this.usdToThb(d.netUSD))} | ${d.notes || '-'} |\n`;
+      });
+    }
+
+    md += `\n---\n\n## 🧠 6. AI Prompt Directives for Financial Advisor\n\n`;
+    md += `> **Instruction for AI / Financial Agent:**\n`;
+    md += `> 1. วิเคราะห์สุขภาพทางการเงินโดยรวม (Financial Health & Risk Profile) ตามแผน IPS\n`;
+    md += `> 2. ประเมินการกระจายความเสี่ยง (Asset Allocation) หุ้นตัวใด Overweight หรือ Underweight เกินไป\n`;
+    md += `> 3. ให้คำแนะนำการเติมเงิน DCA ในเดือนถัดไป (Smart Rebalance Priority)\n`;
+    md += `> 4. ประเมินจุดช้อน (Buy-the-Dip Targets) และความคุ้มค่าของการถือ Cash Buffer\n`;
 
     return md;
   }
