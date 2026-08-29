@@ -20,7 +20,7 @@ const INITIAL_PORTFOLIOS = [
   {
     id: 'zero1',
     name: 'Zero 1 (เงินฉุกเฉิน & รักษาเยียวยา)',
-    emoji: '🎃',
+    emoji: '🛡️',
     color: '#ff6b6b',
     category: 'Emergency',
     tier: 'Tier 1',
@@ -29,7 +29,6 @@ const INITIAL_PORTFOLIOS = [
     goalUSD: 2915.00,
     cashBufferUSD: 15.08,
     notes: 'เงินสำรองห้ามแตะต้องเว้นแต่จำเป็น • Horizon: 4 Years',
-    logo: 'assets/foliologo/zero1.png',
     holdings: [
       { id: 'h-wmt', ticker: 'WMT', name: 'Walmart Inc.', shares: 0.0470276, avgCostUSD: 116.5887, currentPriceUSD: 116.53, change1dPct: -0.13, targetTHB: 12000 },
       { id: 'h-msft', ticker: 'MSFT', name: 'Microsoft Corp.', shares: 0.0036587, avgCostUSD: 428.356, currentPriceUSD: 495.40, change1dPct: 0.45, targetTHB: 15000 },
@@ -41,7 +40,7 @@ const INITIAL_PORTFOLIOS = [
   {
     id: 'zero2',
     name: 'Zero 2 (รถ)',
-    emoji: '💐',
+    emoji: '🚗',
     color: '#a855f7',
     category: 'Asset',
     tier: 'Tier 2',
@@ -51,7 +50,6 @@ const INITIAL_PORTFOLIOS = [
     targetCashBufferTHB: 180000,
     cashBufferUSD: 0.00,
     notes: 'สะสมดาวน์รถยนต์คันใหม่ • Cash Buffer = 180,000 ฿ • Horizon: 3 Years',
-    logo: 'assets/foliologo/zero2.png',
     holdings: [
       { id: 'h-nvda', ticker: 'NVDA', name: 'NVIDIA Corporation', shares: 0.065108, avgCostUSD: 199.6682, currentPriceUSD: 225.16, change1dPct: -0.98, targetTHB: 120000 },
       { id: 'h-tmo', ticker: 'TMO', name: 'Thermo Fisher Scientific', shares: 0.012168, avgCostUSD: 585.4779, currentPriceUSD: 588.29, change1dPct: 0.85, targetTHB: 120000 },
@@ -74,7 +72,6 @@ const INITIAL_PORTFOLIOS = [
     targetCashBufferTHB: 200000,
     cashBufferUSD: 0.00,
     notes: 'ทุนแต่งงานในอนาคต • Cash Buffer = 200,000 ฿ • Horizon: 5 Years',
-    logo: 'assets/foliologo/zero4.png',
     holdings: [
       { id: 'h-cost', ticker: 'COST', name: 'Costco Wholesale Corp.', shares: 0.00, avgCostUSD: 850.00, currentPriceUSD: 870.00, change1dPct: 0.00, targetTHB: 80000 },
       { id: 'h-lly', ticker: 'LLY', name: 'Eli Lilly and Company', shares: 0.00, avgCostUSD: 920.00, currentPriceUSD: 940.00, change1dPct: 0.00, targetTHB: 80000 },
@@ -86,7 +83,7 @@ const INITIAL_PORTFOLIOS = [
   {
     id: 'zero3',
     name: 'Zero 3 (เกษียณ)',
-    emoji: '❄️🧊',
+    emoji: '🧊',
     color: '#38bdf8',
     category: 'Retirement',
     tier: 'Tier 3',
@@ -95,7 +92,6 @@ const INITIAL_PORTFOLIOS = [
     goalUSD: 122737.04,
     cashBufferUSD: 0.00,
     notes: 'พอร์ตหลักระยะยาว พลิกฟื้นอิสรภาพ • Horizon: 37 Years',
-    logo: 'assets/foliologo/zero3.png',
     holdings: [
       { id: 'h-tsla', ticker: 'TSLA', name: 'Tesla Inc.', shares: 0.0735078, avgCostUSD: 338.3906, currentPriceUSD: 342.27, change1dPct: -1.20, targetTHB: 785000 },
       { id: 'h-smr', ticker: 'SMR', name: 'NuScale Power Corp', shares: 2.0829913, avgCostUSD: 8.627, currentPriceUSD: 9.39, change1dPct: 3.20, targetTHB: 218400 },
@@ -112,7 +108,7 @@ const INITIAL_PORTFOLIOS = [
   {
     id: 'zero5',
     name: 'Zero 5 (บ้าน)',
-    emoji: '⛺',
+    emoji: '🏡',
     color: '#eab308',
     category: 'Asset',
     tier: 'Tier 3',
@@ -122,7 +118,6 @@ const INITIAL_PORTFOLIOS = [
     targetCashBufferTHB: 300000,
     cashBufferUSD: 0.00,
     notes: 'เป้าหมายระยะกลางสำหรับที่อยู่อาศัย • Cash Buffer = 300,000 ฿ • Horizon: 37 Years',
-    logo: 'assets/foliologo/zero5.png',
     holdings: [
       { id: 'h-tsm', ticker: 'TSM', name: 'Taiwan Semiconductor (TSMC)', shares: 0.00, avgCostUSD: 165.00, currentPriceUSD: 172.00, change1dPct: 0.00, targetTHB: 300000 },
       { id: 'h-asml', ticker: 'ASML', name: 'ASML Holding N.V.', shares: 0.00, avgCostUSD: 850.00, currentPriceUSD: 880.00, change1dPct: 0.00, targetTHB: 240000 },
@@ -144,7 +139,6 @@ const INITIAL_PORTFOLIOS = [
     goalUSD: 9205.28,
     cashBufferUSD: 0.00,
     notes: 'ปันผลสม่ำเสมอ ลดความเสี่ยงค่าเงิน • Ongoing',
-    logo: 'assets/foliologo/usdividentyield.png',
     holdings: [
       { id: 'h-avgo', ticker: 'AVGO', name: 'Broadcom Inc.', shares: 0.0459276, avgCostUSD: 388.6551, currentPriceUSD: 392.99, change1dPct: 0.00, targetTHB: 45000 },
       { id: 'h-o', ticker: 'O', name: 'Realty Income Corp.', shares: 0.1262319, avgCostUSD: 61.7118, currentPriceUSD: 62.74, change1dPct: 0.20, targetTHB: 45000 },
@@ -166,7 +160,6 @@ const INITIAL_PORTFOLIOS = [
     goalUSD: 3068.43,
     cashBufferUSD: 0.00,
     notes: 'เน้นกระแสเงินสดจากปันผลในประเทศ • Ongoing',
-    logo: 'assets/foliologo/thaidivident.png',
     holdings: [
       { id: 'h-advanc', ticker: 'ADVANC.BK', name: 'Advanced Info Service', shares: 0.00, avgCostUSD: 7.20, currentPriceUSD: 7.30, change1dPct: 0.00, targetTHB: 25000 },
       { id: 'h-scb', ticker: 'SCB.BK', name: 'SCB X Public Company', shares: 0.00, avgCostUSD: 3.10, currentPriceUSD: 3.15, change1dPct: 0.00, targetTHB: 20000 },
@@ -187,7 +180,6 @@ const INITIAL_PORTFOLIOS = [
     goalUSD: 15342.13,
     cashBufferUSD: 0.00,
     notes: 'พอร์ตซิ่ง ดุดัน ไม่เกรงใจใคร โตระยะยาว • DE, GEV, ISRG, NU, VOO',
-    logo: 'assets/foliologo/nextgen.png',
     holdings: [
       { id: 'h-isrg', ticker: 'ISRG', name: 'Intuitive Surgical', shares: 0.0313562, avgCostUSD: 379.829, currentPriceUSD: 394.51, change1dPct: 0.00, targetTHB: 100000 },
       { id: 'h-nu', ticker: 'NU', name: 'Nu Holdings Ltd.', shares: 0.4767802, avgCostUSD: 12.92, currentPriceUSD: 15.23, change1dPct: 1.80, targetTHB: 100000 },
@@ -208,7 +200,6 @@ const INITIAL_PORTFOLIOS = [
     goalUSD: 5062.90,
     cashBufferUSD: 0.00,
     notes: 'สินทรัพย์ดิจิทัลและเก็งกำไร • BTC, BNB, ETH',
-    logo: 'assets/foliologo/crypto.png',
     holdings: [
       { id: 'h-btc', ticker: 'BTC', name: 'Bitcoin', shares: 0.00, avgCostUSD: 62000.00, currentPriceUSD: 64500.00, change1dPct: 1.40, targetTHB: 80000 },
       { id: 'h-eth', ticker: 'ETH', name: 'Ethereum', shares: 0.00, avgCostUSD: 3100.00, currentPriceUSD: 3350.00, change1dPct: 2.10, targetTHB: 50000 },
@@ -782,7 +773,10 @@ class PixelStewardApp {
     INITIAL_PORTFOLIOS.forEach(initP => {
       const existingP = result.find(p => p.id === initP.id);
       if (existingP) {
-        existingP.timeHorizon = existingP.timeHorizon || initP.timeHorizon;
+        if (existingP.timeHorizon === undefined) {
+          existingP.timeHorizon = initP.timeHorizon;
+        }
+        delete existingP.logo;
         existingP.goalTHB = existingP.goalTHB || initP.goalTHB;
         existingP.goalUSD = existingP.goalUSD || initP.goalUSD;
         existingP.color = existingP.color || initP.color;
@@ -2066,10 +2060,12 @@ class PixelStewardApp {
       html += `
         <div class="port-card port-card-compact" data-open-port="${p.id}" style="border-left: 4px solid ${p.color || '#10b981'};">
           <div class="port-card-top">
-            ${p.logo ? `<img src="${p.logo}" class="port-logo-img" alt="${p.name}" onerror="this.style.display='none'">` : ''}
+            <div class="port-emoji-avatar" style="background: ${p.color || '#10b981'}20; border: 1.5px solid ${p.color || '#10b981'}50;">
+              ${p.emoji || '📁'}
+            </div>
             <div class="port-info-col">
               <div class="port-card-name-row">
-                <span class="port-card-name">${p.emoji || '📁'} ${p.name}</span>
+                <span class="port-card-name">${p.name}</span>
                 <span class="port-card-compact-badge font-mono">${p.tier}</span>
                 <span class="port-cash-buffer-pill font-mono">💧 ${dualCash.main}</span>
               </div>
@@ -5705,6 +5701,23 @@ tags:
   }
 
   // --- SUBPORTFOLIO EDIT / CREATE MODAL ---
+  setupPortfolioEmojiPicker() {
+    const container = document.getElementById('portfolio-emoji-picker');
+    const emojiInput = document.getElementById('edit-port-emoji');
+    if (!container || !emojiInput) return;
+
+    container.querySelectorAll('.emoji-pick-btn').forEach(btn => {
+      btn.onclick = () => {
+        const em = btn.getAttribute('data-emoji');
+        if (em) {
+          emojiInput.value = em;
+          container.querySelectorAll('.emoji-pick-btn').forEach(b => b.classList.remove('active'));
+          btn.classList.add('active');
+        }
+      };
+    });
+  }
+
   openPortfolioEditModal(portId) {
     const deletePortBtn = document.getElementById('btn-delete-portfolio');
 
@@ -5717,6 +5730,7 @@ tags:
       document.getElementById('edit-port-name').value = port.name;
       document.getElementById('edit-port-emoji').value = port.emoji || '📁';
       document.getElementById('edit-port-tier').value = port.tier || 'Tier 1';
+      document.getElementById('edit-port-horizon').value = port.timeHorizon || '';
       document.getElementById('edit-port-color').value = port.color || '#10b981';
       document.getElementById('edit-port-goal-usd').value = port.goalUSD || 0;
       document.getElementById('edit-port-goal-thb').value = this.formatTHB(this.usdToThb(port.goalUSD || 0));
@@ -5747,11 +5761,14 @@ tags:
       document.getElementById('modal-portfolio-title').textContent = '➕ เพิ่มพอร์ตการลงทุนใหม่';
       document.getElementById('form-portfolio-edit').reset();
       document.getElementById('edit-port-id').value = '';
+      document.getElementById('edit-port-emoji').value = '📁';
+      document.getElementById('edit-port-horizon').value = '';
       document.getElementById('edit-port-color').value = '#10b981';
       document.getElementById('edit-port-goal-thb').value = '฿0.00';
       if (deletePortBtn) deletePortBtn.classList.add('hidden');
     }
 
+    this.setupPortfolioEmojiPicker();
     this.openModal('modal-portfolio-edit');
   }
 
@@ -5760,6 +5777,7 @@ tags:
     const name = document.getElementById('edit-port-name').value.trim();
     const emoji = document.getElementById('edit-port-emoji').value.trim() || '📁';
     const tier = document.getElementById('edit-port-tier').value;
+    const timeHorizon = document.getElementById('edit-port-horizon')?.value.trim() || '';
     const color = document.getElementById('edit-port-color').value;
     const goalUSD = parseFloat(document.getElementById('edit-port-goal-usd').value) || 0;
     const notes = document.getElementById('edit-port-notes').value.trim();
@@ -5770,9 +5788,11 @@ tags:
         port.name = name;
         port.emoji = emoji;
         port.tier = tier;
+        port.timeHorizon = timeHorizon;
         port.color = color;
         port.goalUSD = goalUSD;
         port.notes = notes;
+        delete port.logo; // Remove legacy image logo if any
       }
     } else {
       const newPort = {
@@ -5781,6 +5801,7 @@ tags:
         emoji,
         tier,
         category: 'Custom',
+        timeHorizon,
         color,
         goalUSD,
         cashBufferUSD: 0.00,
@@ -5799,6 +5820,7 @@ tags:
       message: `ข้อมูลพอร์ต ${name} ได้รับการอัปเดตแล้ว`,
       type: 'success'
     });
+    this.renderActiveTab();
   }
 
   // --- TRADING PORTFOLIO CRUD & HISTORY METHODS ---

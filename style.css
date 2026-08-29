@@ -694,24 +694,28 @@ body {
   margin-bottom: 14px;
 }
 
-.port-logo-img {
+.port-emoji-avatar {
   width: 44px;
   height: 44px;
+  min-width: 44px;
   border-radius: var(--radius-md);
-  object-fit: cover;
   background: rgba(255, 255, 255, 0.05);
   border: 1px solid var(--border-subtle);
-}
-
-.port-logo-placeholder {
-  width: 44px;
-  height: 44px;
-  border-radius: var(--radius-md);
-  background: var(--bg-surface);
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 22px;
+  font-size: 24px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
+  transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.2s ease;
+  user-select: none;
+}
+
+.port-card:hover .port-emoji-avatar {
+  transform: scale(1.1) rotate(4deg);
+}
+
+.port-logo-img {
+  display: none;
 }
 
 .port-info-col {
