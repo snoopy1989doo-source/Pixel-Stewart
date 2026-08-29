@@ -1944,16 +1944,28 @@ class PixelStewardApp {
         </div>
       </div>
 
-      <!-- 1. DONUT CHARTS CONTAINER -->
+      <!-- 1. DONUT CHARTS SWIPEABLE CAROUSEL CONTAINER -->
       <div class="analytics-charts-wrapper" id="dashboard-donut-container" style="${this.allocationViewMode === 'treemap' ? 'display:none;' : ''}">
-        <div class="donut-tabs-header">
-          <button type="button" class="donut-tab-btn active" data-donut-target="asset">💼 สัดส่วนประเภทสินทรัพย์</button>
-          <button type="button" class="donut-tab-btn" data-donut-target="port">📁 สัดส่วนตามพอร์ตเป้าหมาย</button>
-          <button type="button" class="donut-tab-btn" data-donut-target="holding">📈 สัดส่วนหุ้นย่อยทั้งหมด</button>
+        <div class="donut-carousel-nav-header">
+          <div class="donut-tabs-header">
+            <button type="button" class="donut-tab-btn active" data-donut-target="0">💼 ประเภทสินทรัพย์</button>
+            <button type="button" class="donut-tab-btn" data-donut-target="1">📁 ตามพอร์ตเป้าหมาย</button>
+            <button type="button" class="donut-tab-btn" data-donut-target="2">📈 หุ้นย่อยทั้งหมด</button>
+          </div>
+
+          <div class="donut-carousel-controls">
+            <button type="button" class="btn-carousel-arrow" id="btn-donut-prev" title="ก่อนหน้า">‹</button>
+            <div class="donut-carousel-dots" id="donut-carousel-dots">
+              <span class="carousel-dot active" data-index="0"></span>
+              <span class="carousel-dot" data-index="1"></span>
+              <span class="carousel-dot" data-index="2"></span>
+            </div>
+            <button type="button" class="btn-carousel-arrow" id="btn-donut-next" title="ถัดไป">›</button>
+          </div>
         </div>
 
-        <div class="analytics-charts-grid">
-          <div class="chart-card donut-chart-slide active" id="donut-slide-asset">
+        <div class="analytics-charts-grid donut-swipe-track" id="donut-swipe-track">
+          <div class="chart-card donut-chart-slide active" data-slide-index="0" id="donut-slide-asset">
             <div class="chart-title">
               <span>🍩 สัดส่วนตามประเภทสินทรัพย์ (Asset Allocation)</span>
             </div>
@@ -1963,7 +1975,7 @@ class PixelStewardApp {
             <div class="chart-legend-list" id="legend-asset-classes"></div>
           </div>
 
-          <div class="chart-card donut-chart-slide" id="donut-slide-port">
+          <div class="chart-card donut-chart-slide" data-slide-index="1" id="donut-slide-port">
             <div class="chart-title">
               <span>🎯 สัดส่วนตามพอร์ตเป้าหมาย (Sub-Portfolios)</span>
             </div>
@@ -1973,7 +1985,7 @@ class PixelStewardApp {
             <div class="chart-legend-list" id="legend-portfolio-weights"></div>
           </div>
 
-          <div class="chart-card donut-chart-slide" id="donut-slide-holding">
+          <div class="chart-card donut-chart-slide" data-slide-index="2" id="donut-slide-holding">
             <div class="chart-title">
               <span>🍩 สัดส่วนสินทรัพย์ย่อยทั้งหมด (Holdings Allocation)</span>
             </div>
@@ -2583,19 +2595,109 @@ class PixelStewardApp {
   }
 
   setupDonutTabs() {
+    const track = document.getElementById('donut-swipe-track');
     const tabBtns = document.querySelectorAll('.donut-tab-btn');
-    tabBtns.forEach(btn => {
-      btn.addEventListener('click', () => {
-        const target = btn.getAttribute('data-donut-target');
-        tabBtns.forEach(b => b.classList.remove('active'));
-        btn.classList.add('active');
+    const dots = document.querySelectorAll('.carousel-dot');
+    const btnPrev = document.getElementById('btn-donut-prev');
+    const btnNext = document.getElementById('btn-donut-next');
+    const slides = document.querySelectorAll('.donut-chart-slide');
 
-        document.querySelectorAll('.donut-chart-slide').forEach(slide => {
-          slide.classList.remove('active');
-        });
-        const activeSlide = document.getElementById(`donut-slide-${target}`);
-        if (activeSlide) activeSlide.classList.add('active');
-      });
+    if (!track) return;
+
+    let currentIndex = 0;
+
+    const goToSlide = (index) => {
+      if (index < 0) index = 0;
+      if (index >= slides.length) index = slides.length - 1;
+      currentIndex = index;
+
+      // Smooth scroll the track to that slide on mobile
+      if (window.innerWidth <= 1024) {
+        const targetSlide = slides[index];
+        if (targetSlide) {
+          track.scrollTo({
+            left: targetSlide.offsetLeft - track.offsetLeft,
+            behavior: 'smooth'
+          });
+        }
+      }
+
+      // Update UI active state
+      slides.forEach((s, idx) => s.classList.toggle('active', idx === index));
+      tabBtns.forEach((b, idx) => b.classList.toggle('active', idx === index));
+      dots.forEach((d, idx) => d.classList.toggle('active', idx === index));
+    };
+
+    // Tab buttons click
+    tabBtns.forEach((btn, idx) => {
+      btn.addEventListener('click', () => goToSlide(idx));
+    });
+
+    // Dots click
+    dots.forEach((dot, idx) => {
+      dot.addEventListener('click', () => goToSlide(idx));
+    });
+
+    // Arrows click
+    btnPrev?.addEventListener('click', () => goToSlide(currentIndex - 1));
+    btnNext?.addEventListener('click', () => goToSlide(currentIndex + 1));
+
+    // Scroll listener on track for Touch Swipe / Wheel
+    let scrollTimeout = null;
+    track.addEventListener('scroll', () => {
+      if (window.innerWidth > 1024) return;
+      if (scrollTimeout) clearTimeout(scrollTimeout);
+
+      scrollTimeout = setTimeout(() => {
+        const scrollLeft = track.scrollLeft;
+        const width = track.clientWidth;
+        if (width <= 0) return;
+        const newIndex = Math.round(scrollLeft / width);
+
+        if (newIndex >= 0 && newIndex < slides.length && newIndex !== currentIndex) {
+          currentIndex = newIndex;
+          slides.forEach((s, idx) => s.classList.toggle('active', idx === currentIndex));
+          tabBtns.forEach((b, idx) => b.classList.toggle('active', idx === currentIndex));
+          dots.forEach((d, idx) => d.classList.toggle('active', idx === currentIndex));
+        }
+      }, 40);
+    }, { passive: true });
+
+    // Mouse drag support for desktop/trackpad gesture
+    let isDown = false;
+    let startX = 0;
+    let scrollLeftStart = 0;
+
+    track.addEventListener('mousedown', (e) => {
+      if (window.innerWidth > 1024) return;
+      isDown = true;
+      track.classList.add('dragging');
+      startX = e.pageX - track.offsetLeft;
+      scrollLeftStart = track.scrollLeft;
+    });
+
+    track.addEventListener('mouseleave', () => {
+      isDown = false;
+      track.classList.remove('dragging');
+    });
+
+    track.addEventListener('mouseup', () => {
+      if (!isDown) return;
+      isDown = false;
+      track.classList.remove('dragging');
+      const width = track.clientWidth;
+      if (width > 0) {
+        const closestIndex = Math.round(track.scrollLeft / width);
+        goToSlide(closestIndex);
+      }
+    });
+
+    track.addEventListener('mousemove', (e) => {
+      if (!isDown || window.innerWidth > 1024) return;
+      e.preventDefault();
+      const x = e.pageX - track.offsetLeft;
+      const walk = (x - startX) * 1.5;
+      track.scrollLeft = scrollLeftStart - walk;
     });
   }
 

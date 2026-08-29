@@ -2424,20 +2424,28 @@ body.privacy-mode #privacy-icon {
 }
 
 /* ==========================================================================
-   10. DONUT CHARTS HORIZONTAL CAROUSEL (MOBILE SPACE SAVER)
+   10. 3D TOUCH-SWIPEABLE DONUT CAROUSEL DECK (MOBILE & DESKTOP GESTURES)
    ========================================================================== */
 
 .analytics-charts-wrapper {
   margin-bottom: 24px;
 }
 
-.donut-tabs-header {
-  display: none;
-  gap: 8px;
+.donut-carousel-nav-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
   margin-bottom: 12px;
+  flex-wrap: wrap;
+}
+
+.donut-tabs-header {
+  display: flex;
+  gap: 8px;
   overflow-x: auto;
-  padding-bottom: 4px;
   scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
 }
 
 .donut-tabs-header::-webkit-scrollbar {
@@ -2454,7 +2462,7 @@ body.privacy-mode #privacy-icon {
   color: var(--text-secondary);
   white-space: nowrap;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .donut-tab-btn.active {
@@ -2464,22 +2472,111 @@ body.privacy-mode #privacy-icon {
   box-shadow: 0 0 12px rgba(168, 85, 247, 0.2);
 }
 
-@media (max-width: 1024px) {
+.donut-carousel-controls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.btn-carousel-arrow {
+  width: 28px;
+  height: 28px;
+  border-radius: var(--radius-full);
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid var(--border-subtle);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  user-select: none;
+}
+
+.btn-carousel-arrow:hover {
+  background: rgba(168, 85, 247, 0.25);
+  border-color: var(--color-purple);
+  transform: scale(1.1);
+}
+
+.donut-carousel-dots {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.carousel-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: var(--radius-full);
+  background: rgba(255, 255, 255, 0.2);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  cursor: pointer;
+}
+
+.carousel-dot.active {
+  width: 22px;
+  background: linear-gradient(135deg, #a855f7 0%, #10b981 100%);
+  box-shadow: 0 0 10px rgba(168, 85, 247, 0.5);
+}
+
+/* On Desktop (3-column grid) vs Mobile (Smooth Snap Carousel Track) */
+@media (min-width: 1025px) {
+  .donut-swipe-track {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 16px;
+  }
+  .donut-carousel-controls {
+    display: none;
+  }
   .donut-tabs-header {
+    display: none;
+  }
+}
+
+@media (max-width: 1024px) {
+  .donut-swipe-track {
     display: flex;
+    overflow-x: auto;
+    scroll-snap-type: x mandatory;
+    gap: 14px;
+    padding: 6px 4px 14px 4px;
+    scrollbar-width: none;
+    -webkit-overflow-scrolling: touch;
+    scroll-behavior: smooth;
+    cursor: grab;
+    user-select: none;
   }
 
-  .analytics-charts-grid {
-    display: block;
+  .donut-swipe-track.dragging {
+    cursor: grabbing;
+    scroll-behavior: auto;
   }
 
-  .donut-chart-slide {
+  .donut-swipe-track::-webkit-scrollbar {
     display: none;
   }
 
+  .donut-chart-slide {
+    flex: 0 0 100%;
+    min-width: 100%;
+    scroll-snap-align: center;
+    scroll-snap-stop: always;
+    transition: transform 0.35s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.35s ease, box-shadow 0.35s ease;
+    will-change: transform, opacity;
+  }
+
+  .donut-chart-slide:not(.active) {
+    opacity: 0.75;
+    transform: scale(0.97);
+  }
+
   .donut-chart-slide.active {
-    display: flex;
-    animation: fadeInFast 0.25s ease;
+    opacity: 1;
+    transform: scale(1);
+    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.5), 0 0 20px rgba(168, 85, 247, 0.15);
   }
 }
 
