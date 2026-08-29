@@ -3211,25 +3211,28 @@ body.privacy-mode #privacy-icon {
 .spec-gauges-track {
   display: flex;
   align-items: center;
+  justify-content: center;
   gap: 12px;
-  min-width: max-content;
+  width: 100%;
 }
 
 .spec-gauge-group {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 12px;
   background: rgba(255, 255, 255, 0.03);
   border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: 8px;
-  padding: 4px 10px;
+  padding: 5px 14px;
+  flex-wrap: wrap;
+  justify-content: center;
 }
 
 .spec-gauge-item {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  font-size: 11.5px;
+  font-size: 12px;
 }
 
 .spec-gauge-label {
@@ -3258,55 +3261,6 @@ body.privacy-mode #privacy-icon {
   width: 1px;
   height: 14px;
   background: rgba(255, 255, 255, 0.12);
-}
-
-.spec-stock-row {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
-
-.spec-stock-chip {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  background: rgba(30, 41, 59, 0.7);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: 6px;
-  padding: 3px 8px;
-  font-size: 11px;
-  cursor: pointer;
-  transition: all 0.15s ease;
-}
-
-.spec-stock-chip:hover {
-  background: rgba(51, 65, 85, 0.9);
-  border-color: rgba(255, 255, 255, 0.2);
-  transform: translateY(-1px);
-}
-
-.spec-stock-sym {
-  font-weight: 800;
-  color: #fff;
-}
-
-.spec-stock-price {
-  font-family: var(--font-mono, monospace);
-  color: var(--text-secondary);
-}
-
-.spec-stock-change {
-  font-family: var(--font-mono, monospace);
-  font-size: 10.5px;
-  font-weight: 700;
-}
-
-.spec-stock-change.up {
-  color: #34d399;
-}
-
-.spec-stock-change.down {
-  color: #f87171;
 }
 
 /* ==========================================================================

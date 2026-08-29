@@ -1406,50 +1406,28 @@ class PixelStewardApp {
 
     // Aggregate stats
     const totalPorts = this.portfolios.length;
-    const uniqueStocks = new Map();
+    let totalStocksCount = 0;
     let totalCashUSD = 0;
 
+    const symSet = new Set();
     this.portfolios.forEach(p => {
       (p.holdings || []).forEach(h => {
         const sym = (h.ticker || '').toUpperCase();
-        if (sym && !uniqueStocks.has(sym)) {
-          const stats = this.calculateHoldingStats(h);
-          uniqueStocks.set(sym, {
-            sym,
-            portId: p.id,
-            price: stats.currentPrice,
-            change1d: stats.change1d,
-            color: p.color || '#10b981'
-          });
-        }
+        if (sym) symSet.add(sym);
       });
       totalCashUSD += (p.cashBufferUSD || 0);
     });
+    totalStocksCount = symSet.size;
 
     const totalCashTHB = totalCashUSD * (this.exchangeRate || 32.59);
     const completedGoals = (this.achievements || []).filter(a => a.completed).length;
     const totalGoals = (this.achievements || []).length;
-    const stockList = Array.from(uniqueStocks.values());
-
-    const stockChipsHTML = stockList.map(s => {
-      const isUp = s.change1d >= 0;
-      return `
-        <div class="spec-stock-chip" data-spec-port="${s.portId}" data-spec-sym="${s.sym}" title="${s.sym} - คลิกเพื่อดูพอร์ต">
-          ${this.renderStockLogoHTML(s.sym, s.color, 16)}
-          <span class="spec-stock-sym font-mono">${s.sym}</span>
-          <span class="spec-stock-price font-mono">$${s.price.toFixed(2)}</span>
-          <span class="spec-stock-change font-mono ${isUp ? 'up' : 'down'}">
-            ${isUp ? '▲ +' : '▼ '}${s.change1d.toFixed(2)}%
-          </span>
-        </div>
-      `;
-    }).join('');
 
     track.innerHTML = `
       <div class="spec-gauge-group">
         <div class="spec-gauge-item">
           <span class="spec-gauge-label">พอร์ต / หุ้น</span>
-          <span class="spec-gauge-val">${totalPorts} พอร์ต <span style="color:var(--text-muted); font-size:10px;">/</span> ${stockList.length} ตัว</span>
+          <span class="spec-gauge-val">${totalPorts} พอร์ต <span style="color:var(--text-muted); font-size:10px;">/</span> ${totalStocksCount} ตัว</span>
         </div>
         <div class="spec-divider"></div>
         <div class="spec-gauge-item">
@@ -1467,22 +1445,7 @@ class PixelStewardApp {
           <span class="spec-gauge-val">1 USD = ฿${(this.exchangeRate || 32.59).toFixed(2)}</span>
         </div>
       </div>
-
-      <div class="spec-stock-row">
-        ${stockChipsHTML || `<span style="font-size:11px; color:var(--text-muted); padding:0 8px;">(ยังไม่มีสินทรัพย์หุ้น)</span>`}
-      </div>
     `;
-
-    // Click stock chip to navigate to portfolio
-    track.querySelectorAll('.spec-stock-chip').forEach(el => {
-      el.addEventListener('click', () => {
-        const portId = el.getAttribute('data-spec-port');
-        if (portId) {
-          this.selectedPortfolioId = portId;
-          this.switchTab('portfolios');
-        }
-      });
-    });
   }
 
   // --- VIEW RENDERING ENGINE ---
