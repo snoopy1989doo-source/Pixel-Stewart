@@ -1351,19 +1351,7 @@ class PixelStewardApp {
     this.saveData();
     this.checkAllDipPriceAlerts();
 
-    this.showToast({
-      icon: '⚡',
-      title: 'อัปเดตราคาตลาดสำเร็จ!',
-      message: 'ปรับปรุงราคาหุ้นและคริปโตล่าสุดเรียบร้อยแล้ว',
-      badges: [
-        `📊 ${updatedCount} สินทรัพย์`,
-        `⏱️ ${elapsedSec}s`,
-        `🇺🇸 1 USD = ฿${this.exchangeRate.toFixed(2)}`
-      ],
-      type: 'success',
-      duration: 4000
-    });
-    this.renderTickerTape();
+    this.renderSpecCountersBar();
     this.renderActiveTab();
   }
 
@@ -1378,43 +1366,35 @@ class PixelStewardApp {
     }
 
     const toast = document.createElement('div');
-    toast.className = `toast-card ${type}`;
+    toast.className = `cyber-toast ${type}`;
 
     let badgesHTML = '';
-    if (badges && badges.length > 0) {
+    if (Array.isArray(badges) && badges.length > 0) {
       badgesHTML = `
-        <div class="toast-meta-badges font-mono">
-          ${badges.map(b => `<span class="toast-meta-badge">${b}</span>`).join('')}
+        <div class="cyber-toast-badges">
+          ${badges.map(b => `<span class="cyber-toast-badge">${b}</span>`).join('')}
         </div>
       `;
     }
 
     toast.innerHTML = `
-      <div class="toast-icon-wrap">${icon}</div>
-      <div class="toast-content">
-        <div class="toast-title">${title}</div>
-        ${message ? `<div class="toast-message">${message}</div>` : ''}
+      <div class="cyber-toast-glow"></div>
+      <div class="cyber-toast-icon">${icon}</div>
+      <div class="cyber-toast-content">
+        <div class="cyber-toast-title">${title}</div>
+        ${message ? `<div class="cyber-toast-msg">${message}</div>` : ''}
         ${badgesHTML}
       </div>
-      <button type="button" class="toast-close-btn" aria-label="Close">&times;</button>
-      <div class="toast-progress"></div>
+      <button class="cyber-toast-close">&times;</button>
     `;
 
     container.appendChild(toast);
 
-    // Animate progress bar
-    const progressBar = toast.querySelector('.toast-progress');
-    if (progressBar) {
-      progressBar.style.transition = `width ${duration}ms linear`;
-      setTimeout(() => { progressBar.style.width = '0%'; }, 20);
-    }
-
     const removeToast = () => {
-      if (toast.classList.contains('closing')) return;
-      toast.classList.add('closing');
+      toast.classList.add('removing');
       setTimeout(() => {
-        if (toast.parentElement) toast.remove();
-      }, 250);
+        if (toast.parentNode) toast.parentNode.removeChild(toast);
+      }, 300);
     };
 
     const timer = setTimeout(removeToast, duration);
@@ -1425,17 +1405,20 @@ class PixelStewardApp {
     });
   }
 
-  // --- REAL-TIME MARKET TICKER TAPE (MARQUEE) ---
-  renderTickerTape() {
-    const track = document.getElementById('ticker-tape-track');
+  // --- INDUSTRIAL SPEC COUNTERS BAR (NO MARQUEE / HIGH PERFORMANCE) ---
+  renderSpecCountersBar() {
+    const track = document.getElementById('spec-gauges-track');
     if (!track) return;
 
-    // Collect unique stocks from portfolios
+    // Aggregate stats
+    const totalPorts = this.portfolios.length;
     const uniqueStocks = new Map();
+    let totalCashUSD = 0;
+
     this.portfolios.forEach(p => {
       (p.holdings || []).forEach(h => {
-        const sym = h.ticker.toUpperCase();
-        if (!uniqueStocks.has(sym)) {
+        const sym = (h.ticker || '').toUpperCase();
+        if (sym && !uniqueStocks.has(sym)) {
           const stats = this.calculateHoldingStats(h);
           uniqueStocks.set(sym, {
             sym,
@@ -1446,40 +1429,60 @@ class PixelStewardApp {
           });
         }
       });
+      totalCashUSD += (p.cashBufferUSD || 0);
     });
 
+    const totalCashTHB = totalCashUSD * (this.exchangeRate || 32.59);
+    const completedGoals = (this.achievements || []).filter(a => a.completed).length;
+    const totalGoals = (this.achievements || []).length;
     const stockList = Array.from(uniqueStocks.values());
-    if (stockList.length === 0) {
-      track.innerHTML = `<span style="font-size:12px; color:var(--text-muted); padding:0 20px;">⚡ Pixel Steward Live Market Tape • บันทึกสินทรัพย์ในพอร์ตเพื่อเริ่มแสดงราคา Real-time</span>`;
-      return;
-    }
 
-    const buildItemHTML = (s) => {
+    const stockChipsHTML = stockList.map(s => {
       const isUp = s.change1d >= 0;
       return `
-        <div class="ticker-tape-item" data-tape-port="${s.portId}" data-tape-sym="${s.sym}" title="${s.sym} - คลิกเพื่อดูพอร์ต">
-          ${this.renderStockLogoHTML(s.sym, s.color, 18)}
-          <span class="tape-sym font-mono">${s.sym}</span>
-          <span class="tape-price font-mono">$${s.price.toFixed(2)}</span>
-          <span class="tape-change font-mono ${isUp ? 'text-emerald' : 'text-rose'}">
+        <div class="spec-stock-chip" data-spec-port="${s.portId}" data-spec-sym="${s.sym}" title="${s.sym} - คลิกเพื่อดูพอร์ต">
+          ${this.renderStockLogoHTML(s.sym, s.color, 16)}
+          <span class="spec-stock-sym font-mono">${s.sym}</span>
+          <span class="spec-stock-price font-mono">$${s.price.toFixed(2)}</span>
+          <span class="spec-stock-change font-mono ${isUp ? 'up' : 'down'}">
             ${isUp ? '▲ +' : '▼ '}${s.change1d.toFixed(2)}%
           </span>
         </div>
       `;
-    };
+    }).join('');
 
-    // Duplicate list to ensure seamless infinite loop
-    const itemsHTML = stockList.map(buildItemHTML).join('');
-    track.innerHTML = itemsHTML + itemsHTML + itemsHTML;
+    track.innerHTML = `
+      <div class="spec-gauge-group">
+        <div class="spec-gauge-item">
+          <span class="spec-gauge-label">พอร์ต / หุ้น</span>
+          <span class="spec-gauge-val">${totalPorts} พอร์ต <span style="color:var(--text-muted); font-size:10px;">/</span> ${stockList.length} ตัว</span>
+        </div>
+        <div class="spec-divider"></div>
+        <div class="spec-gauge-item">
+          <span class="spec-gauge-label">💧 เงินไว้ช้อน</span>
+          <span class="spec-gauge-val highlight">$${totalCashUSD.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})} <span style="color:var(--text-muted); font-size:10px;">(฿${totalCashTHB.toLocaleString(undefined, {maximumFractionDigits: 0})})</span></span>
+        </div>
+        <div class="spec-divider"></div>
+        <div class="spec-gauge-item">
+          <span class="spec-gauge-label">🏆 เป้าหมาย</span>
+          <span class="spec-gauge-val purple">${completedGoals}/${totalGoals}</span>
+        </div>
+        <div class="spec-divider"></div>
+        <div class="spec-gauge-item">
+          <span class="spec-gauge-label">💱 ค่าเงิน</span>
+          <span class="spec-gauge-val">1 USD = ฿${(this.exchangeRate || 32.59).toFixed(2)}</span>
+        </div>
+      </div>
 
-    // Smooth elegant pacing for ticker marquee (approx 3.5-4s per item, min 65s)
-    const animDuration = Math.max(65, stockList.length * 4.5);
-    track.style.animationDuration = `${animDuration}s`;
+      <div class="spec-stock-row">
+        ${stockChipsHTML || `<span style="font-size:11px; color:var(--text-muted); padding:0 8px;">(ยังไม่มีสินทรัพย์หุ้น)</span>`}
+      </div>
+    `;
 
-    // Click to navigate to portfolio
-    track.querySelectorAll('.ticker-tape-item').forEach(el => {
+    // Click stock chip to navigate to portfolio
+    track.querySelectorAll('.spec-stock-chip').forEach(el => {
       el.addEventListener('click', () => {
-        const portId = el.getAttribute('data-tape-port');
+        const portId = el.getAttribute('data-spec-port');
         if (portId) {
           this.selectedPortfolioId = portId;
           this.switchTab('portfolios');
@@ -1490,7 +1493,7 @@ class PixelStewardApp {
 
   // --- VIEW RENDERING ENGINE ---
   renderActiveTab() {
-    this.renderTickerTape();
+    this.renderSpecCountersBar();
     const container = document.getElementById('app-view-container');
     if (!container) return;
 
@@ -1525,6 +1528,355 @@ class PixelStewardApp {
         break;
       default:
         this.renderDashboardView(container);
+    }
+  }
+
+  // --- DIP OPPORTUNITY SCANNER RADAR (INVESTNEET STYLE) ---
+  renderDipOpportunityScannerHTML() {
+    const opportunities = [];
+
+    this.portfolios.forEach(p => {
+      (p.holdings || []).forEach(h => {
+        const stats = this.calculateHoldingStats(h);
+        const currentPrice = stats.currentPrice;
+
+        const targets = [
+          { tier: 1, label: 'ไม้ 1', val: h.dipTarget1 || h.dipTargetUSD },
+          { tier: 2, label: 'ไม้ 2', val: h.dipTarget2 },
+          { tier: 3, label: 'ไม้ 3', val: h.dipTarget3 }
+        ].filter(t => t.val && t.val > 0);
+
+        if (targets.length === 0) return;
+
+        let bestTarget = null;
+        let minDistancePct = 999;
+        let isHit = false;
+        let activeTier = null;
+
+        targets.forEach(t => {
+          const diffPct = ((currentPrice - t.val) / currentPrice) * 100;
+          if (currentPrice <= t.val) {
+            isHit = true;
+            if (!bestTarget || t.tier > activeTier) {
+              bestTarget = t;
+              minDistancePct = diffPct;
+              activeTier = t.tier;
+            }
+          } else if (!isHit && diffPct < minDistancePct) {
+            minDistancePct = diffPct;
+            bestTarget = t;
+            activeTier = t.tier;
+          }
+        });
+
+        opportunities.push({
+          portfolioId: p.id,
+          portfolioName: p.name,
+          portfolioColor: p.color,
+          holdingId: h.id,
+          ticker: h.ticker,
+          name: h.name,
+          currentPrice,
+          change1d: stats.change1d,
+          targets,
+          bestTarget,
+          minDistancePct,
+          isHit,
+          activeTier
+        });
+      });
+    });
+
+    if (opportunities.length === 0) return '';
+
+    // Sort: Hits first, then closest distance %
+    opportunities.sort((a, b) => {
+      if (a.isHit && !b.isHit) return -1;
+      if (!a.isHit && b.isHit) return 1;
+      return a.minDistancePct - b.minDistancePct;
+    });
+
+    const hitCount = opportunities.filter(o => o.isHit).length;
+
+    const cardsHTML = opportunities.map(o => {
+      const isUp = o.change1d >= 0;
+      let statusBadge = '';
+      if (o.isHit) {
+        statusBadge = `<span class="dip-radar-hit-status hit">🔥 ถึงจุดช้อน ${o.bestTarget.label}!</span>`;
+      } else if (o.minDistancePct <= 3.5) {
+        statusBadge = `<span class="dip-radar-hit-status near">⚡ จ่อแนวรับ (อีก ${o.minDistancePct.toFixed(1)}%)</span>`;
+      } else {
+        statusBadge = `<span class="dip-radar-hit-status far">⏳ ห่าง ${o.minDistancePct.toFixed(1)}%</span>`;
+      }
+
+      const tiersTags = o.targets.map(t => {
+        const isTierHit = o.currentPrice <= t.val;
+        return `<span class="dip-radar-tier-tag ${isTierHit ? 'active-hit' : ''}">${t.label}: $${t.val.toFixed(2)}</span>`;
+      }).join('');
+
+      return `
+        <div class="dip-radar-item ${o.isHit ? 'hit' : ''}">
+          <div class="dip-radar-item-top">
+            <div class="dip-radar-sym-block">
+              ${this.renderStockLogoHTML(o.ticker, o.portfolioColor || '#10b981', 18)}
+              <span class="dip-radar-sym font-mono">${o.ticker}</span>
+              <span class="dip-radar-port-badge">${o.portfolioName}</span>
+            </div>
+            ${statusBadge}
+          </div>
+
+          <div class="dip-radar-tiers-row">
+            ${tiersTags}
+          </div>
+
+          <div class="dip-radar-bottom">
+            <div class="dip-radar-price-info">
+              ราคา: <strong>$${o.currentPrice.toFixed(2)}</strong> 
+              <span class="${isUp ? 'text-emerald' : 'text-rose'}">(${isUp ? '+' : ''}${o.change1d.toFixed(2)}%)</span>
+            </div>
+            <button type="button" class="btn-dip-quick-buy" 
+              data-dip-port="${o.portfolioId}" 
+              data-dip-ticker="${o.ticker}" 
+              data-dip-price="${o.bestTarget ? o.bestTarget.val : o.currentPrice}">
+              <span>⚡ ช้อนเลย</span>
+            </button>
+          </div>
+        </div>
+      `;
+    }).join('');
+
+    return `
+      <div class="dip-radar-card">
+        <div class="dip-radar-header">
+          <div class="dip-radar-title-group">
+            <h3>📡 เรดาร์สแกนจุดช้อน (Dip Opportunity Radar)</h3>
+            <span class="dip-radar-badge-count font-mono">${hitCount > 0 ? `🔥 ${hitCount} หุ้นถึงจุดช้อน` : `ติดตาม ${opportunities.length} หุ้น`}</span>
+          </div>
+        </div>
+        <div class="dip-radar-grid">
+          ${cardsHTML}
+        </div>
+      </div>
+    `;
+  }
+
+  // --- SHAREABLE CYBERPUNK PORTFOLIO CARD ENGINE (DUCKSREEN & CERFINITS STYLE) ---
+  openShareCardModal() {
+    this.shareCardPrivacy = this.privacyMode;
+    this.shareCardFormat = 'square'; // 'square' (1080x1080) or 'story' (1080x1920)
+    this.openModal('modal-share-card');
+    setTimeout(() => {
+      this.renderShareableCardCanvas();
+    }, 60);
+  }
+
+  renderShareableCardCanvas() {
+    const canvas = document.getElementById('share-card-canvas');
+    if (!canvas) return;
+
+    const isStory = this.shareCardFormat === 'story';
+    const width = 1080;
+    const height = isStory ? 1920 : 1080;
+    canvas.width = width;
+    canvas.height = height;
+
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+    const grand = this.calculateGrandTotalStats();
+
+    // 1. Background Gradient (Dark Cyberpunk / Industrial)
+    const bgGrad = ctx.createLinearGradient(0, 0, width, height);
+    bgGrad.addColorStop(0, '#0f172a');
+    bgGrad.addColorStop(0.5, '#090d16');
+    bgGrad.addColorStop(1, '#020617');
+    ctx.fillStyle = bgGrad;
+    ctx.fillRect(0, 0, width, height);
+
+    // Decorative grid pattern
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.03)';
+    ctx.lineWidth = 1;
+    for (let x = 0; x < width; x += 40) {
+      ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, height); ctx.stroke();
+    }
+    for (let y = 0; y < height; y += 40) {
+      ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(width, y); ctx.stroke();
+    }
+
+    // Glow accents
+    const radGlow1 = ctx.createRadialGradient(width * 0.8, 100, 10, width * 0.8, 100, 400);
+    radGlow1.addColorStop(0, 'rgba(168, 85, 247, 0.25)');
+    radGlow1.addColorStop(1, 'transparent');
+    ctx.fillStyle = radGlow1;
+    ctx.fillRect(0, 0, width, height);
+
+    const radGlow2 = ctx.createRadialGradient(200, height * 0.8, 10, 200, height * 0.8, 450);
+    radGlow2.addColorStop(0, 'rgba(16, 185, 129, 0.2)');
+    radGlow2.addColorStop(1, 'transparent');
+    ctx.fillStyle = radGlow2;
+    ctx.fillRect(0, 0, width, height);
+
+    // 2. Outer Frame & Screws (Industrial Faceplate aesthetic)
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.15)';
+    ctx.lineWidth = 2;
+    ctx.strokeRect(30, 30, width - 60, height - 60);
+
+    const drawScrew = (sx, sy) => {
+      ctx.fillStyle = '#334155';
+      ctx.beginPath(); ctx.arc(sx, sy, 8, 0, Math.PI * 2); ctx.fill();
+      ctx.strokeStyle = '#64748b'; ctx.lineWidth = 1.5; ctx.stroke();
+      ctx.strokeStyle = '#94a3b8'; ctx.beginPath(); ctx.moveTo(sx - 5, sy); ctx.lineTo(sx + 5, sy); ctx.stroke();
+    };
+    drawScrew(50, 50);
+    drawScrew(width - 50, 50);
+    drawScrew(50, height - 50);
+    drawScrew(width - 50, height - 50);
+
+    // 3. Header Branding
+    ctx.fillStyle = '#ffffff';
+    ctx.font = 'bold 36px sans-serif';
+    ctx.fillText('PIXEL STEWARD', 120, 100);
+
+    ctx.fillStyle = '#a855f7';
+    ctx.font = 'bold 16px monospace';
+    ctx.fillText('PORTFOLIO & WEALTH TRACKER', 120, 128);
+
+    // Date
+    const nowStr = new Date().toLocaleDateString('th-TH', { year: 'numeric', month: 'short', day: 'numeric' });
+    ctx.fillStyle = '#94a3b8';
+    ctx.font = '16px monospace';
+    ctx.textAlign = 'right';
+    ctx.fillText(nowStr, width - 70, 105);
+    ctx.textAlign = 'left';
+
+    // 4. Hero Net Worth Card
+    const cardY = 170;
+    const cardW = width - 140;
+    const cardH = 260;
+    
+    ctx.fillStyle = 'rgba(30, 41, 59, 0.6)';
+    ctx.beginPath();
+    ctx.roundRect(70, cardY, cardW, cardH, 20);
+    ctx.fill();
+    ctx.strokeStyle = 'rgba(168, 85, 247, 0.4)';
+    ctx.lineWidth = 2;
+    ctx.stroke();
+
+    ctx.fillStyle = '#94a3b8';
+    ctx.font = '18px sans-serif';
+    ctx.fillText('สินทรัพย์รวมทั้งหมด (TOTAL NET WORTH)', 100, cardY + 50);
+
+    const netWorthText = this.shareCardPrivacy 
+      ? '฿ ••••••••••' 
+      : `$${grand.grandTotalUSD.toLocaleString(undefined, {minimumFractionDigits:2, maximumFractionDigits:2})} (฿${(grand.grandTotalUSD * (this.exchangeRate||32.59)).toLocaleString(undefined, {maximumFractionDigits:0})})`;
+
+    ctx.fillStyle = '#ffffff';
+    ctx.font = 'bold 46px monospace';
+    ctx.fillText(netWorthText, 100, cardY + 115);
+
+    // Return & Profit Chips
+    const isProfitable = grand.totalPLUSD >= 0;
+    const plText = this.shareCardPrivacy
+      ? `${isProfitable ? '▲ +' : '▼ '}${this.formatPercent(grand.totalPLPct)}`
+      : `${isProfitable ? '▲ +' : '▼ '}${this.formatPercent(grand.totalPLPct)} ($${grand.totalPLUSD.toFixed(2)} / ฿${(grand.totalPLUSD * (this.exchangeRate||32.59)).toFixed(0)})`;
+
+    ctx.fillStyle = isProfitable ? '#10b981' : '#f43f5e';
+    ctx.font = 'bold 22px monospace';
+    ctx.fillText(`กำไรหุ้น: ${plText}`, 100, cardY + 170);
+
+    const fxGainText = this.shareCardPrivacy ? '•••••' : `฿${(grand.fxGainTHB || 0).toLocaleString(undefined, {maximumFractionDigits: 0})}`;
+    ctx.fillStyle = '#38bdf8';
+    ctx.font = '18px monospace';
+    ctx.fillText(`ผลตอบแทนค่าเงิน (FX): ${fxGainText}`, 100, cardY + 215);
+
+    // 5. Sub-Portfolios Summary Section
+    const subY = cardY + cardH + 40;
+    ctx.fillStyle = '#ffffff';
+    ctx.font = 'bold 24px sans-serif';
+    ctx.fillText('📁 สัดส่วนการลงทุน (Sub-Portfolios)', 70, subY);
+
+    let currY = subY + 30;
+    this.portfolios.forEach((p, idx) => {
+      if (idx >= 4) return;
+      const pTotal = this.calculatePortfolioTotal(p);
+      const pct = grand.grandTotalUSD > 0 ? (pTotal / grand.grandTotalUSD) * 100 : 0;
+      const portVal = this.shareCardPrivacy ? '•••••' : `$${pTotal.toLocaleString(undefined, {minimumFractionDigits:2, maximumFractionDigits:2})}`;
+
+      ctx.fillStyle = 'rgba(255, 255, 255, 0.04)';
+      ctx.beginPath(); ctx.roundRect(70, currY, cardW, 60, 12); ctx.fill();
+      ctx.strokeStyle = p.color || 'rgba(255, 255, 255, 0.1)'; ctx.lineWidth = 1.5; ctx.stroke();
+
+      ctx.fillStyle = '#ffffff'; ctx.font = 'bold 18px sans-serif';
+      ctx.fillText(p.name, 95, currY + 37);
+
+      ctx.textAlign = 'right';
+      ctx.fillStyle = '#c084fc'; ctx.font = 'bold 18px monospace';
+      ctx.fillText(`${pct.toFixed(1)}%`, width - 230, currY + 37);
+
+      ctx.fillStyle = '#94a3b8'; ctx.font = '16px monospace';
+      ctx.fillText(portVal, width - 95, currY + 37);
+      ctx.textAlign = 'left';
+
+      currY += 72;
+    });
+
+    // 6. Achievements Section
+    const achY = currY + 30;
+    const completedAchs = (this.achievements || []).filter(a => a.completed);
+    ctx.fillStyle = '#ffffff'; ctx.font = 'bold 24px sans-serif';
+    ctx.fillText(`🏆 เหรียญความสำเร็จ (${completedAchs.length}/${(this.achievements||[]).length})`, 70, achY);
+
+    const achBoxY = achY + 20;
+    ctx.fillStyle = 'rgba(16, 185, 129, 0.08)';
+    ctx.beginPath(); ctx.roundRect(70, achBoxY, cardW, 70, 12); ctx.fill();
+    ctx.strokeStyle = 'rgba(16, 185, 129, 0.3)'; ctx.lineWidth = 1.5; ctx.stroke();
+
+    const emojiIcons = completedAchs.slice(0, 10).map(a => a.icon || '🏆').join('  ');
+    ctx.font = '28px sans-serif';
+    ctx.fillText(emojiIcons || '🌱 เริ่มต้นสร้างอิสรภาพทางการเงิน', 95, achBoxY + 45);
+
+    // 7. Footer
+    ctx.fillStyle = '#64748b';
+    ctx.font = '14px monospace';
+    ctx.textAlign = 'center';
+    ctx.fillText('GENERATED BY PIXEL STEWARD • SECURE & PRIVATE WEALTH MANAGEMENT', width / 2, height - 55);
+    ctx.textAlign = 'left';
+  }
+
+  downloadShareCardPNG() {
+    const canvas = document.getElementById('share-card-canvas');
+    if (!canvas) return;
+    const link = document.createElement('a');
+    link.download = `pixel-steward-portfolio-${Date.now()}.png`;
+    link.href = canvas.toDataURL('image/png');
+    link.click();
+
+    this.showToast({
+      icon: '📸',
+      title: 'ดาวน์โหลดรูปภาพสำเร็จ!',
+      message: 'บันทึกการ์ดพอร์ตเป็นไฟล์ PNG เรียบร้อยแล้ว',
+      type: 'success'
+    });
+  }
+
+  async copyShareCardToClipboard() {
+    const canvas = document.getElementById('share-card-canvas');
+    if (!canvas) return;
+
+    try {
+      canvas.toBlob(async (blob) => {
+        if (!blob) return;
+        await navigator.clipboard.write([
+          new ClipboardItem({ 'image/png': blob })
+        ]);
+        this.showToast({
+          icon: '📋',
+          title: 'คัดลอกรูปภาพแล้ว!',
+          message: 'สามารถกด Paste (Ctrl+V) ลงใน LINE หรือ Facebook ได้ทันที',
+          type: 'success'
+        });
+      }, 'image/png');
+    } catch (e) {
+      this.downloadShareCardPNG();
     }
   }
 
@@ -1583,6 +1935,9 @@ class PixelStewardApp {
           </div>
         </div>
       </div>
+
+      <!-- DIP OPPORTUNITY SCANNER RADAR -->
+      ${this.renderDipOpportunityScannerHTML()}
 
       <!-- CUSTOM FINANCIAL ACHIEVEMENTS & GOALS SECTION -->
       <div class="achievements-section-wrapper">
@@ -1780,6 +2135,20 @@ class PixelStewardApp {
         if (portId) {
           this.selectedPortfolioId = portId;
           this.switchTab('portfolios');
+        }
+      });
+    });
+
+    // Dip Opportunity Quick Buy Button
+    container.querySelectorAll('.btn-dip-quick-buy').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const portId = btn.getAttribute('data-dip-port');
+        const ticker = btn.getAttribute('data-dip-ticker');
+        const price = parseFloat(btn.getAttribute('data-dip-price'));
+        const port = this.portfolios.find(p => p.id === portId);
+        const h = port?.holdings?.find(x => x.ticker === ticker);
+        if (port && h) {
+          this.openTradeModalForHolding(h.id, port.id, price);
         }
       });
     });
@@ -2621,6 +2990,17 @@ class PixelStewardApp {
           <canvas id="chart-trading-equity"></canvas>
         </div>
       </div>
+
+      <!-- DIME TRADE JOURNAL & PSYCHOLOGY LOG -->
+      <div class="chart-card" style="margin-top: 24px;">
+        <div class="chart-title">
+          <span>📓 บันทึกประวัติการซื้อ-ขาย & จิตวิทยา (Trade Journal)</span>
+          <span class="badge font-mono" style="background:rgba(168,85,247,0.2); color:#c084fc;">${(this.tradingHistory || []).length} รายการ</span>
+        </div>
+        <div class="trading-journal-list" style="display: flex; flex-direction: column; gap: 8px; margin-top: 12px;">
+          ${this.renderTradingHistoryHTML()}
+        </div>
+      </div>
     `;
 
     container.innerHTML = html;
@@ -2628,6 +3008,39 @@ class PixelStewardApp {
     setTimeout(() => {
       this.initTradingChart();
     }, 50);
+  }
+
+  renderTradingHistoryHTML() {
+    const list = this.tradingHistory || [];
+    if (list.length === 0) {
+      return `<div style="text-align: center; color: var(--text-muted); padding: 18px; font-size: 13px;">ยังไม่มีประวัติการซื้อ-ขาย (เมื่อคุณกดซื้อ/ขายในแอป ประวัติและแท็กจิตวิทยาจะมาแสดงที่นี่)</div>`;
+    }
+
+    return list.slice(0, 20).map(item => {
+      const isBuy = item.type === 'BUY';
+      const dateStr = item.date ? new Date(item.date).toLocaleDateString('th-TH', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : '';
+      return `
+        <div class="trading-journal-item" style="display: flex; align-items: center; justify-content: space-between; padding: 10px 14px; background: rgba(15, 23, 42, 0.6); border: 1px solid rgba(255,255,255,0.06); border-radius: 8px; flex-wrap: wrap; gap: 8px;">
+          <div style="display: flex; align-items: center; gap: 10px;">
+            <span style="font-size: 11px; font-weight: 800; padding: 3px 8px; border-radius: 4px; background: ${isBuy ? 'rgba(16, 185, 129, 0.2)' : 'rgba(239, 68, 68, 0.2)'}; color: ${isBuy ? '#34d399' : '#f87171'}; border: 1px solid ${isBuy ? 'rgba(16, 185, 129, 0.4)' : 'rgba(239, 68, 68, 0.4)'};">
+              ${isBuy ? '🟢 BUY' : '🔴 SELL'}
+            </span>
+            <strong class="font-mono text-white" style="font-size: 14px;">${item.ticker}</strong>
+            <span style="font-size: 11px; color: var(--text-muted);">${item.portfolioName || ''}</span>
+            ${item.psychologyTag ? `<span class="psychology-badge-pill">${item.psychologyTag}</span>` : ''}
+          </div>
+
+          <div style="text-align: right; display: flex; align-items: center; gap: 12px;">
+            <div class="font-mono" style="font-size: 13px; color: #fff;">
+              ${item.shares} หุ้น @ $${Number(item.priceUSD || 0).toFixed(2)} = <strong>$${Number(item.totalUSD || 0).toFixed(2)}</strong>
+            </div>
+            <span style="font-size: 11px; color: var(--text-muted); font-family: monospace;">${dateStr}</span>
+          </div>
+
+          ${item.note ? `<div style="width: 100%; font-size: 11.5px; color: var(--text-secondary); margin-top: 2px; padding-left: 4px;">📝 ${item.note}</div>` : ''}
+        </div>
+      `;
+    }).join('');
   }
 
   initTradingChart() {
@@ -4713,6 +5126,51 @@ tags:
       const id = document.getElementById('achievement-id')?.value;
       this.deleteAchievement(id);
     });
+
+    // Trading Psychology Tag Selector Chips
+    document.querySelectorAll('.psychology-tag-chip').forEach(chip => {
+      chip.addEventListener('click', (e) => {
+        e.preventDefault();
+        document.querySelectorAll('.psychology-tag-chip').forEach(c => c.classList.remove('active'));
+        chip.classList.add('active');
+        const tagVal = chip.getAttribute('data-tag');
+        const inputVal = document.getElementById('trade-selected-tag');
+        if (inputVal) inputVal.value = tagVal;
+      });
+    });
+
+    // Share Card Modal Buttons
+    document.getElementById('btn-open-share-card')?.addEventListener('click', () => {
+      this.openShareCardModal();
+    });
+
+    document.getElementById('btn-share-format-sq')?.addEventListener('click', () => {
+      this.shareCardFormat = 'square';
+      document.getElementById('btn-share-format-sq')?.classList.add('active');
+      document.getElementById('btn-share-format-story')?.classList.remove('active');
+      this.renderShareableCardCanvas();
+    });
+
+    document.getElementById('btn-share-format-story')?.addEventListener('click', () => {
+      this.shareCardFormat = 'story';
+      document.getElementById('btn-share-format-story')?.classList.add('active');
+      document.getElementById('btn-share-format-sq')?.classList.remove('active');
+      this.renderShareableCardCanvas();
+    });
+
+    document.getElementById('btn-share-toggle-privacy')?.addEventListener('click', () => {
+      this.shareCardPrivacy = !this.shareCardPrivacy;
+      document.getElementById('btn-share-toggle-privacy')?.classList.toggle('active', this.shareCardPrivacy);
+      this.renderShareableCardCanvas();
+    });
+
+    document.getElementById('btn-download-share-card')?.addEventListener('click', () => {
+      this.downloadShareCardPNG();
+    });
+
+    document.getElementById('btn-copy-share-card')?.addEventListener('click', () => {
+      this.copyShareCardToClipboard();
+    });
   }
 
   openModal(modalId) {
@@ -4962,12 +5420,13 @@ tags:
     this.updateTradeCalculations();
   }
 
-  openTradeModalForHolding(holdingId, portId) {
+  openTradeModalForHolding(holdingId, portId, prefillPrice = null) {
     this.populateTradeStockSelect(portId, holdingId);
     const port = this.portfolios.find(p => p.id === portId);
     const h = port?.holdings?.find(x => x.id === holdingId);
     if (h) {
-      document.getElementById('trade-price').value = (h.currentPriceUSD || h.avgCostUSD || 100).toFixed(2);
+      const priceToUse = (prefillPrice && prefillPrice > 0) ? prefillPrice : (h.currentPriceUSD || h.avgCostUSD || 100);
+      document.getElementById('trade-price').value = priceToUse.toFixed(2);
       document.getElementById('trade-shares').value = '';
     }
     this.openModal('modal-trade');
@@ -5046,6 +5505,8 @@ tags:
     const tradeShares = parseFloat(document.getElementById('trade-shares').value) || 0;
     const tradePrice = parseFloat(document.getElementById('trade-price').value) || 0;
     const useCashBuffer = document.getElementById('trade-use-cash-buffer').checked;
+    const psychologyTag = document.getElementById('trade-selected-tag')?.value || '🎯 ช้อนตามแนวรับ';
+    const customNote = (document.getElementById('trade-custom-note')?.value || '').trim();
 
     if (tradeShares <= 0 || tradePrice <= 0) {
       alert('กรุณากรอกจำนวนหุ้นและราคาให้ถูกต้อง');
@@ -5077,7 +5538,7 @@ tags:
       this.showToast({
         icon: '🟢',
         title: 'ซื้อหุ้นสำเร็จ!',
-        message: `ซื้อ ${h.ticker} จำนวน ${tradeShares} หุ้น (ต้นทุนเฉลี่ยใหม่: $${newAvgCost.toFixed(4)})`,
+        message: `ซื้อ ${h.ticker} จำนวน ${tradeShares} หุ้น [${psychologyTag}] (ต้นทุนเฉลี่ยใหม่: $${newAvgCost.toFixed(4)})`,
         type: 'success'
       });
     } else {
@@ -5100,10 +5561,25 @@ tags:
       this.showToast({
         icon: '🔴',
         title: 'ขายหุ้นสำเร็จ!',
-        message: `ขาย ${h.ticker} จำนวน ${tradeShares} หุ้น ได้เงิน $${tradeTotalUSD.toFixed(2)}`,
+        message: `ขาย ${h.ticker} จำนวน ${tradeShares} หุ้น [${psychologyTag}] ได้เงิน $${tradeTotalUSD.toFixed(2)}`,
         type: 'success'
       });
     }
+
+    if (!this.tradingHistory) this.tradingHistory = [];
+    this.tradingHistory.unshift({
+      id: 'trade-' + Date.now(),
+      date: new Date().toISOString(),
+      type,
+      portfolioId: port.id,
+      portfolioName: port.name,
+      ticker: h.ticker,
+      shares: tradeShares,
+      priceUSD: tradePrice,
+      totalUSD: tradeTotalUSD,
+      psychologyTag,
+      note: customNote
+    });
 
     this.saveData();
     this.closeModal('modal-trade');

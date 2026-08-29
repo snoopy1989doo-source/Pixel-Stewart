@@ -31,7 +31,7 @@
   <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.2/dist/confetti.browser.min.js"></script>
   
   <!-- Main Stylesheet -->
-  <link rel="stylesheet" href="style.css?v=2.9.9">
+  <link rel="stylesheet" href="style.css?v=3.0.0">
 </head>
 <body>
   <div class="app-layout">
@@ -149,6 +149,12 @@
             <span class="btn-text-desktop">Smart DCA</span>
           </button>
 
+          <!-- Shareable Portfolio Card Button -->
+          <button id="btn-open-share-card" class="btn-icon-action" title="สร้างการ์ดสรุปพอร์ต & ความสำเร็จ (แชร์ลง LINE / FB)">
+            <span>📸</span>
+            <span class="btn-text-desktop">แชร์พอร์ต</span>
+          </button>
+
           <!-- Currency Display Toggle (USD / THB) -->
           <div class="currency-toggle-wrapper">
             <button class="cur-btn active" id="cur-mode-usd">USD ($)</button>
@@ -168,10 +174,10 @@
         </div>
       </header>
 
-      <!-- MARKET TICKER TAPE BAR (MARQUEE) -->
-      <div class="market-ticker-tape" id="market-ticker-tape">
-        <div class="ticker-tape-track" id="ticker-tape-track">
-          <!-- Populated dynamically with stocks in portfolios -->
+      <!-- INDUSTRIAL SPEC COUNTERS BAR & LIVE MARKET STATUS -->
+      <div class="industrial-spec-bar" id="industrial-spec-bar">
+        <div class="spec-gauges-track" id="spec-gauges-track">
+          <!-- Dynamically populated by app.js with gauges and live price chips -->
         </div>
       </div>
 
@@ -437,6 +443,22 @@
             <label>ราคาที่เข้าซื้อ/ขายต่อหุ้น ($ USD) <span class="req">*</span></label>
             <input type="number" step="any" id="trade-price" class="form-input font-mono" placeholder="105.50" required>
           </div>
+        </div>
+
+        <!-- Trading Psychology & Strategy Tag Selector (Cerfinits style) -->
+        <div class="form-group">
+          <label>🧠 เหตุผล & จิตวิทยาการเทรด (Strategy & Psychology Tag)</label>
+          <div class="psychology-tag-grid" id="trade-psychology-tags">
+            <button type="button" class="psychology-tag-chip active" data-tag="🎯 ช้อนตามแนวรับ">🎯 ช้อนตามแนวรับ</button>
+            <button type="button" class="psychology-tag-chip" data-tag="💎 DCA ประจำงวด">💎 DCA ประจำงวด</button>
+            <button type="button" class="psychology-tag-chip" data-tag="🔥 ช้อนตลาดแพนิค">🔥 ช้อนตลาดแพนิค</button>
+            <button type="button" class="psychology-tag-chip" data-tag="💰 หุ้นปันผล">💰 หุ้นปันผล</button>
+            <button type="button" class="psychology-tag-chip" data-tag="⚖️ Rebalance">⚖️ Rebalance</button>
+            <button type="button" class="psychology-tag-chip" data-tag="🎉 ขายทำกำไร">🎉 ขายทำกำไร</button>
+            <button type="button" class="psychology-tag-chip" data-tag="📉 Stop Loss">📉 Stop Loss</button>
+          </div>
+          <input type="hidden" id="trade-selected-tag" value="🎯 ช้อนตามแนวรับ">
+          <input type="text" id="trade-custom-note" class="form-input text-xs" style="margin-top: 6px;" placeholder="โน้ตช่วยจำเพิ่มเติม (ถ้ามี เช่น เข้าไม้ 1 ตามแนวรับ $353)">
         </div>
 
         <div class="calculation-preview-card" id="trade-calc-preview">
@@ -863,10 +885,38 @@
     </div>
   </div>
 
+  <!-- MODAL: SHAREABLE CYBERPUNK PORTFOLIO CARD (Duckscreen & Cerfinits style) -->
+  <div class="modal-backdrop" id="modal-share-card">
+    <div class="modal-card modal-card-wide">
+      <div class="modal-header">
+        <h3>📸 การ์ดสรุปพอร์ต & ความสำเร็จ (Shareable Portfolio Card)</h3>
+        <button class="btn-close-modal" data-close="modal-share-card">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="share-card-toolbar">
+          <div class="share-card-toggles">
+            <button type="button" class="btn-tool-pill active" id="btn-share-format-sq">🔲 จัตุรัส (1:1)</button>
+            <button type="button" class="btn-tool-pill" id="btn-share-format-story">📱 สตอรี่ (9:16)</button>
+            <button type="button" class="btn-tool-pill" id="btn-share-toggle-privacy">👁️ ซ่อนยอดเงิน (Privacy)</button>
+          </div>
+        </div>
+
+        <div class="share-card-canvas-container">
+          <canvas id="share-card-canvas" width="1080" height="1080"></canvas>
+        </div>
+
+        <div class="share-card-actions">
+          <button type="button" class="btn btn-secondary" id="btn-copy-share-card">📋 คัดลอกรูปภาพ (Copy)</button>
+          <button type="button" class="btn btn-primary btn-glow" id="btn-download-share-card">📥 ดาวน์โหลดรูปภาพ (PNG)</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <!-- TOAST NOTIFICATION CONTAINER -->
   <div id="toast-container" class="toast-container"></div>
 
   <!-- Core JavaScript Application -->
-  <script src="app.js?v=2.9.9"></script>
+  <script src="app.js?v=3.0.0"></script>
 </body>
 </html>
