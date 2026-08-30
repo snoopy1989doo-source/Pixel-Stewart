@@ -3400,7 +3400,7 @@ class PixelStewardApp {
     const totalUSD = holdingsStats.reduce((sum, h) => sum + h.marketValueUSD, 0);
     const labels = holdingsStats.map(h => h.ticker);
     const dataValues = holdingsStats.map(h => h.marketValueUSD);
-    const palette = ['#10b981', '#38bdf8', '#a855f7', '#f59e0b', '#ec4899', '#3b82f6', '#f97316', '#06b6d4'];
+    const palette = ['#38bdf8', '#10b981', '#a855f7', '#f59e0b', '#ec4899', '#3b82f6', '#f97316', '#06b6d4', '#84cc16'];
     const colors = holdingsStats.map((_, idx) => palette[idx % palette.length]);
 
     if (this.charts.subport) {
@@ -3415,7 +3415,7 @@ class PixelStewardApp {
     const updateCenterHub = (item, color) => {
       if (!item) return;
       const pct = totalUSD > 0 ? ((item.marketValueUSD / totalUSD) * 100).toFixed(1) : '0.0';
-      if (centerHubLogo) centerHubLogo.innerHTML = this.renderStockLogoHTML(item.ticker, color || '#10b981', 28);
+      if (centerHubLogo) centerHubLogo.innerHTML = this.renderStockLogoHTML(item.ticker, color || '#10b981', 24);
       if (centerHubTicker) centerHubTicker.textContent = item.ticker;
       if (centerHubPct) centerHubPct.textContent = `${pct}%`;
       if (centerHubVal) centerHubVal.textContent = this.formatUSD(item.marketValueUSD);
@@ -3426,6 +3426,135 @@ class PixelStewardApp {
       updateCenterHub(holdingsStats[0], colors[0]);
     }
 
+    // Leader lines & Logo Callout Plugin (Dime App / iOS Financial Style)
+    const subportLeaderLinesPlugin = {
+      id: 'subportLeaderLines',
+      afterDraw: (chart) => {
+        const { ctx, chartArea } = chart;
+        const meta = chart.getDatasetMeta(0);
+        if (!meta || !meta.data || meta.data.length === 0) return;
+
+        const dataset = chart.data.datasets[0];
+        const total = dataset.data.reduce((a, b) => a + b, 0);
+        if (total <= 0) return;
+
+        ctx.save();
+
+        const labelsInfo = [];
+
+        // 1. Calculate raw geometric points
+        meta.data.forEach((element, i) => {
+          const val = dataset.data[i];
+          if (val <= 0) return;
+          const { startAngle, endAngle, outerRadius, x: cx, y: cy } = element;
+          const midAngle = (startAngle + endAngle) / 2;
+          const cos = Math.cos(midAngle);
+          const sin = Math.sin(midAngle);
+          const isRight = cos >= 0;
+
+          const pct = ((val / total) * 100).toFixed(1);
+          const ticker = chart.data.labels[i] || '';
+          const color = dataset.backgroundColor[i] || '#38bdf8';
+
+          const r0 = outerRadius;
+          const x0 = cx + cos * r0;
+          const y0 = cy + sin * r0;
+
+          const r1 = outerRadius + 12;
+          const x1 = cx + cos * r1;
+          const y1 = cy + sin * r1;
+
+          const elbowLength = 16;
+          const x2 = isRight ? (x1 + elbowLength) : (x1 - elbowLength);
+          const y2 = y1;
+
+          labelsInfo.push({
+            i,
+            ticker,
+            pct,
+            color,
+            isRight,
+            x0, y0,
+            x1, y1,
+            x2, y2,
+            cx, cy
+          });
+        });
+
+        // 2. Adjust vertical y2 spacing on both sides to prevent overlapping
+        ['right', 'left'].forEach(side => {
+          const items = labelsInfo.filter(l => (side === 'right' ? l.isRight : !l.isRight));
+          items.sort((a, b) => a.y1 - b.y1);
+          const minGap = 19;
+          for (let k = 1; k < items.length; k++) {
+            if (items[k].y2 - items[k - 1].y2 < minGap) {
+              items[k].y2 = items[k - 1].y2 + minGap;
+              items[k].y1 = items[k].y2;
+            }
+          }
+        });
+
+        // 3. Render Leader Lines, Anchor Dots, and Ticker Badges
+        labelsInfo.forEach(item => {
+          const { color, isRight, x0, y0, x1, y2, x2, ticker, pct } = item;
+
+          // Anchor dot on ring rim
+          ctx.beginPath();
+          ctx.arc(x0, y0, 2, 0, Math.PI * 2);
+          ctx.fillStyle = color;
+          ctx.fill();
+
+          // Pointer Line (Rim -> Radial -> Horizontal Elbow)
+          ctx.beginPath();
+          ctx.moveTo(x0, y0);
+          ctx.lineTo(x1, y2);
+          ctx.lineTo(x2, y2);
+          ctx.strokeStyle = color;
+          ctx.lineWidth = 1.4;
+          ctx.lineCap = 'round';
+          ctx.lineJoin = 'round';
+          ctx.stroke();
+
+          // End pointer dot
+          ctx.beginPath();
+          ctx.arc(x2, y2, 2, 0, Math.PI * 2);
+          ctx.fillStyle = color;
+          ctx.fill();
+
+          // Mini circular logo badge
+          const badgeSize = 13;
+          const badgeX = isRight ? (x2 + 4) : (x2 - 4 - badgeSize);
+          const badgeY = y2 - badgeSize / 2;
+
+          ctx.beginPath();
+          ctx.arc(badgeX + badgeSize / 2, badgeY + badgeSize / 2, badgeSize / 2, 0, Math.PI * 2);
+          ctx.fillStyle = `${color}30`;
+          ctx.fill();
+          ctx.lineWidth = 1;
+          ctx.strokeStyle = color;
+          ctx.stroke();
+
+          // Mini badge letter
+          ctx.font = 'bold 7.5px Kanit, sans-serif';
+          ctx.fillStyle = '#ffffff';
+          ctx.textAlign = 'center';
+          ctx.textBaseline = 'middle';
+          ctx.fillText(ticker.slice(0, 2), badgeX + badgeSize / 2, badgeY + badgeSize / 2 + 0.5);
+
+          // Bold Ticker & % Text
+          ctx.font = 'bold 10.5px JetBrains Mono, Kanit, sans-serif';
+          ctx.fillStyle = '#ffffff';
+          ctx.textBaseline = 'middle';
+          ctx.textAlign = isRight ? 'left' : 'right';
+
+          const textX = isRight ? (badgeX + badgeSize + 4) : (badgeX - 4);
+          ctx.fillText(`${ticker} ${pct}%`, textX, y2);
+        });
+
+        ctx.restore();
+      }
+    };
+
     this.charts.subport = new Chart(ctxSub, {
       type: 'doughnut',
       data: {
@@ -3435,13 +3564,22 @@ class PixelStewardApp {
           backgroundColor: colors,
           borderWidth: 2,
           borderColor: '#0f172a',
-          hoverOffset: 8
+          hoverOffset: 6
         }]
       },
+      plugins: [subportLeaderLinesPlugin],
       options: {
         responsive: true,
         maintainAspectRatio: false,
-        cutout: '72%',
+        cutout: '80%',
+        layout: {
+          padding: {
+            top: 20,
+            bottom: 20,
+            left: 68,
+            right: 68
+          }
+        },
         plugins: {
           legend: { display: false },
           tooltip: {

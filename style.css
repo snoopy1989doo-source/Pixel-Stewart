@@ -3288,8 +3288,9 @@ body.privacy-mode #privacy-icon {
 
 .subport-donut-canvas-box {
   position: relative;
-  width: 200px;
-  height: 200px;
+  width: 100%;
+  max-width: 380px;
+  height: 230px;
   margin: 0 auto;
 }
 
@@ -3309,8 +3310,8 @@ body.privacy-mode #privacy-icon {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  width: 100px;
-  height: 100px;
+  width: 90px;
+  height: 90px;
 }
 
 .center-hub-logo {
