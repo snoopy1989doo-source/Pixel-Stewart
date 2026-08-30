@@ -1554,17 +1554,27 @@ class PixelStewardApp {
     });
 
     const hitCount = opportunities.filter(o => o.isHit).length;
+    const nearCount = opportunities.filter(o => !o.isHit && o.minDistancePct <= 5.0).length;
+
+    const currentFilter = this.dipRadarFilter || 'all';
 
     const cardsHTML = opportunities.map(o => {
       const isUp = o.change1d >= 0;
       let statusBadge = '';
+      let filterCategory = 'far';
       if (o.isHit) {
         statusBadge = `<span class="dip-radar-hit-status hit">🔥 ถึงจุดช้อน ${o.bestTarget.label}!</span>`;
-      } else if (o.minDistancePct <= 3.5) {
+        filterCategory = 'hit';
+      } else if (o.minDistancePct <= 5.0) {
         statusBadge = `<span class="dip-radar-hit-status near">⚡ จ่อแนวรับ (อีก ${o.minDistancePct.toFixed(1)}%)</span>`;
+        filterCategory = 'near';
       } else {
         statusBadge = `<span class="dip-radar-hit-status far">⏳ ห่าง ${o.minDistancePct.toFixed(1)}%</span>`;
+        filterCategory = 'far';
       }
+
+      const isHidden = (currentFilter === 'hit' && filterCategory !== 'hit') ||
+                       (currentFilter === 'near' && filterCategory !== 'near');
 
       const tiersTags = o.targets.map(t => {
         const isTierHit = o.currentPrice <= t.val;
@@ -1572,7 +1582,7 @@ class PixelStewardApp {
       }).join('');
 
       return `
-        <div class="dip-radar-item ${o.isHit ? 'hit' : ''}">
+        <div class="dip-radar-item ${o.isHit ? 'hit' : ''} ${isHidden ? 'dip-item-hidden' : ''}" data-dip-category="${filterCategory}">
           <div class="dip-radar-item-top">
             <div class="dip-radar-sym-block">
               ${this.renderStockLogoHTML(o.ticker, o.portfolioColor || '#10b981', 18)}
@@ -1609,9 +1619,24 @@ class PixelStewardApp {
             <h3>📡 เรดาร์สแกนจุดช้อน (Dip Opportunity Radar)</h3>
             <span class="dip-radar-badge-count font-mono">${hitCount > 0 ? `🔥 ${hitCount} หุ้นถึงจุดช้อน` : `ติดตาม ${opportunities.length} หุ้น`}</span>
           </div>
+
+          <div class="dip-radar-filter-tabs">
+            <button type="button" class="dip-filter-btn ${currentFilter === 'hit' ? 'active' : ''}" data-dip-filter="hit">
+              🔥 ถึงจุดช้อน (${hitCount})
+            </button>
+            <button type="button" class="dip-filter-btn ${currentFilter === 'near' ? 'active' : ''}" data-dip-filter="near">
+              ⚡ จ่อแนวรับ (${nearCount})
+            </button>
+            <button type="button" class="dip-filter-btn ${currentFilter === 'all' ? 'active' : ''}" data-dip-filter="all">
+              🌟 ทั้งหมด (${opportunities.length})
+            </button>
+          </div>
         </div>
-        <div class="dip-radar-grid">
-          ${cardsHTML}
+
+        <div class="dip-radar-swipe-container">
+          <div class="dip-radar-grid" id="dip-radar-grid">
+            ${cardsHTML}
+          </div>
         </div>
       </div>
     `;
@@ -1947,10 +1972,8 @@ class PixelStewardApp {
       <!-- 1. DONUT CHARTS SWIPEABLE CAROUSEL CONTAINER -->
       <div class="analytics-charts-wrapper" id="dashboard-donut-container" style="${this.allocationViewMode === 'treemap' ? 'display:none;' : ''}">
         <div class="donut-carousel-nav-header">
-          <div class="donut-tabs-header">
-            <button type="button" class="donut-tab-btn active" data-donut-target="0">💼 ประเภทสินทรัพย์</button>
-            <button type="button" class="donut-tab-btn" data-donut-target="1">📁 ตามพอร์ตเป้าหมาย</button>
-            <button type="button" class="donut-tab-btn" data-donut-target="2">📈 หุ้นย่อยทั้งหมด</button>
+          <div class="donut-swipe-hint font-mono">
+            <span>👆 ปัดซ้าย-ขวาเพื่อดูสัดส่วน</span>
           </div>
 
           <div class="donut-carousel-controls">
@@ -2121,6 +2144,28 @@ class PixelStewardApp {
         if (port && h) {
           this.openTradeModalForHolding(h.id, port.id, price);
         }
+      });
+    });
+
+    // Dip Opportunity Radar Filter Tabs
+    container.querySelectorAll('.dip-filter-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const filter = btn.getAttribute('data-dip-filter');
+        this.dipRadarFilter = filter;
+        container.querySelectorAll('.dip-filter-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+
+        const items = container.querySelectorAll('.dip-radar-item');
+        items.forEach(item => {
+          const cat = item.getAttribute('data-dip-category');
+          if (filter === 'all') {
+            item.classList.remove('dip-item-hidden');
+          } else if (filter === 'hit') {
+            item.classList.toggle('dip-item-hidden', cat !== 'hit');
+          } else if (filter === 'near') {
+            item.classList.toggle('dip-item-hidden', cat !== 'near');
+          }
+        });
       });
     });
 
