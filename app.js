@@ -294,6 +294,14 @@ class PixelStewardApp {
     this.renderActiveTab();
     this.fetchLiveExchangeRate();
     this.registerPWA();
+
+    // Auto-sync market prices on startup and every 60 seconds in background
+    setTimeout(() => this.syncLiveMarketPrices(), 1500);
+    setInterval(() => {
+      if (document.visibilityState === 'visible') {
+        this.syncLiveMarketPrices();
+      }
+    }, 60000);
   }
 
   // --- COLLAPSIBLE & SLIDE-OUT SIDEBAR ---
