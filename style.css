@@ -2878,104 +2878,667 @@ body.privacy-mode #privacy-icon {
   box-shadow: 0 2px 10px rgba(168, 85, 247, 0.4);
 }
 
-/* 3. Interactive Treemap Visualizer */
-.treemap-wrapper {
+/* 3. Interactive Financial Heatmap Visualizer (Finviz/TradingView Style) */
+.heatmap-wrapper {
   background: var(--bg-card);
   border: 1px solid var(--border-card);
   border-radius: var(--radius-lg);
-  padding: 18px;
+  padding: 16px;
   margin-bottom: 24px;
 }
 
-.treemap-header {
+.heatmap-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 14px;
-}
-
-.treemap-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  margin-bottom: 12px;
   gap: 8px;
-  min-height: 280px;
+  flex-wrap: wrap;
 }
 
-.treemap-tile {
-  background: rgba(15, 23, 42, 0.7);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+.heatmap-title-box {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.heatmap-title-text {
+  font-size: 13px;
+  font-weight: 700;
+  color: #fff;
+}
+
+.heatmap-sort-pill {
+  display: flex;
+  background: rgba(0, 0, 0, 0.4);
+  padding: 3px;
+  border-radius: var(--radius-full);
+  border: 1px solid var(--border-subtle);
+  gap: 4px;
+}
+
+.heatmap-sort-btn {
+  background: transparent;
+  border: none;
+  color: var(--text-secondary);
+  font-size: 11px;
+  font-weight: 600;
+  padding: 4px 10px;
+  border-radius: var(--radius-full);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.heatmap-sort-btn:hover {
+  color: #fff;
+}
+
+.heatmap-sort-btn.active {
+  background: rgba(168, 85, 247, 0.25);
+  border: 1px solid var(--color-purple);
+  color: #fff;
+  box-shadow: 0 0 10px rgba(168, 85, 247, 0.2);
+}
+
+.heatmap-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+  gap: 8px;
+}
+
+@media (max-width: 480px) {
+  .heatmap-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 6px;
+  }
+}
+
+.heatmap-tile {
   border-radius: var(--radius-md);
-  padding: 12px;
+  padding: 10px 12px;
   display: flex;
   flex-direction: column;
   justify-content: space-between;
   cursor: pointer;
-  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  transition: all 0.22s cubic-bezier(0.16, 1, 0.3, 1);
   position: relative;
   overflow: hidden;
-  min-height: 100px;
+  min-height: 84px;
 }
 
-.treemap-tile:hover {
+.heatmap-tile:hover {
   transform: translateY(-2px) scale(1.02);
-  border-color: rgba(168, 85, 247, 0.6);
-  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.6), 0 0 16px rgba(168, 85, 247, 0.25);
   z-index: 5;
 }
 
-.treemap-tile.positive {
-  background: linear-gradient(135deg, rgba(16, 185, 129, 0.18) 0%, rgba(15, 23, 42, 0.9) 100%);
-  border-color: rgba(16, 185, 129, 0.3);
+.heatmap-tile:active {
+  transform: scale(0.98);
 }
 
-.treemap-tile.negative {
-  background: linear-gradient(135deg, rgba(244, 63, 94, 0.18) 0%, rgba(15, 23, 42, 0.9) 100%);
-  border-color: rgba(244, 63, 94, 0.3);
+/* Heatmap Intensity Colors */
+.heatmap-tile.heatmap-up-strong {
+  background: linear-gradient(135deg, rgba(16, 185, 129, 0.45) 0%, rgba(5, 150, 105, 0.25) 100%);
+  border: 1px solid rgba(16, 185, 129, 0.65);
+  box-shadow: inset 0 0 16px rgba(16, 185, 129, 0.25), 0 4px 12px rgba(16, 185, 129, 0.15);
 }
 
-.treemap-tile-header {
+.heatmap-tile.heatmap-up-med {
+  background: linear-gradient(135deg, rgba(16, 185, 129, 0.25) 0%, rgba(5, 150, 105, 0.12) 100%);
+  border: 1px solid rgba(16, 185, 129, 0.4);
+}
+
+.heatmap-tile.heatmap-up-light {
+  background: linear-gradient(135deg, rgba(16, 185, 129, 0.12) 0%, rgba(15, 23, 42, 0.8) 100%);
+  border: 1px solid rgba(16, 185, 129, 0.25);
+}
+
+.heatmap-tile.heatmap-flat {
+  background: rgba(15, 23, 42, 0.7);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.heatmap-tile.heatmap-down-light {
+  background: linear-gradient(135deg, rgba(244, 63, 94, 0.12) 0%, rgba(15, 23, 42, 0.8) 100%);
+  border: 1px solid rgba(244, 63, 94, 0.25);
+}
+
+.heatmap-tile.heatmap-down-med {
+  background: linear-gradient(135deg, rgba(244, 63, 94, 0.25) 0%, rgba(225, 29, 72, 0.15) 100%);
+  border: 1px solid rgba(244, 63, 94, 0.4);
+}
+
+.heatmap-tile.heatmap-down-strong {
+  background: linear-gradient(135deg, rgba(244, 63, 94, 0.45) 0%, rgba(225, 29, 72, 0.25) 100%);
+  border: 1px solid rgba(244, 63, 94, 0.65);
+  box-shadow: inset 0 0 16px rgba(244, 63, 94, 0.25), 0 4px 12px rgba(244, 63, 94, 0.15);
+}
+
+.heatmap-tile-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 6px;
-  margin-bottom: 6px;
+  gap: 4px;
 }
 
-.treemap-tile-sym {
+.heatmap-tile-sym {
   font-weight: 800;
   font-size: 13px;
   color: #fff;
 }
 
-.treemap-tile-pct {
+.heatmap-tile-pct {
   font-size: 11px;
   font-weight: 700;
-  padding: 1px 6px;
+  padding: 1px 5px;
   border-radius: 4px;
+  background: rgba(0, 0, 0, 0.3);
 }
 
-.treemap-tile-pct.positive {
-  background: rgba(16, 185, 129, 0.25);
-  color: var(--color-emerald);
+.heatmap-up-strong .heatmap-tile-pct,
+.heatmap-up-med .heatmap-tile-pct,
+.heatmap-up-light .heatmap-tile-pct {
+  color: #34d399;
 }
 
-.treemap-tile-pct.negative {
-  background: rgba(244, 63, 94, 0.25);
-  color: var(--color-rose);
+.heatmap-down-strong .heatmap-tile-pct,
+.heatmap-down-med .heatmap-tile-pct,
+.heatmap-down-light .heatmap-tile-pct {
+  color: #fb7185;
 }
 
-.treemap-tile-val {
-  font-family: var(--font-mono);
-  font-size: 14px;
-  font-weight: 700;
-  color: #fff;
+.heatmap-tile-body {
   margin-top: 4px;
 }
 
-.treemap-tile-sub {
+.heatmap-tile-val {
+  font-size: 13px;
+  font-weight: 700;
+  color: #fff;
+}
+
+.heatmap-tile-sub {
+  font-size: 10px;
+  color: var(--text-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Dashboard Portfolio Layout View Switcher & Carousel */
+.port-section-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.port-view-pill,
+.holdings-view-pill {
+  display: flex;
+  background: rgba(0, 0, 0, 0.4);
+  padding: 2px;
+  border-radius: var(--radius-full);
+  border: 1px solid var(--border-subtle);
+  gap: 2px;
+}
+
+.port-view-btn,
+.holdings-view-btn {
+  background: transparent;
+  border: none;
+  color: var(--text-secondary);
+  font-size: 11px;
+  font-weight: 600;
+  padding: 3px 8px;
+  border-radius: var(--radius-full);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+
+.port-view-btn:hover,
+.holdings-view-btn:hover {
+  color: #fff;
+}
+
+.port-view-btn.active,
+.holdings-view-btn.active {
+  background: rgba(168, 85, 247, 0.25);
+  border: 1px solid var(--color-purple);
+  color: #fff;
+  box-shadow: 0 0 8px rgba(168, 85, 247, 0.2);
+}
+
+.port-slider-deck-wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.port-slider-track {
+  display: flex;
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  gap: 12px;
+  padding-bottom: 4px;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+}
+
+.port-slider-track::-webkit-scrollbar {
+  display: none;
+}
+
+.port-slide-card {
+  flex: 0 0 100%;
+  min-width: 100%;
+  scroll-snap-align: center;
+  background: var(--bg-card);
+  border: 1px solid var(--border-card);
+  border-radius: var(--radius-lg);
+  padding: 14px 16px;
+  box-shadow: var(--shadow-card);
+  cursor: pointer;
+  transition: transform 0.2s ease, border-color 0.2s ease;
+}
+
+.port-slide-card:hover {
+  border-color: rgba(255, 255, 255, 0.2);
+}
+
+.port-slider-nav-bar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 4px 0;
+}
+
+.btn-port-arrow {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--border-subtle);
+  color: var(--text-secondary);
+  font-size: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.btn-port-arrow:hover {
+  background: rgba(255, 255, 255, 0.12);
+  color: #fff;
+}
+
+.port-slider-dots {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.port-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.2);
+  cursor: pointer;
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.port-dot.active {
+  width: 18px;
+  border-radius: 10px;
+  background: var(--color-purple);
+  box-shadow: 0 0 8px var(--color-purple);
+}
+
+.port-slider-counter {
+  font-size: 11px;
+  color: var(--text-secondary);
+  min-width: 44px;
+  text-align: center;
+}
+
+/* Compact 2-Column Mini Cards */
+.port-compact-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 8px;
+}
+
+@media (max-width: 480px) {
+  .port-compact-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+.port-compact-mini-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border-card);
+  border-radius: var(--radius-md);
+  padding: 10px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.port-compact-mini-card:hover {
+  transform: translateY(-2px);
+  border-color: rgba(255, 255, 255, 0.2);
+}
+
+.port-mini-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 6px;
+}
+
+.port-emoji-avatar.small {
+  width: 28px;
+  height: 28px;
+  font-size: 14px;
+}
+
+.port-mini-name {
+  font-size: 12px;
+  font-weight: 700;
+  color: #fff;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.port-mini-sub {
   font-size: 10px;
   color: var(--text-muted);
-  font-family: var(--font-mono);
+}
+
+.port-mini-body {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 4px;
+}
+
+.port-mini-val {
+  font-size: 13px;
+  font-weight: 700;
+  color: #fff;
+}
+
+.port-mini-pl {
+  font-size: 10.5px;
+  font-weight: 700;
+}
+
+/* Subportfolio Donut Center Hub & Chips Scroll */
+.subport-donut-card {
+  padding: 16px;
+}
+
+.subport-donut-wrapper {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+}
+
+.subport-donut-canvas-box {
+  position: relative;
+  width: 200px;
+  height: 200px;
+  margin: 0 auto;
+}
+
+.subport-donut-canvas-box canvas {
+  width: 100% !important;
+  height: 100% !important;
+}
+
+.donut-center-hub {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  text-align: center;
+  pointer-events: none;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 100px;
+  height: 100px;
+}
+
+.center-hub-logo {
+  font-size: 20px;
+  line-height: 1;
+  margin-bottom: 2px;
+}
+
+.center-hub-ticker {
+  font-size: 14px;
+  font-weight: 800;
+  color: #fff;
+  letter-spacing: 0.5px;
+}
+
+.center-hub-pct {
+  font-size: 13px;
+  font-weight: 800;
+  color: var(--color-emerald);
+}
+
+.center-hub-val {
+  font-size: 10.5px;
+  color: var(--text-secondary);
+}
+
+.donut-holdings-chips-scroll {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  overflow-x: auto;
+  width: 100%;
+  padding-bottom: 4px;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+}
+
+.donut-holdings-chips-scroll::-webkit-scrollbar {
+  display: none;
+}
+
+.subport-legend-chip {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-full);
+  padding: 4px 10px;
+  font-size: 11px;
+  color: #fff;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.2s ease;
+}
+
+.subport-legend-chip:hover {
+  background: rgba(255, 255, 255, 0.1);
+  border-color: rgba(255, 255, 255, 0.25);
+  transform: translateY(-1px);
+}
+
+/* Holdings Compact Rows with Expandable Accordion */
+.holdings-container {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.holding-compact-item {
+  background: var(--bg-card);
+  border: 1px solid var(--border-card);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.holding-compact-item.dip-active {
+  border-color: rgba(245, 158, 11, 0.4);
+  box-shadow: 0 0 10px rgba(245, 158, 11, 0.1);
+}
+
+.holding-compact-main {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 12px;
+  gap: 8px;
+  cursor: pointer;
+  background: rgba(255, 255, 255, 0.01);
+  transition: background 0.15s ease;
+}
+
+.holding-compact-main:hover {
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.holding-compact-left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  flex: 1;
+}
+
+.holding-compact-names {
+  min-width: 0;
+}
+
+.holding-compact-sym-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.holding-compact-sym {
+  font-size: 13.5px;
+  color: #fff;
+}
+
+.holding-compact-sub {
+  font-size: 11px;
+  color: var(--text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  margin-top: 1px;
+}
+
+.holding-compact-right {
+  text-align: right;
+  flex-shrink: 0;
+}
+
+.holding-compact-val {
+  font-size: 13.5px;
+  font-weight: 700;
+  color: #fff;
+}
+
+.holding-compact-pl {
+  font-size: 10.5px;
+  font-weight: 700;
+}
+
+.holding-compact-actions-pill {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+.btn-compact-quick-buy {
+  background: rgba(16, 185, 129, 0.15);
+  border: 1px solid rgba(16, 185, 129, 0.35);
+  color: #34d399;
+  border-radius: var(--radius-sm);
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.btn-compact-quick-buy:hover {
+  background: rgba(16, 185, 129, 0.3);
+  transform: scale(1.05);
+}
+
+.btn-compact-expand {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--border-subtle);
+  color: var(--text-secondary);
+  border-radius: var(--radius-sm);
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.btn-compact-expand:hover {
+  color: #fff;
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.expand-icon {
+  font-size: 9px;
+  transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.holding-compact-item.expanded .expand-icon {
+  transform: rotate(180deg);
+}
+
+/* Accordion Drawer */
+.holding-compact-drawer {
+  display: none;
+  padding: 10px 14px 14px 14px;
+  background: rgba(0, 0, 0, 0.25);
+  border-top: 1px solid var(--border-subtle);
+}
+
+.holding-compact-item.expanded .holding-compact-drawer {
+  display: block;
+  animation: fadeIn 0.2s ease-out forwards;
+}
+
+.compact-metrics {
+  padding: 8px 10px;
+  margin-bottom: 6px;
+}
+
+.holding-compact-drawer-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.dip-alert-badge.small {
+  padding: 1px 6px;
+  font-size: 10px;
 }
 
 /* 4. Dividend Run-Rate Cards & 12-Month Forecast */

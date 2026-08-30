@@ -1962,23 +1962,23 @@ class PixelStewardApp {
         </div>
       </div>
 
-      <!-- VIEW MODE SWITCHER: DONUT VS TREEMAP -->
+      <!-- VIEW MODE SWITCHER: DONUT VS HEATMAP -->
       <div class="view-mode-selector-wrapper">
         <div class="section-title" style="margin: 0;">
           <span>📊 แผนภาพสัดส่วนการลงทุน (Asset Allocation)</span>
         </div>
         <div class="view-mode-pill">
-          <button type="button" class="view-pill-btn ${this.allocationViewMode !== 'treemap' ? 'active' : ''}" id="btn-view-donut">
+          <button type="button" class="view-pill-btn ${this.allocationViewMode !== 'heatmap' ? 'active' : ''}" id="btn-view-donut">
             <span>🍩 กราฟโดนัท</span>
           </button>
-          <button type="button" class="view-pill-btn ${this.allocationViewMode === 'treemap' ? 'active' : ''}" id="btn-view-treemap">
-            <span>🌲 แผนภาพ Treemap</span>
+          <button type="button" class="view-pill-btn ${this.allocationViewMode === 'heatmap' ? 'active' : ''}" id="btn-view-heatmap">
+            <span>🔥 แผนภาพ Heatmap</span>
           </button>
         </div>
       </div>
 
       <!-- 1. DONUT CHARTS SWIPEABLE CAROUSEL CONTAINER -->
-      <div class="analytics-charts-wrapper" id="dashboard-donut-container" style="${this.allocationViewMode === 'treemap' ? 'display:none;' : ''}">
+      <div class="analytics-charts-wrapper" id="dashboard-donut-container" style="${this.allocationViewMode === 'heatmap' ? 'display:none;' : ''}">
         <div class="donut-carousel-nav-header">
           <div class="donut-swipe-hint font-mono">
             <span>👆 ปัดซ้าย-ขวาเพื่อดูสัดส่วน</span>
@@ -2028,118 +2028,108 @@ class PixelStewardApp {
         </div>
       </div>
 
-      <!-- 2. TREEMAP CONTAINER -->
-      <div class="treemap-wrapper" id="dashboard-treemap-container" style="${this.allocationViewMode === 'treemap' ? '' : 'display:none;'}">
-        <div class="treemap-header">
-          <div style="font-size:13px; font-weight:700; color:#fff;">🌲 แผนภาพขนาดพอร์ตตามมูลค่าและผลกำไร/ขาดทุน (Market Value & P/L Heatmap)</div>
-          <span style="font-size:11px; color:var(--text-muted);">คลิกที่กล่องเพื่อเปิดพอร์ต</span>
+      <!-- 2. HEATMAP CONTAINER -->
+      <div class="heatmap-wrapper" id="dashboard-heatmap-container" style="${this.allocationViewMode === 'heatmap' ? '' : 'display:none;'}">
+        <div class="heatmap-header">
+          <div class="heatmap-title-box">
+            <span class="heatmap-title-text font-mono">🔥 Heatmap สัดส่วนพอร์ต & กำไร/ขาดทุน</span>
+            <span style="font-size:11px; color:var(--text-muted);">คลิกที่กล่องเพื่อเปิดพอร์ต</span>
+          </div>
+          <div class="heatmap-sort-pill">
+            <button type="button" class="heatmap-sort-btn ${this.heatmapSortBy !== 'pl' ? 'active' : ''}" data-heatmap-sort="val">💰 ตามมูลค่า</button>
+            <button type="button" class="heatmap-sort-btn ${this.heatmapSortBy === 'pl' ? 'active' : ''}" data-heatmap-sort="pl">📈 ตาม % P/L</button>
+          </div>
         </div>
-        <div class="treemap-grid" id="treemap-tiles-grid">
-          ${this.renderTreemapTilesHTML()}
+        <div class="heatmap-grid" id="heatmap-tiles-grid">
+          ${this.renderHeatmapTilesHTML()}
         </div>
       </div>
 
-      <!-- SUB-PORTFOLIOS CARDS (DIME CARDS) -->
+      <!-- SUB-PORTFOLIOS CARDS SECTION -->
       <div class="section-header">
         <div class="section-title">
-          <span>พอร์ตการลงทุนตามเป้าหมาย (Goal-Based IPS)</span>
+          <span>📁 พอร์ตการลงทุน</span>
           <span class="section-count-badge font-mono">${this.portfolios.length} พอร์ต</span>
         </div>
-        <div style="display: flex; gap: 8px;">
-          <button class="btn btn-sm btn-secondary" id="btn-open-reorder-modal">
-            <span>↕️ จัดเรียงลำดับ</span>
+        <div class="port-section-actions">
+          <div class="port-view-pill">
+            <button type="button" class="port-view-btn ${(!this.portLayoutMode || this.portLayoutMode === 'slider') ? 'active' : ''}" data-port-layout="slider" title="สไลด์การ์ดแนวนอน">🎴 สไลด์</button>
+            <button type="button" class="port-view-btn ${this.portLayoutMode === 'compact' ? 'active' : ''}" data-port-layout="compact" title="กริด 2 คอลัมน์">📑 กระชับ</button>
+            <button type="button" class="port-view-btn ${this.portLayoutMode === 'list' ? 'active' : ''}" data-port-layout="list" title="รายการปกติ">📋 ทั้งหมด</button>
+          </div>
+          <button class="btn btn-sm btn-secondary" id="btn-open-reorder-modal" title="จัดเรียงลำดับ">
+            <span>↕️</span>
           </button>
-          <button class="btn btn-sm btn-secondary" id="btn-add-portfolio-modal">
-            <span>➕ เพิ่มพอร์ตใหม่</span>
+          <button class="btn btn-sm btn-secondary" id="btn-add-portfolio-modal" title="เพิ่มพอร์ตใหม่">
+            <span>➕</span>
           </button>
         </div>
       </div>
 
-      <div class="portfolios-grid">
+      <div id="dashboard-portfolios-container">
+        ${this.renderDashboardPortfoliosLayoutHTML()}
+      </div>
     `;
 
-    this.portfolios.forEach(p => {
-      const stats = this.calculatePortfolioStats(p);
-      const dualVal = this.formatDual(stats.totalValueUSD);
-      const dualCash = this.formatDual(stats.cashBufferUSD);
-
-      html += `
-        <div class="port-card port-card-compact" data-open-port="${p.id}" style="border-left: 4px solid ${p.color || '#10b981'};">
-          <div class="port-card-top">
-            <div class="port-emoji-avatar" style="background: ${p.color || '#10b981'}20; border: 1.5px solid ${p.color || '#10b981'}50;">
-              ${p.emoji || '📁'}
-            </div>
-            <div class="port-info-col">
-              <div class="port-card-name-row">
-                <span class="port-card-name">${p.name}</span>
-                <span class="port-card-compact-badge font-mono">${p.tier}</span>
-                <span class="port-cash-buffer-pill font-mono">💧 ${dualCash.main}</span>
-              </div>
-            </div>
-            <div class="port-card-value-box">
-              <div class="port-card-val-primary font-mono">${dualVal.main}</div>
-              <div class="port-card-val-secondary font-mono">${dualVal.sub}</div>
-            </div>
-          </div>
-
-          <div class="port-card-compact-meta font-mono">
-            <div class="port-meta-left">
-              <span class="${stats.avg1dChangePct >= 0 ? 'text-emerald' : 'text-rose'}">
-                ${stats.avg1dChangePct >= 0 ? '▲ +' : '▼ '}${stats.avg1dChangePct.toFixed(2)}% (1D)
-              </span>
-              <span class="text-muted">•</span>
-              <span class="${stats.totalPLPct >= 0 ? 'text-emerald' : 'text-rose'}">
-                P/L ${stats.totalPLPct >= 0 ? '+' : ''}${stats.totalPLPct.toFixed(2)}% (${this.formatUSD(stats.totalPLUSD)})
-              </span>
-            </div>
-            <div class="port-meta-right">
-              <span class="text-muted">เป้า: ${this.formatUSD(stats.goalUSD)}</span>
-              <strong style="color:#fff;">${stats.goalProgressPct.toFixed(1)}%</strong>
-            </div>
-          </div>
-
-          <div class="progress-bar-bg compact">
-            <div class="progress-bar-fill" style="width: ${stats.goalProgressPct}%; background: ${p.color || '#10b981'};"></div>
-          </div>
-        </div>
-      `;
-    });
-
-    html += `</div>`;
     container.innerHTML = html;
 
-    // Setup View Mode Toggle (Donut vs Treemap)
+    // Setup View Mode Toggle (Donut vs Heatmap)
     const btnDonut = document.getElementById('btn-view-donut');
-    const btnTreemap = document.getElementById('btn-view-treemap');
+    const btnHeatmap = document.getElementById('btn-view-heatmap');
     const donutContainer = document.getElementById('dashboard-donut-container');
-    const treemapContainer = document.getElementById('dashboard-treemap-container');
+    const heatmapContainer = document.getElementById('dashboard-heatmap-container');
 
     btnDonut?.addEventListener('click', () => {
       this.allocationViewMode = 'donut';
       btnDonut.classList.add('active');
-      btnTreemap?.classList.remove('active');
+      btnHeatmap?.classList.remove('active');
       if (donutContainer) donutContainer.style.display = 'block';
-      if (treemapContainer) treemapContainer.style.display = 'none';
+      if (heatmapContainer) heatmapContainer.style.display = 'none';
     });
 
-    btnTreemap?.addEventListener('click', () => {
-      this.allocationViewMode = 'treemap';
-      btnTreemap.classList.add('active');
+    btnHeatmap?.addEventListener('click', () => {
+      this.allocationViewMode = 'heatmap';
+      btnHeatmap.classList.add('active');
       btnDonut?.classList.remove('active');
       if (donutContainer) donutContainer.style.display = 'none';
-      if (treemapContainer) treemapContainer.style.display = 'block';
+      if (heatmapContainer) heatmapContainer.style.display = 'block';
     });
 
-    // Treemap Tile click to view portfolio
-    container.querySelectorAll('.treemap-tile').forEach(tile => {
-      tile.addEventListener('click', () => {
-        const portId = tile.getAttribute('data-treemap-port');
-        if (portId) {
-          this.selectedPortfolioId = portId;
-          this.switchTab('portfolios');
+    // Heatmap Sort click
+    container.querySelectorAll('[data-heatmap-sort]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const sort = btn.getAttribute('data-heatmap-sort');
+        this.heatmapSortBy = sort;
+        container.querySelectorAll('[data-heatmap-sort]').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        const grid = document.getElementById('heatmap-tiles-grid');
+        if (grid) {
+          grid.innerHTML = this.renderHeatmapTilesHTML();
+          this.rebindHeatmapTileEvents(container);
         }
       });
     });
+
+    // Heatmap Tile click to view portfolio
+    this.rebindHeatmapTileEvents(container);
+
+    // Setup Portfolio Layout Switcher (Slider vs Compact vs List)
+    container.querySelectorAll('[data-port-layout]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const layout = btn.getAttribute('data-port-layout');
+        this.portLayoutMode = layout;
+        localStorage.setItem('pixel_port_layout', layout);
+        container.querySelectorAll('[data-port-layout]').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        const portContainer = document.getElementById('dashboard-portfolios-container');
+        if (portContainer) {
+          portContainer.innerHTML = this.renderDashboardPortfoliosLayoutHTML();
+          this.setupPortfolioSliderEvents();
+        }
+      });
+    });
+
+    this.setupPortfolioSliderEvents();
 
     // Dip Opportunity Quick Buy Button
     container.querySelectorAll('.btn-dip-quick-buy').forEach(btn => {
@@ -2419,7 +2409,227 @@ class PixelStewardApp {
     this.saveData();
   }
 
-  renderTreemapTilesHTML() {
+  rebindHeatmapTileEvents(container) {
+    container.querySelectorAll('.heatmap-tile').forEach(tile => {
+      tile.addEventListener('click', () => {
+        const portId = tile.getAttribute('data-heatmap-port');
+        if (portId) {
+          this.selectedPortfolioId = portId;
+          this.switchTab('portfolios');
+        }
+      });
+    });
+  }
+
+  renderDashboardPortfoliosLayoutHTML() {
+    const layout = this.portLayoutMode || 'slider';
+
+    if (layout === 'compact') {
+      return `
+        <div class="port-compact-grid">
+          ${this.portfolios.map(p => {
+            const stats = this.calculatePortfolioStats(p);
+            const dualVal = this.formatDual(stats.totalValueUSD);
+            const dualCash = this.formatDual(stats.cashBufferUSD);
+            const isUp = stats.avg1dChangePct >= 0;
+            return `
+              <div class="port-compact-mini-card" data-open-port="${p.id}" style="border-left: 3.5px solid ${p.color || '#10b981'};">
+                <div class="port-mini-header">
+                  <div class="port-emoji-avatar small" style="background: ${p.color || '#10b981'}20; border: 1px solid ${p.color || '#10b981'}50;">
+                    ${p.emoji || '📁'}
+                  </div>
+                  <div style="flex:1; min-width:0;">
+                    <div class="port-mini-name">${p.name}</div>
+                    <div class="port-mini-sub font-mono">💧 ${dualCash.main}</div>
+                  </div>
+                </div>
+                <div class="port-mini-body">
+                  <div class="port-mini-val font-mono">${dualVal.main}</div>
+                  <div class="port-mini-pl font-mono ${isUp ? 'text-emerald' : 'text-rose'}">
+                    ${isUp ? '▲ +' : '▼ '}${Math.abs(stats.avg1dChangePct).toFixed(1)}% (1D)
+                  </div>
+                </div>
+                <div class="progress-bar-bg compact" style="margin-top:6px;">
+                  <div class="progress-bar-fill" style="width: ${stats.goalProgressPct}%; background: ${p.color || '#10b981'};"></div>
+                </div>
+              </div>
+            `;
+          }).join('')}
+        </div>
+      `;
+    }
+
+    if (layout === 'list') {
+      return `
+        <div class="portfolios-grid">
+          ${this.portfolios.map(p => {
+            const stats = this.calculatePortfolioStats(p);
+            const dualVal = this.formatDual(stats.totalValueUSD);
+            const dualCash = this.formatDual(stats.cashBufferUSD);
+            return `
+              <div class="port-card port-card-compact" data-open-port="${p.id}" style="border-left: 4px solid ${p.color || '#10b981'};">
+                <div class="port-card-top">
+                  <div class="port-emoji-avatar" style="background: ${p.color || '#10b981'}20; border: 1.5px solid ${p.color || '#10b981'}50;">
+                    ${p.emoji || '📁'}
+                  </div>
+                  <div class="port-info-col">
+                    <div class="port-card-name-row">
+                      <span class="port-card-name">${p.name}</span>
+                      <span class="port-card-compact-badge font-mono">${p.tier}</span>
+                      <span class="port-cash-buffer-pill font-mono">💧 ${dualCash.main}</span>
+                    </div>
+                  </div>
+                  <div class="port-card-value-box">
+                    <div class="port-card-val-primary font-mono">${dualVal.main}</div>
+                    <div class="port-card-val-secondary font-mono">${dualVal.sub}</div>
+                  </div>
+                </div>
+
+                <div class="port-card-compact-meta font-mono">
+                  <div class="port-meta-left">
+                    <span class="${stats.avg1dChangePct >= 0 ? 'text-emerald' : 'text-rose'}">
+                      ${stats.avg1dChangePct >= 0 ? '▲ +' : '▼ '}${stats.avg1dChangePct.toFixed(2)}% (1D)
+                    </span>
+                    <span class="text-muted">•</span>
+                    <span class="${stats.totalPLPct >= 0 ? 'text-emerald' : 'text-rose'}">
+                      P/L ${stats.totalPLPct >= 0 ? '+' : ''}${stats.totalPLPct.toFixed(2)}% (${this.formatUSD(stats.totalPLUSD)})
+                    </span>
+                  </div>
+                  <div class="port-meta-right">
+                    <span class="text-muted">เป้า: ${this.formatUSD(stats.goalUSD)}</span>
+                    <strong style="color:#fff;">${stats.goalProgressPct.toFixed(1)}%</strong>
+                  </div>
+                </div>
+
+                <div class="progress-bar-bg compact">
+                  <div class="progress-bar-fill" style="width: ${stats.goalProgressPct}%; background: ${p.color || '#10b981'};"></div>
+                </div>
+              </div>
+            `;
+          }).join('')}
+        </div>
+      `;
+    }
+
+    // Default 'slider' mode (Horizontal Snap Carousel Deck)
+    return `
+      <div class="port-slider-deck-wrapper">
+        <div class="port-slider-track" id="port-slider-track">
+          ${this.portfolios.map((p, idx) => {
+            const stats = this.calculatePortfolioStats(p);
+            const dualVal = this.formatDual(stats.totalValueUSD);
+            const dualCash = this.formatDual(stats.cashBufferUSD);
+            return `
+              <div class="port-slide-card ${idx === 0 ? 'active' : ''}" data-open-port="${p.id}" data-slide-index="${idx}" style="border-left: 4px solid ${p.color || '#10b981'};">
+                <div class="port-card-top">
+                  <div class="port-emoji-avatar" style="background: ${p.color || '#10b981'}20; border: 1.5px solid ${p.color || '#10b981'}50;">
+                    ${p.emoji || '📁'}
+                  </div>
+                  <div class="port-info-col">
+                    <div class="port-card-name-row">
+                      <span class="port-card-name">${p.name}</span>
+                      <span class="port-card-compact-badge font-mono">${p.tier}</span>
+                      <span class="port-cash-buffer-pill font-mono">💧 ${dualCash.main}</span>
+                    </div>
+                  </div>
+                  <div class="port-card-value-box">
+                    <div class="port-card-val-primary font-mono">${dualVal.main}</div>
+                    <div class="port-card-val-secondary font-mono">${dualVal.sub}</div>
+                  </div>
+                </div>
+
+                <div class="port-card-compact-meta font-mono">
+                  <div class="port-meta-left">
+                    <span class="${stats.avg1dChangePct >= 0 ? 'text-emerald' : 'text-rose'}">
+                      ${stats.avg1dChangePct >= 0 ? '▲ +' : '▼ '}${stats.avg1dChangePct.toFixed(2)}% (1D)
+                    </span>
+                    <span class="text-muted">•</span>
+                    <span class="${stats.totalPLPct >= 0 ? 'text-emerald' : 'text-rose'}">
+                      P/L ${stats.totalPLPct >= 0 ? '+' : ''}${stats.totalPLPct.toFixed(2)}% (${this.formatUSD(stats.totalPLUSD)})
+                    </span>
+                  </div>
+                  <div class="port-meta-right">
+                    <span class="text-muted">เป้า: ${this.formatUSD(stats.goalUSD)}</span>
+                    <strong style="color:#fff;">${stats.goalProgressPct.toFixed(1)}%</strong>
+                  </div>
+                </div>
+
+                <div class="progress-bar-bg compact">
+                  <div class="progress-bar-fill" style="width: ${stats.goalProgressPct}%; background: ${p.color || '#10b981'};"></div>
+                </div>
+              </div>
+            `;
+          }).join('')}
+        </div>
+
+        <div class="port-slider-nav-bar">
+          <button type="button" class="btn-port-arrow" id="btn-port-prev" title="พอร์ตก่อนหน้า">‹</button>
+          <div class="port-slider-dots" id="port-slider-dots">
+            ${this.portfolios.map((p, idx) => `<span class="port-dot ${idx === 0 ? 'active' : ''}" data-port-dot-index="${idx}"></span>`).join('')}
+          </div>
+          <span class="port-slider-counter font-mono" id="port-slider-counter">1 / ${this.portfolios.length}</span>
+          <button type="button" class="btn-port-arrow" id="btn-port-next" title="พอร์ตถัดไป">›</button>
+        </div>
+      </div>
+    `;
+  }
+
+  setupPortfolioSliderEvents() {
+    const track = document.getElementById('port-slider-track');
+    const dots = document.querySelectorAll('.port-dot');
+    const counter = document.getElementById('port-slider-counter');
+    const btnPrev = document.getElementById('btn-port-prev');
+    const btnNext = document.getElementById('btn-port-next');
+    const slides = document.querySelectorAll('.port-slide-card');
+
+    if (!track || slides.length === 0) return;
+
+    let currentIndex = 0;
+
+    const goToPortSlide = (index) => {
+      if (index < 0) index = 0;
+      if (index >= slides.length) index = slides.length - 1;
+      currentIndex = index;
+
+      const targetSlide = slides[index];
+      if (targetSlide) {
+        track.scrollTo({
+          left: targetSlide.offsetLeft - track.offsetLeft,
+          behavior: 'smooth'
+        });
+      }
+
+      slides.forEach((s, idx) => s.classList.toggle('active', idx === index));
+      dots.forEach((d, idx) => d.classList.toggle('active', idx === index));
+      if (counter) counter.textContent = `${index + 1} / ${slides.length}`;
+    };
+
+    dots.forEach((dot, idx) => {
+      dot.addEventListener('click', () => goToPortSlide(idx));
+    });
+
+    btnPrev?.addEventListener('click', () => goToPortSlide(currentIndex - 1));
+    btnNext?.addEventListener('click', () => goToPortSlide(currentIndex + 1));
+
+    let scrollTimer = null;
+    track.addEventListener('scroll', () => {
+      if (scrollTimer) clearTimeout(scrollTimer);
+      scrollTimer = setTimeout(() => {
+        const scrollLeft = track.scrollLeft;
+        const width = track.clientWidth;
+        if (width <= 0) return;
+        const newIndex = Math.round(scrollLeft / width);
+        if (newIndex >= 0 && newIndex < slides.length && newIndex !== currentIndex) {
+          currentIndex = newIndex;
+          slides.forEach((s, idx) => s.classList.toggle('active', idx === currentIndex));
+          dots.forEach((d, idx) => d.classList.toggle('active', idx === currentIndex));
+          if (counter) counter.textContent = `${currentIndex + 1} / ${slides.length}`;
+        }
+      }, 40);
+    }, { passive: true });
+  }
+
+  renderHeatmapTilesHTML() {
     const allHoldings = [];
     this.portfolios.forEach(p => {
       (p.holdings || []).forEach(h => {
@@ -2446,26 +2656,37 @@ class PixelStewardApp {
       return `<div style="text-align:center; padding:32px; color:var(--text-muted); grid-column: 1/-1;">ยังไม่มีรายการสินทรัพย์ในพอร์ต</div>`;
     }
 
-    allHoldings.sort((a, b) => b.valUSD - a.valUSD);
-    const maxVal = allHoldings[0].valUSD || 1;
+    // Sort by selected mode (value or pl)
+    if (this.heatmapSortBy === 'pl') {
+      allHoldings.sort((a, b) => b.plPct - a.plPct);
+    } else {
+      allHoldings.sort((a, b) => b.valUSD - a.valUSD);
+    }
 
     return allHoldings.map(h => {
       const isUp = h.plPct >= 0;
-      const colSpan = (h.valUSD / maxVal > 0.45 && allHoldings.length > 2) ? 'grid-column: span 2;' : '';
+      let intensityClass = 'heatmap-flat';
+      if (h.plPct >= 20) intensityClass = 'heatmap-up-strong';
+      else if (h.plPct >= 8) intensityClass = 'heatmap-up-med';
+      else if (h.plPct >= 0) intensityClass = 'heatmap-up-light';
+      else if (h.plPct >= -8) intensityClass = 'heatmap-down-light';
+      else if (h.plPct >= -20) intensityClass = 'heatmap-down-med';
+      else intensityClass = 'heatmap-down-strong';
+
       return `
-        <div class="treemap-tile ${isUp ? 'positive' : 'negative'}" style="${colSpan}" data-treemap-port="${h.portId}" title="${h.ticker} (${h.name}) - คลิกเพื่อเปิดพอร์ต">
-          <div class="treemap-tile-header">
+        <div class="heatmap-tile ${intensityClass}" data-heatmap-port="${h.portId}" title="${h.ticker} (${h.name}) - P/L: ${isUp ? '+' : ''}${h.plPct.toFixed(2)}%">
+          <div class="heatmap-tile-header">
             <div style="display:flex; align-items:center; gap:6px;">
-              ${this.renderStockLogoHTML(h.ticker, h.color, 24)}
-              <span class="treemap-tile-sym">${h.ticker}</span>
+              ${this.renderStockLogoHTML(h.ticker, h.color, 20)}
+              <span class="heatmap-tile-sym font-mono">${h.ticker}</span>
             </div>
-            <span class="treemap-tile-pct ${isUp ? 'positive' : 'negative'} font-mono">
-              ${isUp ? '+' : ''}${h.plPct.toFixed(1)}%
+            <span class="heatmap-tile-pct font-mono">
+              ${isUp ? '▲ +' : '▼ '}${Math.abs(h.plPct).toFixed(1)}%
             </span>
           </div>
-          <div>
-            <div class="treemap-tile-val">${this.formatUSD(h.valUSD)}</div>
-            <div class="treemap-tile-sub">≈ ${this.formatTHB(h.valTHB)} • ${h.portEmoji} ${h.portName}</div>
+          <div class="heatmap-tile-body">
+            <div class="heatmap-tile-val font-mono">${this.formatUSD(h.valUSD)}</div>
+            <div class="heatmap-tile-sub font-mono">${h.portEmoji} ${h.portName.split(' ')[0]}</div>
           </div>
         </div>
       `;
@@ -2828,17 +3049,23 @@ class PixelStewardApp {
         </div>
       </div>
 
-      <!-- SUBPORTFOLIO HOLDINGS DONUT CHART -->
+      <!-- SUBPORTFOLIO HOLDINGS DONUT CHART WITH INTERACTIVE CENTER HUB -->
       ${holdings.length > 0 ? `
-        <div class="chart-card" style="margin-bottom: 20px;">
-          <div class="chart-title">
+        <div class="chart-card subport-donut-card" style="margin-bottom: 20px;">
+          <div class="chart-title" style="margin-bottom: 12px;">
             <span>🍩 สัดส่วนสินทรัพย์ย่อยในพอร์ต ${port.name}</span>
           </div>
-          <div style="display: grid; grid-template-columns: 220px 1fr; gap: 16px; align-items: center;">
-            <div class="chart-canvas-container" style="height: 180px; margin-bottom: 0;">
+          <div class="subport-donut-wrapper">
+            <div class="subport-donut-canvas-box">
               <canvas id="chart-subport-holdings"></canvas>
+              <div class="donut-center-hub" id="donut-center-hub">
+                <div class="center-hub-logo" id="center-hub-logo">${port.emoji || '🎯'}</div>
+                <div class="center-hub-ticker font-mono" id="center-hub-ticker">TOTAL</div>
+                <div class="center-hub-pct font-mono" id="center-hub-pct">100%</div>
+                <div class="center-hub-val font-mono" id="center-hub-val">${dualTotal.main}</div>
+              </div>
             </div>
-            <div class="chart-legend-list" id="legend-subport-holdings" style="max-height: 180px; overflow-y: auto;"></div>
+            <div class="donut-holdings-chips-scroll" id="legend-subport-holdings"></div>
           </div>
         </div>
       ` : ''}
@@ -2846,30 +3073,66 @@ class PixelStewardApp {
       <!-- HOLDINGS LIST HEADER -->
       <div class="section-header">
         <div class="section-title">
-          <span>รายการสินทรัพย์ที่ถือครอง (Dime Holdings)</span>
+          <span>รายการสินทรัพย์ที่ถือครอง</span>
           <span class="section-count-badge font-mono">${(port.holdings || []).length} ตัว</span>
         </div>
-        <div style="display: flex; gap: 8px;">
+        <div class="holdings-header-actions">
+          <div class="holdings-view-pill">
+            <button type="button" class="holdings-view-btn ${this.holdingsViewLayout !== 'full' ? 'active' : ''}" data-holdings-layout="compact" title="รายการกระชับแบบย่อ">📋 กระชับ</button>
+            <button type="button" class="holdings-view-btn ${this.holdingsViewLayout === 'full' ? 'active' : ''}" data-holdings-layout="full" title="การ์ดขยายเต็ม">🎴 การ์ดเต็ม</button>
+          </div>
           <button class="btn btn-sm btn-secondary" id="btn-add-holding-modal">
             <span>➕ เพิ่มหุ้นในพอร์ตนี้</span>
           </button>
         </div>
       </div>
 
-      <!-- HOLDINGS LIST (DIME 4-METRIC CARDS) -->
-      <div class="holdings-container">
+      <!-- HOLDINGS CONTAINER (COMPACT ROWS OR FULL CARDS) -->
+      <div class="holdings-container" id="subport-holdings-container">
+        ${this.renderHoldingsLayoutHTML(port, holdings, stats)}
+      </div>
     `;
 
+    container.innerHTML = html;
+
+    // Holdings Layout Switcher click
+    container.querySelectorAll('[data-holdings-layout]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const layout = btn.getAttribute('data-holdings-layout');
+        this.holdingsViewLayout = layout;
+        localStorage.setItem('pixel_holdings_layout', layout);
+        container.querySelectorAll('[data-holdings-layout]').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        const listEl = document.getElementById('subport-holdings-container');
+        if (listEl) {
+          listEl.innerHTML = this.renderHoldingsLayoutHTML(port, holdings, stats);
+          this.bindHoldingsListEvents(container, port);
+        }
+      });
+    });
+
+    this.bindHoldingsListEvents(container, port);
+
+    setTimeout(() => {
+      this.initSubportCharts(port);
+    }, 50);
+  }
+
+  renderHoldingsLayoutHTML(port, holdings, stats) {
     if (holdings.length === 0) {
-      html += `
+      return `
         <div style="text-align: center; padding: 48px 20px; background: var(--bg-card); border-radius: var(--radius-lg); color: var(--text-muted);">
           <div style="font-size: 40px; margin-bottom: 8px;">🛒</div>
           <h3>ยังไม่มีรายการหุ้นในพอร์ตนี้</h3>
           <p style="font-size: 13px; margin-top: 4px;">คลิกปุ่ม "➕ เพิ่มหุ้นในพอร์ตนี้" เพื่อเริ่มจดสินทรัพย์</p>
         </div>
       `;
-    } else {
-      holdings.forEach(h => {
+    }
+
+    const isCompact = this.holdingsViewLayout !== 'full';
+
+    if (isCompact) {
+      return holdings.map(h => {
         const s = this.calculateHoldingStats(h);
         const dualMarket = this.formatDual(s.marketValueUSD);
         const weightPct = stats.totalValueUSD > 0 ? ((s.marketValueUSD / stats.totalValueUSD) * 100).toFixed(2) : '0.00';
@@ -2885,92 +3148,233 @@ class PixelStewardApp {
         const isDipActive = isDip1 || isDip2 || isDip3;
 
         let dipBadgeText = '';
-        if (isDip3) dipBadgeText = `🔥 ถึงจุดช้อนไม้ 3 ($${s.currentPrice.toFixed(2)} ≤ $${dip3.toFixed(2)})`;
-        else if (isDip2) dipBadgeText = `🔥 ถึงจุดช้อนไม้ 2 ($${s.currentPrice.toFixed(2)} ≤ $${dip2.toFixed(2)})`;
-        else if (isDip1) dipBadgeText = `🎯 ถึงจุดช้อนไม้ 1 ($${s.currentPrice.toFixed(2)} ≤ $${dip1.toFixed(2)})`;
+        if (isDip3) dipBadgeText = `🔥 ไม้ 3`;
+        else if (isDip2) dipBadgeText = `🔥 ไม้ 2`;
+        else if (isDip1) dipBadgeText = `🎯 ไม้ 1`;
 
         const hasAnyDip = (dip1 > 0 || dip2 > 0 || dip3 > 0);
+        const isUp = s.change1d >= 0;
 
-        html += `
-          <div class="holding-card ${isDipActive ? 'dip-active' : ''}">
-            <div class="holding-header">
-              <div class="holding-ticker-group">
-                ${this.renderStockLogoHTML(h.ticker, port.color || '#10b981', 42)}
-                <div class="ticker-name-box">
-                  <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
-                    <h4 style="margin: 0;">${h.ticker}</h4>
-                    ${isDipActive ? `<span class="dip-alert-badge">${dipBadgeText}</span>` : ''}
+        return `
+          <div class="holding-compact-item ${isDipActive ? 'dip-active' : ''}" data-holding-id="${h.id}">
+            <div class="holding-compact-main">
+              <div class="holding-compact-left">
+                ${this.renderStockLogoHTML(h.ticker, port.color || '#10b981', 34)}
+                <div class="holding-compact-names">
+                  <div class="holding-compact-sym-row">
+                    <strong class="holding-compact-sym font-mono">${h.ticker}</strong>
+                    ${isDipActive ? `<span class="dip-alert-badge small font-mono">${dipBadgeText}</span>` : ''}
                   </div>
-                  <div class="ticker-subname">${h.name || h.ticker}</div>
-                  ${hasAnyDip ? `
-                    <div class="dip-targets-pill-row font-mono">
-                      ${dip1 > 0 ? `<span class="dip-tier-pill ${s.currentPrice <= dip1 && s.currentPrice > 0 ? 'hit' : ''}">🎯 ไม้ 1: $${dip1.toFixed(2)}</span>` : ''}
-                      ${dip2 > 0 ? `<span class="dip-tier-pill ${s.currentPrice <= dip2 && s.currentPrice > 0 ? 'hit' : ''}">🎯 ไม้ 2: $${dip2.toFixed(2)}</span>` : ''}
-                      ${dip3 > 0 ? `<span class="dip-tier-pill ${s.currentPrice <= dip3 && s.currentPrice > 0 ? 'hit' : ''}">🎯 ไม้ 3: $${dip3.toFixed(2)}</span>` : ''}
-                    </div>
-                  ` : ''}
+                  <div class="holding-compact-sub font-mono">
+                    $${s.currentPrice.toFixed(2)} 
+                    <span class="${isUp ? 'text-emerald' : 'text-rose'}">(${isUp ? '+' : ''}${s.change1d.toFixed(2)}%)</span>
+                    <span class="text-muted">• ${s.shares.toFixed(4)} หุ้น</span>
+                  </div>
                 </div>
               </div>
 
-              <div class="holding-value-group">
-                <div class="holding-market-val-thb font-mono">${dualMarket.main}</div>
-                <div class="holding-market-val-usd font-mono">${dualMarket.sub}</div>
-                <div class="holding-weight-tag font-mono">สัดส่วน: ${weightPct}%</div>
-                <div class="holding-pl-badge font-mono ${s.unrealizedPLUSD >= 0 ? 'text-emerald' : 'text-rose'}">
-                  ${s.unrealizedPLUSD >= 0 ? '↗ +' : '↘ '}${this.formatPercent(s.unrealizedPLPct)} (${this.formatUSD(s.unrealizedPLUSD)} / ${this.formatTHB(this.usdToThb(s.unrealizedPLUSD))})
+              <div class="holding-compact-right">
+                <div class="holding-compact-val font-mono">${dualMarket.main}</div>
+                <div class="holding-compact-pl font-mono ${s.unrealizedPLUSD >= 0 ? 'text-emerald' : 'text-rose'}">
+                  ${s.unrealizedPLUSD >= 0 ? '▲ +' : '▼ '}${Math.abs(s.unrealizedPLPct).toFixed(1)}% (${this.formatUSD(s.unrealizedPLUSD)})
                 </div>
+              </div>
+
+              <div class="holding-compact-actions-pill">
+                <button type="button" class="btn-compact-quick-buy" data-trade-holding="${h.id}" data-port-id="${port.id}" title="ซื้อ-ขาย">
+                  <span>⚡</span>
+                </button>
+                <button type="button" class="btn-compact-expand" title="ขยายดูรายละเอียด">
+                  <span class="expand-icon">▼</span>
+                </button>
               </div>
             </div>
 
-            <!-- DIME 4-METRICS GRID -->
-            <div class="dime-metrics-grid font-mono">
-              <div class="metric-cell">
-                <span class="metric-cell-label">จำนวนหุ้นคงเหลือ (Shares)</span>
-                <span class="metric-cell-val">${s.shares.toFixed(7)}</span>
-              </div>
-              <div class="metric-cell" style="text-align: right;">
-                <span class="metric-cell-label">ราคาตลาด ($) และ % 1 วัน</span>
-                <span class="metric-cell-val ${s.change1d >= 0 ? 'text-emerald' : 'text-rose'}">
-                  $${s.currentPrice.toFixed(2)} (${this.formatPercent(s.change1d)})
-                </span>
-              </div>
-              <div class="metric-cell">
-                <span class="metric-cell-label">ต้นทุนต่อหุ้นเฉลี่ย (Avg Cost)</span>
-                <span class="metric-cell-val">$${s.avgCost.toFixed(4)}</span>
-              </div>
-              <div class="metric-cell" style="text-align: right;">
-                <span class="metric-cell-label">ต้นทุนรวม (Total Cost)</span>
-                <span class="metric-cell-val">${this.formatUSD(s.totalCostUSD)}</span>
-              </div>
-            </div>
-
-            ${h.targetTHB ? `
-              <div style="margin: -6px 0 16px 0; padding: 10px 14px; background: rgba(255,255,255,0.03); border: 1px solid var(--border-subtle); border-radius: var(--radius-md);">
-                <div style="display: flex; justify-content: space-between; font-size: 12px; margin-bottom: 5px;" class="font-mono">
-                  <span style="color: var(--text-secondary);">🎯 เป้าหมายตาม IPS: <strong class="text-white">${this.formatTHB(h.targetTHB)} (${this.formatUSD(h.targetTHB / this.exchangeRate)})</strong></span>
-                  <strong class="${(s.marketValueTHB >= h.targetTHB) ? 'text-emerald' : 'text-amber'}">${((s.marketValueTHB / h.targetTHB) * 100).toFixed(1)}%</strong>
+            <!-- EXPANDED DRAWER -->
+            <div class="holding-compact-drawer">
+              <div class="dime-metrics-grid font-mono compact-metrics">
+                <div class="metric-cell">
+                  <span class="metric-cell-label">ต้นทุนต่อหุ้นเฉลี่ย (Avg Cost)</span>
+                  <span class="metric-cell-val">$${s.avgCost.toFixed(4)}</span>
                 </div>
-                <div class="progress-bar-bg" style="height: 5px;">
-                  <div class="progress-bar-fill" style="width: ${targetProgressPct}%; background: ${port.color || '#10b981'};"></div>
+                <div class="metric-cell" style="text-align: right;">
+                  <span class="metric-cell-label">ต้นทุนรวม (Total Cost)</span>
+                  <span class="metric-cell-val">${this.formatUSD(s.totalCostUSD)}</span>
+                </div>
+                <div class="metric-cell">
+                  <span class="metric-cell-label">สัดส่วนในพอร์ตนี้</span>
+                  <span class="metric-cell-val">${weightPct}%</span>
+                </div>
+                <div class="metric-cell" style="text-align: right;">
+                  <span class="metric-cell-label">จำนวนหุ้นคงเหลือ</span>
+                  <span class="metric-cell-val">${s.shares.toFixed(7)}</span>
                 </div>
               </div>
-            ` : ''}
 
-            <div class="holding-actions-row">
-              <button class="btn btn-sm btn-secondary" data-edit-holding="${h.id}" data-port-id="${port.id}">✏️ แก้ไข</button>
-              <button class="btn btn-sm btn-primary" data-trade-holding="${h.id}" data-port-id="${port.id}">⚡ ซื้อ-ขาย</button>
+              ${hasAnyDip ? `
+                <div class="dip-targets-pill-row font-mono" style="margin-top: 8px;">
+                  ${dip1 > 0 ? `<span class="dip-tier-pill ${s.currentPrice <= dip1 && s.currentPrice > 0 ? 'hit' : ''}">🎯 ไม้ 1: $${dip1.toFixed(2)}</span>` : ''}
+                  ${dip2 > 0 ? `<span class="dip-tier-pill ${s.currentPrice <= dip2 && s.currentPrice > 0 ? 'hit' : ''}">🎯 ไม้ 2: $${dip2.toFixed(2)}</span>` : ''}
+                  ${dip3 > 0 ? `<span class="dip-tier-pill ${s.currentPrice <= dip3 && s.currentPrice > 0 ? 'hit' : ''}">🎯 ไม้ 3: $${dip3.toFixed(2)}</span>` : ''}
+                </div>
+              ` : ''}
+
+              ${h.targetTHB ? `
+                <div style="margin-top: 8px; padding: 6px 10px; background: rgba(255,255,255,0.03); border: 1px solid var(--border-subtle); border-radius: var(--radius-sm);">
+                  <div style="display: flex; justify-content: space-between; font-size: 11px; margin-bottom: 4px;" class="font-mono">
+                    <span style="color: var(--text-secondary);">🎯 เป้าหมายตาม IPS: <strong class="text-white">${this.formatTHB(h.targetTHB)} (${this.formatUSD(h.targetTHB / this.exchangeRate)})</strong></span>
+                    <strong class="${(s.marketValueTHB >= h.targetTHB) ? 'text-emerald' : 'text-amber'}">${((s.marketValueTHB / h.targetTHB) * 100).toFixed(1)}%</strong>
+                  </div>
+                  <div class="progress-bar-bg" style="height: 4px;">
+                    <div class="progress-bar-fill" style="width: ${targetProgressPct}%; background: ${port.color || '#10b981'};"></div>
+                  </div>
+                </div>
+              ` : ''}
+
+              <div class="holding-compact-drawer-actions">
+                <button class="btn btn-sm btn-secondary" data-edit-holding="${h.id}" data-port-id="${port.id}">✏️ แก้ไขข้อมูล</button>
+                <button class="btn btn-sm btn-primary" data-trade-holding="${h.id}" data-port-id="${port.id}">⚡ ซื้อ-ขายด่วน</button>
+              </div>
             </div>
           </div>
         `;
-      });
+      }).join('');
     }
 
-    html += `</div>`;
-    container.innerHTML = html;
+    // Full Cards Mode
+    return holdings.map(h => {
+      const s = this.calculateHoldingStats(h);
+      const dualMarket = this.formatDual(s.marketValueUSD);
+      const weightPct = stats.totalValueUSD > 0 ? ((s.marketValueUSD / stats.totalValueUSD) * 100).toFixed(2) : '0.00';
+      const targetProgressPct = h.targetTHB > 0 ? Math.min(100, Math.max(0, (s.marketValueTHB / h.targetTHB) * 100)) : null;
 
-    setTimeout(() => {
-      this.initSubportCharts(port);
-    }, 50);
+      const dip1 = h.dipTarget1 || h.dipTargetUSD || 0;
+      const dip2 = h.dipTarget2 || 0;
+      const dip3 = h.dipTarget3 || 0;
+
+      const isDip3 = dip3 > 0 && s.currentPrice > 0 && s.currentPrice <= dip3;
+      const isDip2 = !isDip3 && dip2 > 0 && s.currentPrice > 0 && s.currentPrice <= dip2;
+      const isDip1 = !isDip3 && !isDip2 && dip1 > 0 && s.currentPrice > 0 && s.currentPrice <= dip1;
+      const isDipActive = isDip1 || isDip2 || isDip3;
+
+      let dipBadgeText = '';
+      if (isDip3) dipBadgeText = `🔥 ถึงจุดช้อนไม้ 3 ($${s.currentPrice.toFixed(2)} ≤ $${dip3.toFixed(2)})`;
+      else if (isDip2) dipBadgeText = `🔥 ถึงจุดช้อนไม้ 2 ($${s.currentPrice.toFixed(2)} ≤ $${dip2.toFixed(2)})`;
+      else if (isDip1) dipBadgeText = `🎯 ถึงจุดช้อนไม้ 1 ($${s.currentPrice.toFixed(2)} ≤ $${dip1.toFixed(2)})`;
+
+      const hasAnyDip = (dip1 > 0 || dip2 > 0 || dip3 > 0);
+
+      return `
+        <div class="holding-card ${isDipActive ? 'dip-active' : ''}">
+          <div class="holding-header">
+            <div class="holding-ticker-group">
+              ${this.renderStockLogoHTML(h.ticker, port.color || '#10b981', 42)}
+              <div class="ticker-name-box">
+                <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+                  <h4 style="margin: 0;">${h.ticker}</h4>
+                  ${isDipActive ? `<span class="dip-alert-badge">${dipBadgeText}</span>` : ''}
+                </div>
+                <div class="ticker-subname">${h.name || h.ticker}</div>
+                ${hasAnyDip ? `
+                  <div class="dip-targets-pill-row font-mono">
+                    ${dip1 > 0 ? `<span class="dip-tier-pill ${s.currentPrice <= dip1 && s.currentPrice > 0 ? 'hit' : ''}">🎯 ไม้ 1: $${dip1.toFixed(2)}</span>` : ''}
+                    ${dip2 > 0 ? `<span class="dip-tier-pill ${s.currentPrice <= dip2 && s.currentPrice > 0 ? 'hit' : ''}">🎯 ไม้ 2: $${dip2.toFixed(2)}</span>` : ''}
+                    ${dip3 > 0 ? `<span class="dip-tier-pill ${s.currentPrice <= dip3 && s.currentPrice > 0 ? 'hit' : ''}">🎯 ไม้ 3: $${dip3.toFixed(2)}</span>` : ''}
+                  </div>
+                ` : ''}
+              </div>
+            </div>
+
+            <div class="holding-value-group">
+              <div class="holding-market-val-thb font-mono">${dualMarket.main}</div>
+              <div class="holding-market-val-usd font-mono">${dualMarket.sub}</div>
+              <div class="holding-weight-tag font-mono">สัดส่วน: ${weightPct}%</div>
+              <div class="holding-pl-badge font-mono ${s.unrealizedPLUSD >= 0 ? 'text-emerald' : 'text-rose'}">
+                ${s.unrealizedPLUSD >= 0 ? '↗ +' : '↘ '}${this.formatPercent(s.unrealizedPLPct)} (${this.formatUSD(s.unrealizedPLUSD)} / ${this.formatTHB(this.usdToThb(s.unrealizedPLUSD))})
+              </div>
+            </div>
+          </div>
+
+          <div class="dime-metrics-grid font-mono">
+            <div class="metric-cell">
+              <span class="metric-cell-label">จำนวนหุ้นคงเหลือ (Shares)</span>
+              <span class="metric-cell-val">${s.shares.toFixed(7)}</span>
+            </div>
+            <div class="metric-cell" style="text-align: right;">
+              <span class="metric-cell-label">ราคาตลาด ($) และ % 1 วัน</span>
+              <span class="metric-cell-val ${s.change1d >= 0 ? 'text-emerald' : 'text-rose'}">
+                $${s.currentPrice.toFixed(2)} (${this.formatPercent(s.change1d)})
+              </span>
+            </div>
+            <div class="metric-cell">
+              <span class="metric-cell-label">ต้นทุนต่อหุ้นเฉลี่ย (Avg Cost)</span>
+              <span class="metric-cell-val">$${s.avgCost.toFixed(4)}</span>
+            </div>
+            <div class="metric-cell" style="text-align: right;">
+              <span class="metric-cell-label">ต้นทุนรวม (Total Cost)</span>
+              <span class="metric-cell-val">${this.formatUSD(s.totalCostUSD)}</span>
+            </div>
+          </div>
+
+          ${h.targetTHB ? `
+            <div style="margin: -6px 0 16px 0; padding: 10px 14px; background: rgba(255,255,255,0.03); border: 1px solid var(--border-subtle); border-radius: var(--radius-md);">
+              <div style="display: flex; justify-content: space-between; font-size: 12px; margin-bottom: 5px;" class="font-mono">
+                <span style="color: var(--text-secondary);">🎯 เป้าหมายตาม IPS: <strong class="text-white">${this.formatTHB(h.targetTHB)} (${this.formatUSD(h.targetTHB / this.exchangeRate)})</strong></span>
+                <strong class="${(s.marketValueTHB >= h.targetTHB) ? 'text-emerald' : 'text-amber'}">${((s.marketValueTHB / h.targetTHB) * 100).toFixed(1)}%</strong>
+              </div>
+              <div class="progress-bar-bg" style="height: 5px;">
+                <div class="progress-bar-fill" style="width: ${targetProgressPct}%; background: ${port.color || '#10b981'};"></div>
+              </div>
+            </div>
+          ` : ''}
+
+          <div class="holding-actions-row">
+            <button class="btn btn-sm btn-secondary" data-edit-holding="${h.id}" data-port-id="${port.id}">✏️ แก้ไข</button>
+            <button class="btn btn-sm btn-primary" data-trade-holding="${h.id}" data-port-id="${port.id}">⚡ ซื้อ-ขาย</button>
+          </div>
+        </div>
+      `;
+    }).join('');
+  }
+
+  bindHoldingsListEvents(container, port) {
+    // Accordion Toggle on Compact Rows
+    container.querySelectorAll('.holding-compact-main').forEach(mainRow => {
+      mainRow.addEventListener('click', (e) => {
+        if (e.target.closest('button')) return; // ignore buttons inside
+        const item = mainRow.closest('.holding-compact-item');
+        if (item) item.classList.toggle('expanded');
+      });
+    });
+
+    // Expand button click
+    container.querySelectorAll('.btn-compact-expand').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const item = btn.closest('.holding-compact-item');
+        if (item) item.classList.toggle('expanded');
+      });
+    });
+
+    // Edit Holding Buttons
+    container.querySelectorAll('[data-edit-holding]').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const hid = btn.getAttribute('data-edit-holding');
+        const pid = btn.getAttribute('data-port-id');
+        this.openHoldingEditModal(hid, pid);
+      });
+    });
+
+    // Trade Holding Buttons
+    container.querySelectorAll('[data-trade-holding]').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const hid = btn.getAttribute('data-trade-holding');
+        const pid = btn.getAttribute('data-port-id');
+        this.openTradeModalForHolding(hid, pid);
+      });
+    });
   }
 
   initSubportCharts(port) {
@@ -2981,7 +3385,9 @@ class PixelStewardApp {
       const stats = this.calculateHoldingStats(h);
       return {
         ticker: h.ticker,
-        marketValueUSD: stats.marketValueUSD
+        name: h.name || h.ticker,
+        marketValueUSD: stats.marketValueUSD,
+        marketValueTHB: stats.marketValueTHB
       };
     }).filter(h => h.marketValueUSD > 0).sort((a, b) => b.marketValueUSD - a.marketValueUSD);
 
@@ -2995,6 +3401,25 @@ class PixelStewardApp {
       this.charts.subport.destroy();
     }
 
+    const centerHubLogo = document.getElementById('center-hub-logo');
+    const centerHubTicker = document.getElementById('center-hub-ticker');
+    const centerHubPct = document.getElementById('center-hub-pct');
+    const centerHubVal = document.getElementById('center-hub-val');
+
+    const updateCenterHub = (item, color) => {
+      if (!item) return;
+      const pct = totalUSD > 0 ? ((item.marketValueUSD / totalUSD) * 100).toFixed(1) : '0.0';
+      if (centerHubLogo) centerHubLogo.innerHTML = this.renderStockLogoHTML(item.ticker, color || '#10b981', 28);
+      if (centerHubTicker) centerHubTicker.textContent = item.ticker;
+      if (centerHubPct) centerHubPct.textContent = `${pct}%`;
+      if (centerHubVal) centerHubVal.textContent = this.formatUSD(item.marketValueUSD);
+    };
+
+    // Default to first (largest) holding
+    if (holdingsStats.length > 0) {
+      updateCenterHub(holdingsStats[0], colors[0]);
+    }
+
     this.charts.subport = new Chart(ctxSub, {
       type: 'doughnut',
       data: {
@@ -3002,15 +3427,34 @@ class PixelStewardApp {
         datasets: [{
           data: dataValues,
           backgroundColor: colors,
-          borderWidth: 0,
-          hoverOffset: 6
+          borderWidth: 2,
+          borderColor: '#0f172a',
+          hoverOffset: 8
         }]
       },
       options: {
         responsive: true,
         maintainAspectRatio: false,
-        cutout: '70%',
-        plugins: { legend: { display: false } }
+        cutout: '72%',
+        plugins: {
+          legend: { display: false },
+          tooltip: {
+            callbacks: {
+              label: (context) => {
+                const idx = context.dataIndex;
+                const item = holdingsStats[idx];
+                const pct = totalUSD > 0 ? ((item.marketValueUSD / totalUSD) * 100).toFixed(1) : '0.0';
+                return ` ${item.ticker}: ${pct}% (${this.formatUSD(item.marketValueUSD)})`;
+              }
+            }
+          }
+        },
+        onHover: (event, elements) => {
+          if (elements && elements.length > 0) {
+            const idx = elements[0].index;
+            updateCenterHub(holdingsStats[idx], colors[idx]);
+          }
+        }
       }
     });
 
@@ -3019,19 +3463,23 @@ class PixelStewardApp {
       legendEl.innerHTML = holdingsStats.map((item, idx) => {
         const pct = totalUSD > 0 ? ((item.marketValueUSD / totalUSD) * 100).toFixed(1) : '0.0';
         return `
-          <div class="chart-legend-item" style="display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 4px 6px;">
-            <div style="display: flex; align-items: center; gap: 8px;">
-              <span class="legend-color-dot" style="background: ${colors[idx]}; width: 8px; height: 8px; border-radius: 50%;"></span>
-              ${this.renderStockLogoHTML(item.ticker, colors[idx], 22)}
-              <strong style="font-size: 12px; color: #fff;">${item.ticker}</strong>
-            </div>
-            <div style="text-align: right;" class="font-mono">
-              <span style="color: var(--color-emerald); font-weight: 700; font-size: 12px;">${pct}%</span>
-              <span style="font-size: 10px; color: var(--text-muted); margin-left: 4px;">(${this.formatUSD(item.marketValueUSD)})</span>
-            </div>
-          </div>
+          <button type="button" class="subport-legend-chip font-mono" data-chip-index="${idx}" title="${item.name}">
+            <span class="legend-color-dot" style="background: ${colors[idx]};"></span>
+            ${this.renderStockLogoHTML(item.ticker, colors[idx], 16)}
+            <strong>${item.ticker}</strong>
+            <span class="text-emerald">${pct}%</span>
+          </button>
         `;
       }).join('');
+
+      legendEl.querySelectorAll('.subport-legend-chip').forEach(chip => {
+        chip.addEventListener('click', () => {
+          const idx = parseInt(chip.getAttribute('data-chip-index'), 10);
+          if (holdingsStats[idx]) {
+            updateCenterHub(holdingsStats[idx], colors[idx]);
+          }
+        });
+      });
     }
   }
 
@@ -4124,7 +4572,7 @@ class PixelStewardApp {
     // 3. Navigation Views
     const navItems = [
       { id: 'dashboard', icon: '📊', title: 'แดชบอร์ดภาพรวม', sub: 'สรุปพอร์ตและเป้าหมายตาม IPS' },
-      { id: 'portfolios', icon: '📁', title: 'แยกพอร์ต (Dime Holdings)', sub: 'จัดการสินทรัพย์หุ้นและเงินไว้ช้อน' },
+      { id: 'portfolios', icon: '📁', title: 'แยกพอร์ต (พอร์ตการลงทุน & หุ้น)', sub: 'จัดการสินทรัพย์หุ้นและเงินไว้ช้อน' },
       { id: 'trading', icon: '💱', title: 'Forex & Option Trading', sub: 'บันทึกยอดเงินพอร์ตเทรดกระแสเงินสด' },
       { id: 'dividends', icon: '💰', title: 'บันทึกเงินปันผล', sub: 'ประวัติรับปันผลและ Passive Income' },
       { id: 'simulator', icon: '🔮', title: 'จำลองเงินล้าน (Simulator)', sub: 'พลังดอกเบี้ยทบต้นและเป้าหมายสู่อิสรภาพ' },
@@ -5060,7 +5508,7 @@ tags:
     // Update Header title
     const titleMap = {
       dashboard: 'แดชบอร์ดภาพรวม',
-      portfolios: 'แยกพอร์ต (Dime Holdings)',
+      portfolios: 'พอร์ตการลงทุน & รายการสินทรัพย์',
       trading: 'Forex & Option Trading',
       dividends: 'บันทึกเงินปันผลรับ (Dividend Log)',
       simulator: 'จำลองเงินล้าน & ดอกเบี้ยทบต้น',
