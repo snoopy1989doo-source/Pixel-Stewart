@@ -140,12 +140,11 @@ const INITIAL_PORTFOLIOS = [
     cashBufferUSD: 0.00,
     notes: 'ปันผลสม่ำเสมอ ลดความเสี่ยงค่าเงิน • Ongoing',
     holdings: [
-      { id: 'h-avgo', ticker: 'AVGO', name: 'Broadcom Inc.', shares: 0.0459276, avgCostUSD: 388.6551, currentPriceUSD: 392.99, change1dPct: 0.00, targetTHB: 45000 },
-      { id: 'h-o', ticker: 'O', name: 'Realty Income Corp.', shares: 0.1262319, avgCostUSD: 61.7118, currentPriceUSD: 62.74, change1dPct: 0.20, targetTHB: 45000 },
-      { id: 'h-pg', ticker: 'PG', name: 'Procter & Gamble Co.', shares: 0.0327893, avgCostUSD: 144.3276, currentPriceUSD: 144.56, change1dPct: 0.30, targetTHB: 75000 },
-      { id: 'h-cvx', ticker: 'CVX', name: 'Chevron Corporation', shares: 0.0185039, avgCostUSD: 180.1572, currentPriceUSD: 200.00, change1dPct: -0.40, targetTHB: 45000 },
-      { id: 'h-ko', ticker: 'KO', name: 'Coca-Cola Company', shares: 0.0177449, avgCostUSD: 83.968, currentPriceUSD: 87.71, change1dPct: 0.00, targetTHB: 75000 },
-      { id: 'h-pep', ticker: 'PEP', name: 'PepsiCo Inc.', shares: 0.00, avgCostUSD: 170.00, currentPriceUSD: 172.00, change1dPct: 0.00, targetTHB: 60000 }
+      { id: 'h-avgo', ticker: 'AVGO', name: 'Broadcom Inc.', shares: 0.0459276, avgCostUSD: 388.6551, currentPriceUSD: 392.99, change1dPct: 0.00, targetTHB: 50000 },
+      { id: 'h-o', ticker: 'O', name: 'Realty Income Corp.', shares: 0.1262319, avgCostUSD: 61.7118, currentPriceUSD: 62.74, change1dPct: 0.20, targetTHB: 50000 },
+      { id: 'h-pg', ticker: 'PG', name: 'Procter & Gamble Co.', shares: 0.0327893, avgCostUSD: 144.3276, currentPriceUSD: 144.56, change1dPct: 0.30, targetTHB: 80000 },
+      { id: 'h-cvx', ticker: 'CVX', name: 'Chevron Corporation', shares: 0.0185039, avgCostUSD: 180.1572, currentPriceUSD: 200.00, change1dPct: -0.40, targetTHB: 40000 },
+      { id: 'h-ko', ticker: 'KO', name: 'Coca-Cola Company', shares: 0.0177449, avgCostUSD: 83.968, currentPriceUSD: 87.71, change1dPct: 0.00, targetTHB: 80000 }
     ]
   },
   {
@@ -793,12 +792,19 @@ class PixelStewardApp {
           existingP.targetCashBufferTHB = initP.targetCashBufferTHB;
         }
         
+        // Remove PEP from us_dividend if present with 0 shares and update remaining targets
+        if (existingP.id === 'us_dividend' && existingP.holdings) {
+          existingP.holdings = existingP.holdings.filter(h => h.ticker.toUpperCase() !== 'PEP');
+        }
+
         // Enrich targetTHB on EXISTING holdings only (NEVER re-insert deleted holdings)
         if (existingP.holdings) {
           existingP.holdings.forEach(h => {
             const initH = (initP.holdings || []).find(x => x.ticker.toUpperCase() === h.ticker.toUpperCase());
-            if (initH && initH.targetTHB && !h.targetTHB) {
-              h.targetTHB = initH.targetTHB;
+            if (initH && initH.targetTHB) {
+              if (existingP.id === 'us_dividend' || !h.targetTHB) {
+                h.targetTHB = initH.targetTHB;
+              }
             }
           });
         }
@@ -3036,7 +3042,7 @@ class PixelStewardApp {
           <div>
             <div class="cash-box-title">Cash Buffer (เงินสดไว้ช้อนซื้อหุ้นของพอร์ตนี้)</div>
             <div class="cash-box-val font-mono">${dualCash.main}</div>
-            <div class="cash-box-sub font-mono">${dualCash.sub} ${port.targetCashBufferTHB ? `• (เป้าหมายตาม IPS: ${this.formatTHB(port.targetCashBufferTHB)})` : ''}</div>
+            <div class="cash-box-sub font-mono">${dualCash.sub} ${port.targetCashBufferTHB ? `• (เป้าหมาย: ${this.formatTHB(port.targetCashBufferTHB)})` : ''}</div>
           </div>
         </div>
         <div class="cash-box-actions">
@@ -3222,7 +3228,7 @@ class PixelStewardApp {
               ${h.targetTHB ? `
                 <div style="margin-top: 8px; padding: 6px 10px; background: rgba(255,255,255,0.03); border: 1px solid var(--border-subtle); border-radius: var(--radius-sm);">
                   <div style="display: flex; justify-content: space-between; font-size: 11px; margin-bottom: 4px;" class="font-mono">
-                    <span style="color: var(--text-secondary);">🎯 เป้าหมายตาม IPS: <strong class="text-white">${this.formatTHB(h.targetTHB)} (${this.formatUSD(h.targetTHB / this.exchangeRate)})</strong></span>
+                    <span style="color: var(--text-secondary);">🎯 เป้าหมาย: <strong class="text-white">${this.formatTHB(h.targetTHB)} (${this.formatUSD(h.targetTHB / this.exchangeRate)})</strong></span>
                     <strong class="${(s.marketValueTHB >= h.targetTHB) ? 'text-emerald' : 'text-amber'}">${((s.marketValueTHB / h.targetTHB) * 100).toFixed(1)}%</strong>
                   </div>
                   <div class="progress-bar-bg" style="height: 4px;">
@@ -3319,7 +3325,7 @@ class PixelStewardApp {
           ${h.targetTHB ? `
             <div style="margin: -6px 0 16px 0; padding: 10px 14px; background: rgba(255,255,255,0.03); border: 1px solid var(--border-subtle); border-radius: var(--radius-md);">
               <div style="display: flex; justify-content: space-between; font-size: 12px; margin-bottom: 5px;" class="font-mono">
-                <span style="color: var(--text-secondary);">🎯 เป้าหมายตาม IPS: <strong class="text-white">${this.formatTHB(h.targetTHB)} (${this.formatUSD(h.targetTHB / this.exchangeRate)})</strong></span>
+                <span style="color: var(--text-secondary);">🎯 เป้าหมาย: <strong class="text-white">${this.formatTHB(h.targetTHB)} (${this.formatUSD(h.targetTHB / this.exchangeRate)})</strong></span>
                 <strong class="${(s.marketValueTHB >= h.targetTHB) ? 'text-emerald' : 'text-amber'}">${((s.marketValueTHB / h.targetTHB) * 100).toFixed(1)}%</strong>
               </div>
               <div class="progress-bar-bg" style="height: 5px;">
@@ -3362,7 +3368,7 @@ class PixelStewardApp {
         e.stopPropagation();
         const hid = btn.getAttribute('data-edit-holding');
         const pid = btn.getAttribute('data-port-id');
-        this.openHoldingEditModal(hid, pid);
+        this.openHoldingModal(hid, pid);
       });
     });
 
@@ -4571,7 +4577,7 @@ class PixelStewardApp {
 
     // 3. Navigation Views
     const navItems = [
-      { id: 'dashboard', icon: '📊', title: 'แดชบอร์ดภาพรวม', sub: 'สรุปพอร์ตและเป้าหมายตาม IPS' },
+      { id: 'dashboard', icon: '📊', title: 'แดชบอร์ดภาพรวม', sub: 'สรุปพอร์ตและเป้าหมายการลงทุน' },
       { id: 'portfolios', icon: '📁', title: 'แยกพอร์ต (พอร์ตการลงทุน & หุ้น)', sub: 'จัดการสินทรัพย์หุ้นและเงินไว้ช้อน' },
       { id: 'trading', icon: '💱', title: 'Forex & Option Trading', sub: 'บันทึกยอดเงินพอร์ตเทรดกระแสเงินสด' },
       { id: 'dividends', icon: '💰', title: 'บันทึกเงินปันผล', sub: 'ประวัติรับปันผลและ Passive Income' },
@@ -4584,7 +4590,7 @@ class PixelStewardApp {
     // 4. Quick Actions
     const actionItems = [
       { action: 'trade', icon: '➕', title: 'ซื้อ / ขายสินทรัพย์ (Quick Trade)', sub: 'บันทึกซื้อ-ขายหุ้นหรือตัดเงินไว้ช้อน' },
-      { action: 'dca', icon: '⚖️', title: 'Smart DCA & Rebalance Calculator', sub: 'คำนวณแบ่งเงินซื้อหุ้นตามเป้าหมาย IPS' },
+      { action: 'dca', icon: '⚖️', title: 'Smart DCA & Rebalance Calculator', sub: 'คำนวณแบ่งเงินซื้อหุ้นตามเป้าหมายพอร์ต' },
       { action: 'cash_buffer', icon: '💧', title: 'ฝาก / ถอนเงินไว้ช้อน (Cash Buffer)', sub: 'จัดการเงินสดสำรองรอช้อนซื้อ' },
       { action: 'reorder', icon: '↕️', title: 'จัดเรียงลำดับพอร์ต', sub: 'ปรับสลับลำดับการแสดงผลของพอร์ต' },
       { action: 'sync', icon: '🔄', title: 'อัปเดตราคาตลาดสด (Sync Market)', sub: 'ดึงราคาหุ้นและคริปโตล่าสุด' },
@@ -5054,7 +5060,7 @@ tags:
 
 ---
 
-## 💼 1. Goal-Based Portfolios Summary (เป้าหมายตาม IPS)
+## 💼 1. Goal-Based Portfolios Summary (เป้าหมายพอร์ตการลงทุน)
 
 | # | Portfolio Name | Tier / Category | Target Goal (USD) | Target Goal (THB) | Current Value (USD) | Progress (%) | Cash Buffer (USD) | Strategy Notes |
 | :-: | :--- | :--- | :-: | :-: | :-: | :-: | :-: | :--- |
@@ -5121,7 +5127,7 @@ tags:
 
     md += `\n---\n\n## 🧠 6. AI Prompt Directives for Financial Advisor\n\n`;
     md += `> **Instruction for AI / Financial Agent:**\n`;
-    md += `> 1. วิเคราะห์สุขภาพทางการเงินโดยรวม (Financial Health & Risk Profile) ตามแผน IPS\n`;
+    md += `> 1. วิเคราะห์สุขภาพทางการเงินโดยรวม (Financial Health & Risk Profile)\n`;
     md += `> 2. ประเมินการกระจายความเสี่ยง (Asset Allocation) หุ้นตัวใด Overweight หรือ Underweight เกินไป\n`;
     md += `> 3. ให้คำแนะนำการเติมเงิน DCA ในเดือนถัดไป (Smart Rebalance Priority)\n`;
     md += `> 4. ประเมินจุดช้อน (Buy-the-Dip Targets) และความคุ้มค่าของการถือ Cash Buffer\n`;

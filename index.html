@@ -31,7 +31,7 @@
   <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.2/dist/confetti.browser.min.js"></script>
   
   <!-- Main Stylesheet -->
-  <link rel="stylesheet" href="style.css?v=3.1.0">
+  <link rel="stylesheet" href="style.css?v=3.1.1">
 </head>
 <body>
   <div class="app-layout">
@@ -144,7 +144,7 @@
           </button>
 
           <!-- Smart Rebalance DCA Button -->
-          <button id="btn-open-rebalance-modal" class="btn-icon-action" title="คำนวณเติมเงินซื้อหุ้นตามเป้าหมาย IPS">
+          <button id="btn-open-rebalance-modal" class="btn-icon-action" title="คำนวณเติมเงินซื้อหุ้นตามเป้าหมายพอร์ต">
             <span>⚖️</span>
             <span class="btn-text-desktop">Smart DCA</span>
           </button>
@@ -273,7 +273,7 @@
     </div>
   </div>
 
-  <!-- MODAL: SMART REBALANCE & DCA CALCULATOR (คำนวณเติมเงินซื้อหุ้นตามเป้าหมาย IPS) -->
+  <!-- MODAL: SMART REBALANCE & DCA CALCULATOR (คำนวณเติมเงินซื้อหุ้นตามเป้าหมาย) -->
   <div class="modal-backdrop" id="modal-rebalance-calculator">
     <div class="modal-card" style="max-width: 580px;">
       <div class="modal-header">
@@ -282,7 +282,7 @@
       </div>
       <div class="modal-body">
         <div style="font-size: 13px; color: var(--text-secondary); margin-bottom: 16px;">
-          ระบบจะวิเคราะห์สัดส่วนพอร์ตและเป้าหมายตาม IPS เพื่อคำนวณการแบ่งเงินซื้อหุ้นแต่ละตัวให้อัตโนมัติ เพื่อให้พอร์ตสมดุลที่สุด
+          ระบบจะวิเคราะห์สัดส่วนพอร์ตและเป้าหมายเพื่อคำนวณการแบ่งเงินซื้อหุ้นแต่ละตัวให้อัตโนมัติ เพื่อให้พอร์ตสมดุลที่สุด
         </div>
 
         <div class="form-row">
@@ -965,6 +965,6 @@
   <div id="toast-container" class="toast-container"></div>
 
   <!-- Core JavaScript Application -->
-  <script src="app.js?v=3.1.0"></script>
+  <script src="app.js?v=3.1.1"></script>
 </body>
 </html>
