@@ -270,6 +270,8 @@ class PixelStewardApp {
     this.currentTab = 'dashboard';
     this.selectedPortfolioId = 'zero1';
     this.selectedQuarterYear = new Date().getFullYear();
+    this.selectedDividendYear = new Date().getFullYear();
+    this.dividendTableFilter = 'all'; // 'all' or 'year'
     this.isPrivacyMode = false;
     this.isSidebarCollapsed = false;
     this.allocationViewMode = 'donut'; // 'donut' or 'treemap'
@@ -1087,26 +1089,37 @@ class PixelStewardApp {
   async fetchViaFastProxies(targetUrl) {
     const fetchers = [
       async (u) => {
-        // Direct fetch (sub-100ms in Android APK / WebView / Electron)
+        // 1. Direct fetch (sub-100ms in Android APK / WebView / Electron / Direct CORS)
         const res = await this.fetchWithTimeout(u, 2500);
         if (res.ok) return await res.json();
         throw new Error('Direct failed');
       },
       async (u) => {
-        const res = await this.fetchWithTimeout(`https://api.allorigins.win/raw?url=${encodeURIComponent(u)}`, 3000);
+        // 2. Allorigins Raw
+        const res = await this.fetchWithTimeout(`https://api.allorigins.win/raw?url=${encodeURIComponent(u)}`, 5500);
         if (res.ok) return await res.json();
         throw new Error('Allorigins raw failed');
       },
       async (u) => {
-        const res = await this.fetchWithTimeout(`https://api.allorigins.win/get?url=${encodeURIComponent(u)}`, 3000);
+        // 3. Allorigins Get wrapper
+        const res = await this.fetchWithTimeout(`https://api.allorigins.win/get?url=${encodeURIComponent(u)}`, 5500);
         if (res.ok) {
           const d = await res.json();
-          if (d && d.contents) return JSON.parse(d.contents);
+          if (d && d.contents) {
+            try { return JSON.parse(d.contents); } catch (e) {}
+          }
         }
         throw new Error('Allorigins get failed');
       },
       async (u) => {
-        const res = await this.fetchWithTimeout(`https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(u)}`, 3000);
+        // 4. CorsProxy.io
+        const res = await this.fetchWithTimeout(`https://corsproxy.io/?${encodeURIComponent(u)}`, 4000);
+        if (res.ok) return await res.json();
+        throw new Error('Corsproxy failed');
+      },
+      async (u) => {
+        // 5. Codetabs
+        const res = await this.fetchWithTimeout(`https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(u)}`, 4500);
         if (res.ok) return await res.json();
         throw new Error('Codetabs failed');
       }
@@ -1217,10 +1230,11 @@ class PixelStewardApp {
 
     // 1. Try single batch quote first
     const symbolsStr = tickers.join(',');
-    const quoteUrl = `https://query1.finance.yahoo.com/v7/finance/quote?symbols=${encodeURIComponent(symbolsStr)}`;
+    const quoteUrl1 = `https://query1.finance.yahoo.com/v7/finance/quote?symbols=${encodeURIComponent(symbolsStr)}`;
+    const quoteUrl2 = `https://query2.finance.yahoo.com/v7/finance/quote?symbols=${encodeURIComponent(symbolsStr)}`;
     
     try {
-      const data = await this.fetchViaFastProxies(quoteUrl);
+      const data = (await this.fetchViaFastProxies(quoteUrl1)) || (await this.fetchViaFastProxies(quoteUrl2));
       const results = data?.quoteResponse?.result;
       
       if (Array.isArray(results) && results.length > 0) {
@@ -1240,9 +1254,10 @@ class PixelStewardApp {
     if (missingTickers.length > 0) {
       const fallbackPromises = missingTickers.map(async (sym, idx) => {
         try {
-          if (idx > 0) await new Promise(r => setTimeout(r, idx * 60));
-          const chartUrl = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(sym)}?interval=1d&range=2d`;
-          const chartData = await this.fetchViaFastProxies(chartUrl);
+          if (idx > 0) await new Promise(r => setTimeout(r, idx * 25));
+          const chartUrl1 = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(sym)}?interval=1d&range=2d`;
+          const chartUrl2 = `https://query2.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(sym)}?interval=1d&range=2d`;
+          const chartData = (await this.fetchViaFastProxies(chartUrl1)) || (await this.fetchViaFastProxies(chartUrl2));
           const meta = chartData?.chart?.result?.[0]?.meta;
           if (meta && meta.regularMarketPrice) {
             const price = meta.regularMarketPrice;
@@ -1264,9 +1279,10 @@ class PixelStewardApp {
     const rate = this.exchangeRate || 32.59;
     const chartPromises = thaiTickers.map(async (sym, idx) => {
       try {
-        if (idx > 0) await new Promise(r => setTimeout(r, idx * 60));
-        const chartUrl = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(sym)}?interval=1d&range=2d`;
-        const chartData = await this.fetchViaFastProxies(chartUrl);
+        if (idx > 0) await new Promise(r => setTimeout(r, idx * 25));
+        const chartUrl1 = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(sym)}?interval=1d&range=2d`;
+        const chartUrl2 = `https://query2.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(sym)}?interval=1d&range=2d`;
+        const chartData = (await this.fetchViaFastProxies(chartUrl1)) || (await this.fetchViaFastProxies(chartUrl2));
         const meta = chartData?.chart?.result?.[0]?.meta;
         if (meta && meta.regularMarketPrice) {
           const priceTHB = meta.regularMarketPrice;
@@ -1351,13 +1367,22 @@ class PixelStewardApp {
       });
     });
 
-    const elapsedSec = ((performance.now() - startTime) / 1000).toFixed(2);
+    const elapsedSec = ((performance.now() - startTime) / 1000).toFixed(1);
 
     if (btnTop) btnTop.classList.remove('spinning');
     if (btnSide) btnSide.classList.remove('spinning');
 
     this.saveData();
     this.checkAllDipPriceAlerts();
+
+    if (updatedCount > 0) {
+      this.showToast({
+        icon: '⚡',
+        title: 'อัปเดตราคาตลาดสดสำเร็จ!',
+        message: `อัปเดตราคาแล้ว ${updatedCount} สินทรัพย์ • ค่าเงิน ฿${this.exchangeRate.toFixed(2)} (${elapsedSec}s)`,
+        type: 'success'
+      });
+    }
 
     this.renderSpecCountersBar();
     this.renderActiveTab();
@@ -3810,16 +3835,70 @@ class PixelStewardApp {
     });
   }
 
-  // 4. DIVIDEND TRACKER & 12-MONTH FORECAST VIEW
-  renderDividendsView(container) {
-    let totalGrossUSD = 0;
-    let totalTaxUSD = 0;
-    let totalNetUSD = 0;
+  // --- 4. DIVIDEND TRACKER & MULTI-YEAR ACTUAL VS FORECAST ENGINE ---
+  getDividendAvailableYears() {
+    const years = new Set();
+    const currentYear = new Date().getFullYear();
+    years.add(currentYear);
+    years.add(currentYear + 1);
+    (this.dividends || []).forEach(d => {
+      if (d.date) {
+        const y = parseInt(d.date.split('-')[0], 10);
+        if (!isNaN(y) && y > 2000 && y < 2100) years.add(y);
+      }
+    });
+    return Array.from(years).sort((a, b) => a - b);
+  }
 
+  getYearDividendStats(targetYear) {
+    const year = targetYear || this.selectedDividendYear || new Date().getFullYear();
+    const yearDivs = (this.dividends || []).filter(d => d.date && d.date.startsWith(String(year)));
+    
+    let yearGrossUSD = 0;
+    let yearTaxUSD = 0;
+    let yearNetUSD = 0;
+    const monthlyActualUSD = Array(12).fill(0);
+
+    yearDivs.forEach(d => {
+      const gross = parseFloat(d.grossUSD) || 0;
+      const tax = parseFloat(d.taxUSD) || 0;
+      const net = parseFloat(d.netUSD) || (gross - tax);
+      yearGrossUSD += gross;
+      yearTaxUSD += tax;
+      yearNetUSD += net;
+
+      const monthIdx = parseInt(d.date.split('-')[1], 10) - 1;
+      if (monthIdx >= 0 && monthIdx < 12) {
+        monthlyActualUSD[monthIdx] += net;
+      }
+    });
+
+    return {
+      year,
+      yearDivs,
+      yearGrossUSD,
+      yearTaxUSD,
+      yearNetUSD,
+      monthlyActualUSD
+    };
+  }
+
+  renderDividendsView(container) {
+    const currentYear = new Date().getFullYear();
+    this.selectedDividendYear = this.selectedDividendYear || currentYear;
+    this.dividendTableFilter = this.dividendTableFilter || 'all';
+
+    const availableYears = this.getDividendAvailableYears();
+    const yearStats = this.getYearDividendStats(this.selectedDividendYear);
+
+    // All-time totals
+    let allTimeGrossUSD = 0;
+    let allTimeTaxUSD = 0;
+    let allTimeNetUSD = 0;
     this.dividends.forEach(d => {
-      totalGrossUSD += parseFloat(d.grossUSD) || 0;
-      totalTaxUSD += parseFloat(d.taxUSD) || 0;
-      totalNetUSD += parseFloat(d.netUSD) || 0;
+      allTimeGrossUSD += parseFloat(d.grossUSD) || 0;
+      allTimeTaxUSD += parseFloat(d.taxUSD) || 0;
+      allTimeNetUSD += parseFloat(d.netUSD) || 0;
     });
 
     const grand = this.calculateGrandTotalStats();
@@ -3838,8 +3917,9 @@ class PixelStewardApp {
       'CPALL': 0.025,
       'ABBV': 0.038,
       'KO': 0.031,
-      'PEP': 0.029,
       'PG': 0.024,
+      'AVGO': 0.013,
+      'CVX': 0.041,
       'VOO': 0.0135,
       'SPY': 0.0135,
       'QQQ': 0.006,
@@ -3862,57 +3942,97 @@ class PixelStewardApp {
       });
     });
 
-    // If no holdings yet, fallback to recorded history
-    if (estAnnualUSD === 0 && totalNetUSD > 0) {
-      estAnnualUSD = totalNetUSD;
+    if (estAnnualUSD === 0 && allTimeNetUSD > 0) {
+      estAnnualUSD = allTimeNetUSD;
     }
 
     const estMonthlyUSD = estAnnualUSD / 12;
-    const estDailyUSD = estAnnualUSD / 365;
+    const yearAvgMonthlyUSD = yearStats.yearNetUSD / 12;
     const yocPct = totalCostUSD > 0 ? (estAnnualUSD / totalCostUSD) * 100 : (grand.totalStocksUSD > 0 ? (estAnnualUSD / grand.totalStocksUSD) * 100 : 0);
+    const achievePct = estAnnualUSD > 0 ? Math.min(999, (yearStats.yearNetUSD / estAnnualUSD) * 100) : 0;
 
-    const dualNet = this.formatDual(totalNetUSD);
+    const dualYearNet = this.formatDual(yearStats.yearNetUSD);
+    const dualAllTime = this.formatDual(allTimeNetUSD);
+
+    // Filter displayed dividends
+    const displayedDividends = this.dividendTableFilter === 'year' 
+      ? yearStats.yearDivs 
+      : this.dividends;
 
     let html = `
+      <!-- YEAR NAVIGATOR & TIMELINE SELECTOR -->
+      <div class="div-year-nav-card">
+        <div class="div-year-nav-left">
+          <span class="div-year-label">🗓️ ปีที่ต้องการดูข้อมูล:</span>
+          <button class="btn-div-year-arrow" id="btn-prev-div-year" title="ปีก่อนหน้า">◀</button>
+          <div class="div-year-pills font-mono">
+            ${availableYears.map(y => `
+              <button type="button" class="div-year-pill ${y === this.selectedDividendYear ? 'active' : ''}" data-div-year="${y}">
+                ${y} ${y === currentYear ? '<span class="pill-badge-now">ปัจจุบัน</span>' : ''}
+              </button>
+            `).join('')}
+          </div>
+          <button class="btn-div-year-arrow" id="btn-next-div-year" title="ปีถัดไป">▶</button>
+        </div>
+        <div class="div-year-nav-right">
+          <select id="select-div-year" class="form-select font-mono" style="padding: 6px 12px; font-size: 13px; width: auto;">
+            ${availableYears.map(y => `
+              <option value="${y}" ${y === this.selectedDividendYear ? 'selected' : ''}>ปี ${y} ${y === currentYear ? '(ปัจจุบัน)' : ''}</option>
+            `).join('')}
+          </select>
+        </div>
+      </div>
+
+      <!-- HERO BANNER: SELECTED YEAR VS ALL-TIME -->
       <div class="dime-hero-banner" style="background: linear-gradient(135deg, #0e291e 0%, #0d1e17 40%, #0f131a 100%);">
         <div class="dime-hero-header">
-          <span class="dime-hero-label text-emerald">เงินปันผลสะสมทั้งหมด (Total Net Dividends)</span>
-          <span class="dime-timestamp font-mono">สุทธิหลังหักภาษี WHT 15%</span>
+          <span class="dime-hero-label text-emerald">💵 ปันผลรับจริงในปี ${this.selectedDividendYear} (Net Dividends)</span>
+          <span class="dime-timestamp font-mono">สุทธิสะสมตลอดกาล: ${dualAllTime.main} (${dualAllTime.sub})</span>
         </div>
-        <div class="dime-main-value font-mono">${dualNet.main}</div>
-        <div class="dime-sub-value font-mono">${dualNet.sub} (เข้ากระเป๋าจริงแล้ว)</div>
+        <div class="dime-main-value font-mono">${dualYearNet.main}</div>
+        <div class="dime-sub-value font-mono">${dualYearNet.sub} (เข้ากระเป๋าจริงในปี ${this.selectedDividendYear})</div>
       </div>
 
       <!-- PASSIVE INCOME RUN-RATE CARDS -->
       <div class="runrate-grid">
         <div class="runrate-card">
-          <div class="runrate-label">💵 คาดการณ์ต่อปี (Annual Run-Rate)</div>
-          <div class="runrate-val text-emerald">${this.formatUSD(estAnnualUSD)}</div>
+          <div class="runrate-label">💵 รับจริงปี ${this.selectedDividendYear}</div>
+          <div class="runrate-val text-emerald">${this.formatUSD(yearStats.yearNetUSD)}</div>
+          <div class="runrate-sub">≈ ${this.formatTHB(this.usdToThb(yearStats.yearNetUSD))}</div>
+        </div>
+        <div class="runrate-card">
+          <div class="runrate-label">📊 คาดการณ์ทั้งปี (Forecast)</div>
+          <div class="runrate-val text-cyan" style="color: #38bdf8;">${this.formatUSD(estAnnualUSD)}</div>
           <div class="runrate-sub">≈ ${this.formatTHB(this.usdToThb(estAnnualUSD))} / ปี</div>
         </div>
         <div class="runrate-card">
-          <div class="runrate-label">📆 เฉลี่ยต่อเดือน (Monthly Average)</div>
-          <div class="runrate-val text-blue">${this.formatUSD(estMonthlyUSD)}</div>
-          <div class="runrate-sub">≈ ${this.formatTHB(this.usdToThb(estMonthlyUSD))} / เดือน</div>
+          <div class="runrate-label">📆 เฉลี่ยต่อเดือนที่รับจริง</div>
+          <div class="runrate-val text-purple">${this.formatUSD(yearAvgMonthlyUSD)}</div>
+          <div class="runrate-sub">≈ ${this.formatTHB(this.usdToThb(yearAvgMonthlyUSD))} / เดือน</div>
         </div>
         <div class="runrate-card">
-          <div class="runrate-label">☕ เฉลี่ยต่อวัน (Daily Income)</div>
-          <div class="runrate-val text-purple">${this.formatUSD(estDailyUSD)}</div>
-          <div class="runrate-sub">≈ ${this.formatTHB(this.usdToThb(estDailyUSD))} / วัน</div>
-        </div>
-        <div class="runrate-card">
-          <div class="runrate-label">📈 Yield on Cost (YOC)</div>
-          <div class="runrate-val font-bold" style="color: #f59e0b;">${yocPct.toFixed(2)}%</div>
-          <div class="runrate-sub">ผลตอบแทนเทียบต้นทุนจริง</div>
+          <div class="runrate-label">🎯 บรรลุเป้าหมายปี ${this.selectedDividendYear}</div>
+          <div class="runrate-val font-bold" style="color: ${achievePct >= 100 ? '#10b981' : '#f59e0b'};">${achievePct.toFixed(1)}%</div>
+          <div class="runrate-sub">เทียบเป้าหมายคาดการณ์</div>
         </div>
       </div>
 
-      <!-- 12-MONTH DIVIDEND FORECAST BAR CHART -->
+      <!-- 12-MONTH ACTUAL VS FORECAST DUAL-BAR CHART -->
       <div class="chart-card" style="margin-bottom: 24px;">
-        <div class="chart-title">
-          <span>📅 ปฏิทินคาดการณ์รับเงินปันผลรายเดือน 12 เดือน (Monthly Dividend Forecast)</span>
+        <div class="chart-title" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;">
+          <span>📊 ปฏิทินเปรียบเทียบปันผลรับจริง VS คาดการณ์ (${this.selectedDividendYear})</span>
+          <div class="chart-legend-pills font-mono" style="display: flex; gap: 12px; font-size: 11px;">
+            <span style="display: inline-flex; align-items: center; gap: 5px;">
+              <span style="width: 10px; height: 10px; background: #10b981; border-radius: 2px; display: inline-block;"></span>
+              <strong>รับจริง (Actual)</strong>
+            </span>
+            <span style="display: inline-flex; align-items: center; gap: 5px;">
+              <span style="width: 10px; height: 10px; background: rgba(56, 189, 248, 0.45); border: 1px solid #38bdf8; border-radius: 2px; display: inline-block;"></span>
+              <strong>คาดการณ์ (Forecast)</strong>
+            </span>
+          </div>
         </div>
-        <div class="chart-canvas-container" style="height: 260px;">
+        <div class="chart-canvas-container" style="height: 270px;">
           <canvas id="chart-dividend-forecast"></canvas>
         </div>
       </div>
@@ -3920,7 +4040,14 @@ class PixelStewardApp {
       <div class="section-header">
         <div class="section-title">
           <span>ประวัติการรับเงินปันผลรับเข้าพอร์ต</span>
-          <span class="section-count-badge font-mono">${this.dividends.length} รายการ</span>
+          <div class="div-table-filters" style="display: inline-flex; gap: 6px; margin-left: 10px;">
+            <button type="button" class="btn-filter-pill ${this.dividendTableFilter === 'all' ? 'active' : ''}" data-div-filter="all">
+              🌟 ทั้งหมด (${this.dividends.length})
+            </button>
+            <button type="button" class="btn-filter-pill ${this.dividendTableFilter === 'year' ? 'active' : ''}" data-div-filter="year">
+              🗓️ เฉพาะปี ${this.selectedDividendYear} (${yearStats.yearDivs.length})
+            </button>
+          </div>
         </div>
         <button class="btn btn-sm btn-primary" id="btn-add-dividend-modal">
           <span>➕ บันทึกเงินปันผลรับ</span>
@@ -3945,10 +4072,10 @@ class PixelStewardApp {
           <tbody>
     `;
 
-    if (this.dividends.length === 0) {
-      html += `<tr><td colspan="9" style="text-align: center; padding: 32px;">ยังไม่มีบันทึกเงินปันผล</td></tr>`;
+    if (displayedDividends.length === 0) {
+      html += `<tr><td colspan="9" style="text-align: center; padding: 32px; color: var(--text-muted);">ยังไม่มีรายการบันทึกเงินปันผล${this.dividendTableFilter === 'year' ? `ในปี ${this.selectedDividendYear}` : ''}</td></tr>`;
     } else {
-      this.dividends.forEach(d => {
+      displayedDividends.forEach(d => {
         const port = this.portfolios.find(p => p.id === d.portfolioId);
         const netTHB = this.usdToThb(d.netUSD);
         html += `
@@ -3977,43 +4104,138 @@ class PixelStewardApp {
 
     container.innerHTML = html;
 
+    this.bindDividendEvents(container, availableYears);
+
     setTimeout(() => {
-      this.initDividendForecastChart(estAnnualUSD);
+      this.initDividendForecastChart(estAnnualUSD, yearStats.monthlyActualUSD, this.selectedDividendYear);
     }, 50);
   }
 
-  initDividendForecastChart(annualTotalUSD) {
+  bindDividendEvents(container, availableYears) {
+    // Year pills click
+    container.querySelectorAll('.div-year-pill').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const y = parseInt(btn.getAttribute('data-div-year'), 10);
+        if (y && y !== this.selectedDividendYear) {
+          this.selectedDividendYear = y;
+          this.renderDividendsView(container);
+        }
+      });
+    });
+
+    // Year dropdown change
+    const yearSelect = container.querySelector('#select-div-year');
+    if (yearSelect) {
+      yearSelect.addEventListener('change', (e) => {
+        const y = parseInt(e.target.value, 10);
+        if (y && y !== this.selectedDividendYear) {
+          this.selectedDividendYear = y;
+          this.renderDividendsView(container);
+        }
+      });
+    }
+
+    // Prev / Next year arrows
+    const btnPrev = container.querySelector('#btn-prev-div-year');
+    const btnNext = container.querySelector('#btn-next-div-year');
+
+    if (btnPrev) {
+      btnPrev.addEventListener('click', () => {
+        const idx = availableYears.indexOf(this.selectedDividendYear);
+        if (idx > 0) {
+          this.selectedDividendYear = availableYears[idx - 1];
+        } else {
+          this.selectedDividendYear = this.selectedDividendYear - 1;
+        }
+        this.renderDividendsView(container);
+      });
+    }
+
+    if (btnNext) {
+      btnNext.addEventListener('click', () => {
+        const idx = availableYears.indexOf(this.selectedDividendYear);
+        if (idx >= 0 && idx < availableYears.length - 1) {
+          this.selectedDividendYear = availableYears[idx + 1];
+        } else {
+          this.selectedDividendYear = this.selectedDividendYear + 1;
+        }
+        this.renderDividendsView(container);
+      });
+    }
+
+    // Table Filter pills
+    container.querySelectorAll('.btn-filter-pill').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const filter = btn.getAttribute('data-div-filter');
+        if (filter && filter !== this.dividendTableFilter) {
+          this.dividendTableFilter = filter;
+          this.renderDividendsView(container);
+        }
+      });
+    });
+  }
+
+  initDividendForecastChart(annualTotalUSD, monthlyActualUSD, selectedYear) {
     const ctx = document.getElementById('chart-dividend-forecast')?.getContext('2d');
     if (!ctx) return;
+
+    if (this.charts.divForecast) {
+      this.charts.divForecast.destroy();
+    }
 
     const months = ['ม.ค.', 'ก.พ.', 'มี.ค.', 'เม.ย.', 'พ.ค.', 'มิ.ย.', 'ก.ค.', 'ส.ค.', 'ก.ย.', 'ต.ค.', 'พ.ย.', 'ธ.ค.'];
     const monthlyBase = annualTotalUSD > 0 ? (annualTotalUSD / 12) : 10;
 
     // Distribute typical dividend quarterly peaks (Mar, Jun, Sep, Dec + May/Nov for Thai)
     const weights = [0.85, 0.75, 1.45, 0.80, 1.30, 1.50, 0.75, 0.80, 1.40, 0.80, 1.25, 1.55];
-    const dataValues = weights.map(w => parseFloat((monthlyBase * w).toFixed(2)));
+    const forecastValues = weights.map(w => parseFloat((monthlyBase * w).toFixed(2)));
+    const actualValues = (monthlyActualUSD && monthlyActualUSD.length === 12) 
+      ? monthlyActualUSD.map(v => parseFloat(v.toFixed(2))) 
+      : Array(12).fill(0);
 
     this.charts.divForecast = new Chart(ctx, {
       type: 'bar',
       data: {
         labels: months,
-        datasets: [{
-          label: 'คาดการณ์ปันผลสุทธิ ($ USD)',
-          data: dataValues,
-          backgroundColor: 'rgba(16, 185, 129, 0.65)',
-          hoverBackgroundColor: '#10b981',
-          borderRadius: 6,
-          borderWidth: 0
-        }]
+        datasets: [
+          {
+            label: `ปันผลรับจริงปี ${selectedYear} (Actual)`,
+            data: actualValues,
+            backgroundColor: '#10b981',
+            hoverBackgroundColor: '#059669',
+            borderRadius: 5,
+            borderWidth: 0,
+            barPercentage: 0.8,
+            categoryPercentage: 0.7
+          },
+          {
+            label: 'คาดการณ์ปันผล (Forecast)',
+            data: forecastValues,
+            backgroundColor: 'rgba(56, 189, 248, 0.45)',
+            hoverBackgroundColor: 'rgba(56, 189, 248, 0.75)',
+            borderColor: '#38bdf8',
+            borderWidth: 1.5,
+            borderRadius: 5,
+            barPercentage: 0.8,
+            categoryPercentage: 0.7
+          }
+        ]
       },
       options: {
         responsive: true,
         maintainAspectRatio: false,
         plugins: {
-          legend: { display: false },
+          legend: {
+            display: false
+          },
           tooltip: {
             callbacks: {
-              label: (c) => ` ปันผลคาดการณ์: $${c.raw.toFixed(2)} (≈ ฿${Math.round(this.usdToThb(c.raw)).toLocaleString()})`
+              label: (c) => {
+                const isActual = c.datasetIndex === 0;
+                const prefix = isActual ? '🟢 รับจริง' : '🔵 คาดการณ์';
+                const val = c.raw || 0;
+                return ` ${prefix}: $${val.toFixed(2)} (≈ ฿${Math.round(this.usdToThb(val)).toLocaleString()})`;
+              }
             }
           }
         },
