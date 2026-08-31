@@ -272,6 +272,7 @@ class PixelStewardApp {
     this.selectedQuarterYear = new Date().getFullYear();
     this.selectedDividendYear = new Date().getFullYear();
     this.dividendTableFilter = 'all'; // 'all' or 'year'
+    this.finnhubApiKey = localStorage.getItem('pixel_finnhub_key') || '';
     this.isPrivacyMode = false;
     this.isSidebarCollapsed = false;
     this.allocationViewMode = 'donut'; // 'donut' or 'treemap'
@@ -1228,33 +1229,56 @@ class PixelStewardApp {
   async fetchBatchStockPrices(tickers, priceUpdates) {
     if (!tickers || tickers.length === 0) return;
 
-    // 1. Try single batch quote first
-    const symbolsStr = tickers.join(',');
-    const quoteUrl1 = `https://query1.finance.yahoo.com/v7/finance/quote?symbols=${encodeURIComponent(symbolsStr)}`;
-    const quoteUrl2 = `https://query2.finance.yahoo.com/v7/finance/quote?symbols=${encodeURIComponent(symbolsStr)}`;
-    
-    try {
-      const data = (await this.fetchViaFastProxies(quoteUrl1)) || (await this.fetchViaFastProxies(quoteUrl2));
-      const results = data?.quoteResponse?.result;
-      
-      if (Array.isArray(results) && results.length > 0) {
-        results.forEach(q => {
-          const sym = q.symbol?.toUpperCase();
-          const price = q.regularMarketPrice || q.postMarketPrice || q.preMarketPrice;
-          const changePct = q.regularMarketChangePercent ?? 0;
-          if (sym && price > 0) {
-            priceUpdates[sym] = { priceUSD: price, change1dPct: changePct };
-          }
-        });
-      }
-    } catch (e) {}
-
-    // 2. Guaranteed concurrent chart fallback for all remaining tickers
-    const missingTickers = tickers.filter(t => !priceUpdates[t]);
-    if (missingTickers.length > 0) {
-      const fallbackPromises = missingTickers.map(async (sym, idx) => {
+    // 1. If user has a Finnhub API Key, use direct ultra-fast CORS fetch (sub-100ms, 0 proxy lag)
+    if (this.finnhubApiKey) {
+      const finnhubPromises = tickers.map(async (sym, idx) => {
         try {
-          if (idx > 0) await new Promise(r => setTimeout(r, idx * 25));
+          if (idx > 0) await new Promise(r => setTimeout(r, idx * 30));
+          const cleanSym = sym.replace('.BK', '').trim();
+          const res = await this.fetchWithTimeout(`https://finnhub.io/api/v1/quote?symbol=${encodeURIComponent(cleanSym)}&token=${encodeURIComponent(this.finnhubApiKey)}`, 3500);
+          if (res.ok) {
+            const data = await res.json();
+            if (data && data.c > 0) {
+              const price = data.c;
+              const changePct = data.dp ?? 0;
+              priceUpdates[sym] = { priceUSD: price, change1dPct: changePct };
+            }
+          }
+        } catch (e) {}
+      });
+      await Promise.allSettled(finnhubPromises);
+    }
+
+    // 2. Try single batch quote via multi-proxies for remaining tickers
+    const missingBatch = tickers.filter(t => !priceUpdates[t]);
+    if (missingBatch.length > 0) {
+      const symbolsStr = missingBatch.join(',');
+      const quoteUrl1 = `https://query1.finance.yahoo.com/v7/finance/quote?symbols=${encodeURIComponent(symbolsStr)}`;
+      const quoteUrl2 = `https://query2.finance.yahoo.com/v7/finance/quote?symbols=${encodeURIComponent(symbolsStr)}`;
+      
+      try {
+        const data = (await this.fetchViaFastProxies(quoteUrl1)) || (await this.fetchViaFastProxies(quoteUrl2));
+        const results = data?.quoteResponse?.result;
+        
+        if (Array.isArray(results) && results.length > 0) {
+          results.forEach(q => {
+            const sym = q.symbol?.toUpperCase();
+            const price = q.regularMarketPrice || q.postMarketPrice || q.preMarketPrice;
+            const changePct = q.regularMarketChangePercent ?? 0;
+            if (sym && price > 0) {
+              priceUpdates[sym] = { priceUSD: price, change1dPct: changePct };
+            }
+          });
+        }
+      } catch (e) {}
+    }
+
+    // 3. Concurrent chart fallback for any still-missing tickers
+    const stillMissing = tickers.filter(t => !priceUpdates[t]);
+    if (stillMissing.length > 0) {
+      const fallbackPromises = stillMissing.map(async (sym, idx) => {
+        try {
+          if (idx > 0) await new Promise(r => setTimeout(r, idx * 35));
           const chartUrl1 = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(sym)}?interval=1d&range=2d`;
           const chartUrl2 = `https://query2.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(sym)}?interval=1d&range=2d`;
           const chartData = (await this.fetchViaFastProxies(chartUrl1)) || (await this.fetchViaFastProxies(chartUrl2));
@@ -1265,9 +1289,7 @@ class PixelStewardApp {
             const changePct = prev > 0 ? ((price - prev) / prev) * 100 : 0;
             priceUpdates[sym] = { priceUSD: price, change1dPct: changePct };
           }
-        } catch (e) {
-          // Ignore individual failure
-        }
+        } catch (e) {}
       });
       await Promise.allSettled(fallbackPromises);
     }
@@ -5511,6 +5533,23 @@ tags:
 
       <div class="analytics-charts-grid">
         <div class="chart-card">
+          <div class="chart-title">⚡ ดึงราคาตลาดสดแบบ Realtime (Finnhub API Key)</div>
+          <p style="font-size: 13px; color: var(--text-secondary); margin-bottom: 12px;">
+            เชื่อมต่อ Finnhub API ฟรี เพื่อดึงราคาหุ้นสดอัตโนมัติตลอดเวลา (CORS Direct 0ms lag ไม่ติดบล็อก)
+          </p>
+          <div class="form-group" style="margin-bottom: 8px;">
+            <label style="font-size: 12px; color: var(--text-secondary);">Finnhub API Key (ฟรี):</label>
+            <div style="display: flex; gap: 8px; margin-top: 4px;">
+              <input type="text" id="input-finnhub-key" class="form-input font-mono" placeholder="ใส่ API Key เช่น c..." value="${this.finnhubApiKey || ''}" style="flex: 1;">
+              <button class="btn btn-primary" id="btn-save-finnhub-key">💾 บันทึก Key</button>
+            </div>
+            <div style="font-size: 11px; color: var(--text-muted); margin-top: 6px;">
+              👉 รับ API Key ฟรีได้ที่ <a href="https://finnhub.io/register" target="_blank" style="color: var(--color-emerald); text-decoration: underline;">finnhub.io/register</a> (สมัครฟรี 10 วินาที ใช้งานได้ทันที)
+            </div>
+          </div>
+        </div>
+
+        <div class="chart-card">
           <div class="chart-title">☁️ สถานะการซิงค์ Firebase Cloud</div>
           <p style="font-size: 13px; color: var(--text-secondary); margin-bottom: 12px;">
             Project ID: <code>pixel-steward-db</code><br>
@@ -5539,10 +5578,32 @@ tags:
     `;
 
     container.innerHTML = html;
+
+    // Finnhub Key Save Event
+    document.getElementById('btn-save-finnhub-key')?.addEventListener('click', () => {
+      const key = (document.getElementById('input-finnhub-key')?.value || '').trim();
+      this.finnhubApiKey = key;
+      localStorage.setItem('pixel_finnhub_key', key);
+      this.showToast({
+        icon: '🔑',
+        title: 'บันทึก Finnhub API Key แล้ว!',
+        message: key ? 'ระบบจะดึงราคาหุ้นสดอัตโนมัติจาก Finnhub ทันที' : 'ลบ API Key แล้ว',
+        type: 'success'
+      });
+      if (key) {
+        this.syncLiveMarketPrices();
+      }
+    });
   }
 
   // --- EVENT LISTENERS & INTERACTION ---
   setupEventListeners() {
+    // Window Visibility Auto-Sync (When user tabs back into the app)
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'visible') {
+        this.syncLiveMarketPrices();
+      }
+    });
     // Navigation Tabs (Desktop & Mobile)
     document.querySelectorAll('[data-tab]').forEach(btn => {
       btn.addEventListener('click', (e) => {
